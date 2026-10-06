@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # verify_modsig.sh — prova offline de assinatura de módulo GKI (sem aparelho, sem flash).
 # Uso:
-#   verify_modsig.sh <Image> <modulo.ko> [workdir]
+#   verify_modsig.sh <Image> <modulo.ko> [workdir]   (workdir opcional; default = mktemp -d, removido no fim)
 #   verify_modsig.sh --selftest   # positivo (can.ko oficial) + negativo (módulo adulterado)
 # Método:
 #   1) Extrai a assinatura PKCS#7 do fim do .ko (struct module_signature + magic).
@@ -14,6 +14,12 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"; SELFTEST_IMAGE="${SELFTEST_IMAGE:-$HERE/../official/Image}"
 SELFTEST_KO="${SELFTEST_KO:-$HERE/../official/can.ko}"
+
+# Diretório temporário do próprio script (nunca um caminho fixo): criado por mktemp e removido no EXIT.
+TMPWORK=""
+cleanup_tmp() { if [ -n "$TMPWORK" ] && [ -d "$TMPWORK" ]; then rm -rf "$TMPWORK"; fi; }
+trap cleanup_tmp EXIT
+new_tmpwork() { TMPWORK="$(mktemp -d "${TMPDIR:-/tmp}/verify_modsig.XXXXXX")"; }   # seta TMPWORK (nada de subshell, senão o trap EXIT não vê)
 
 carve_certs() { # <Image> <outdir>  -> imprime paths dos .der válidos
     local img="$1" out="$2"
@@ -82,8 +88,9 @@ verify_one() { # <content> <sig.der> <cert.der|pem> -> 0 ok / 1 fail
 }
 
 cmd_verify() {
-    local img="$1" ko="$2" work="${3:-/tmp/opencode/verify_out}"
-    rm -rf "$work"; mkdir -p "$work/certs" "$work/mod"
+    local img="$1" ko="$2" work="${3:-}"
+    if [ -z "$work" ]; then new_tmpwork; work="$TMPWORK"; fi   # só removemos diretórios que este script criou
+    mkdir -p "$work/certs" "$work/mod"
     echo "[1/3] garimpando certs do Image (método A: varredura DER)..."
     mapfile -t CERTS < <(carve_certs "$img" "$work/certs")
     echo "      certs válidos no Image: ${#CERTS[@]}"
@@ -109,7 +116,8 @@ cmd_verify() {
 }
 
 cmd_selftest() {
-    local work=/tmp/opencode/verify_selftest
+    local work="${SELFTEST_WORK:-}"
+    if [ -z "$work" ]; then new_tmpwork; work="$TMPWORK"; fi
     echo '=== POSITIVO: can.ko oficial vs Image oficial ==='
     cmd_verify "$SELFTEST_IMAGE" "$SELFTEST_KO" "$work/pos" || return 1
     echo '=== NEGATIVO: can.ko adulterado (1 byte) deve FALHAR ==='
@@ -135,5 +143,5 @@ case "${1:-}" in
     --selftest) cmd_selftest ;;
     -h|--help) sed -n '2,12p' "$0" ;;
     *) [ $# -ge 2 ] || { echo "uso: $0 <Image> <mod.ko> [workdir] | $0 --selftest"; exit 2; }
-       cmd_verify "$1" "$2" "${3:-/tmp/opencode/verify_out}" ;;
+       cmd_verify "$1" "$2" "${3:-}" ;;
 esac

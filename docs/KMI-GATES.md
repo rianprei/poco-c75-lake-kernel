@@ -1,13 +1,13 @@
 # Verification gates
 
-A custom kernel is only acceptable if the **closed vendor modules still load**. These gates prove it offline, before any device is involved. All are scripted and have positive *and* negative (sabotage) tests.
+A custom kernel is only acceptable if the **closed vendor modules still load**. These gates prove it offline, before any device is involved. Each gate is a command you can re-run; the CRC gate additionally ships an automated self-test (positive + 3 sabotage cases) in `tools/selftest_gates.sh`.
 
 ## Why the vendor modules are the constraint
 
-On `lake` the kernel image is Google's GKI; everything device-specific (display, modem, Wi-Fi, camera, DVFS, thermal…) lives in **557 `.ko` files** (153 loaded early from the `vendor_boot` ramdisk, the rest in `vendor_dlkm`). They are prebuilt against Google's exported symbols and are **not** recompiled. They depend on the kernel through three mechanisms:
+On `lake` the kernel image is Google's GKI; everything device-specific (display, modem, Wi-Fi, camera, DVFS, thermal…) lives in **557 `.ko` files — 370 distinct modules** (measured on the device dump: 342 files in the `vendor_boot` ramdisk, i.e. 170 slot-A + 172 slot-B copies; 215 files in `vendor_dlkm`; 17 module names appear in both trees). Vermagic groups (verifiable in `tools/data/modules_inventory.tsv`): 193 modules with a single vermagic `6.6.89-android15-8-g810fd09a116c-4k …`, 170 modules that exist in **both** trees (`…g810fd09a116c…` in `vendor_dlkm`, `…gbdb5aebb8ade…` in the ramdisk — the early-boot copy), and 7 modules `6.6.30-android15-8-gf597b3de5ef5-4k …`. They are prebuilt against Google's exported symbols and are **not** recompiled. They depend on the kernel through three mechanisms:
 
 1. **Exported symbols + CRCs** (`CONFIG_MODVERSIONS`). A module imports `symbol` with an expected CRC. If the kernel's CRC differs → `disagrees about version of symbol`; if the symbol is trimmed away → `Unknown symbol`.
-2. **kCFI** (`CONFIG_CFI_CLANG`). The modules are compiled with kernel CFI; the kernel must keep it enabled (101 of 215 `vendor_dlkm` modules carry `__kcfi_typeid_*`). *Do not copy kernels that turn CFI off — those target devices whose modules are built without it.*
+2. **kCFI** (`CONFIG_CFI_CLANG`). The modules are compiled with kernel CFI; the kernel must keep it enabled — count on the device dump: `for f in <mods>/*.ko; do nm --defined-only "$f" | grep -c __kcfi_typeid_; done` → 101 of the 215 `vendor_dlkm` modules (and 68 of the 172 ramdisk modules) carry `__kcfi_typeid_*`. *Do not copy kernels that turn CFI off — those target devices whose modules are built without it.*
 3. **Module signing / protected exports** (`CONFIG_MODULE_SIG_PROTECT`). See [`BUILD.md`](BUILD.md) §3.
 
 The release string in the vermagic is **not** a constraint: `same_magic()` (kernel/module/version.c) skips the first token when the module has CRCs. Only the remainder (`SMP preempt mod_unload modversions aarch64`) must match.
@@ -16,15 +16,43 @@ The release string in the vermagic is **not** a constraint: `same_magic()` (kern
 
 | Gate | What it proves | How |
 |---|---|---|
-| **G-CONFIG** | the build config equals the stock config (or differs only in intended lines) | `diff <(sort .config) <(sort config.stock)` |
+| **G-CONFIG** | the build config equals the stock config (or differs only in intended lines) | `diff <(sort .config) <(sort config.stock)` — `config.stock` is the device's own `/proc/config.gz`; it is not redistributed here |
 | **G-SYMVERS** | exported symbol set and all CRCs equal Google's | `cmp vmlinux.symvers` |
-| **G-CRC** | every CRC any of the 557 modules requires from the kernel equals the new kernel's | `tools/gate_kmi_crc.sh <new vmlinux.symvers>` |
-| **G-EXPORTS** | no symbol the modules need (and stock exports) is missing | same script (`missing_exports`) |
+| **G-CRC** | every CRC any of the 557 `.ko` requires from the kernel equals the new kernel's | `tools/gate_kmi_crc.sh <new vmlinux.symvers>` → `mismatches=0` |
+| **G-EXPORTS** | no symbol the modules need (and stock exports) is missing | same script (`missing_exports=0`) |
+| **G-SELFTEST** | the CRC gate itself detects sabotage instead of rubber-stamping | `tools/selftest_gates.sh` → 1 positive PASS + 3 negatives FAIL |
 | **G-CERT** | the Google-signed GKI modules verify against the new image | `tools/verify_modsig.sh` |
-| **G-REPACK** | the boot image changed only where intended | `tools/repack_boot_v2.py` test suite |
+| **G-REPACK** | the boot image changed only where intended | `tools/repack_boot_v2.py` — in-code refusals (truncated input, non-gzip kernel, `ramdisk_size != 0`, existing output, oversize, GKI signature block); the author's 32-case harness is **not** published |
 
-`tools/gate_kmi_crc.sh` extracts `(symbol, CRC)` pairs from every module's `__versions` section (`tools/dump_modcrcs.py`), joins them with the new kernel's `vmlinux.symvers`, and fails on any mismatch or missing export. Measured on this project: **1573 symbols compared, 0 mismatches, 0 missing**. Sabotage tests: corrupting the CRC of `mutex_lock` → `FAIL` naming the symbol; dropping an export → `FAIL`.
+`tools/gate_kmi_crc.sh` reads `(symbol, CRC)` pairs extracted from every module's `__versions` section (`data/modules_required_crcs.tsv`, generated with `tools/dump_modcrcs.py`), joins them with the new kernel's `vmlinux.symvers`, and fails on any mismatch or missing export. It prints the corpus metrics first, then the verdict.
+
+Measured on this project (reference = `data/official-vmlinux.symvers`, and identically for the control and cert builds):
+
+```
+$ tools/gate_kmi_crc.sh data/official-vmlinux.symvers
+modules.files=557 modules.unique=370
+symbols.required=4138 symbols.reference_exports=8795 symbols.reference_provides=2309
+compared=2309 mismatches=0 missing_exports=0 conflicting_crcs=0
+PASS
+exit=0
+```
+
+`compared=2309` is the number of symbols the 557 modules require **and** the stock kernel exports — these are the ones whose CRC must match. `symbols.required=4138` is everything the modules import (the remaining 1829 come from other vendor/GKI modules, see below). `conflicting_crcs=0` means no symbol is required with two different CRCs anywhere in the corpus.
+
+Historical note: earlier revisions of this page said "1573 kernel symbols". 1573 was the count for the **215 `vendor_dlkm` modules only** (the subset whose CRCs had been extracted first); the full 557-file corpus requires 2309 kernel symbols. Both numbers come from the same method, different corpora.
+
+## Regenerating the data
+
+Both data files are derived only from the device's own modules (no binary is redistributed):
+
+```bash
+MODS=<dir with the 557 .ko>    # <MODS>/ramdisk/ (342) + <MODS>/vendor_dlkm/ (215)
+python3 tools/dump_modcrcs.py "$MODS/ramdisk" "$MODS/vendor_dlkm"             > tools/data/modules_required_crcs.tsv
+python3 tools/dump_modcrcs.py --inventory "$MODS/ramdisk" "$MODS/vendor_dlkm" > tools/data/modules_inventory.tsv
+```
+
+`modules_required_crcs.tsv` = `symbol<TAB>0xCRC<TAB>module_basename` (20187 rows, sorted and deduplicated); `modules_inventory.tsv` = `module_basename<TAB>copies<TAB>vermagic` (370 rows, `copies` sums to 557). The `vb_<slot>_r<NN>__` prefix that the audit uses for ramdisk files is stripped so the slot-A/B copies collapse into one module identity.
 
 ## Inter-module symbols
 
-4138 distinct symbols are imported by the modules: 1573 come from the kernel and are covered above; the rest are exported by *other vendor modules* (e.g. `mtk_cmdq_drv_ext`, `mediatek_drm`) and are unaffected by rebuilding the kernel. Nine symbols (`arc4_*`, `rfkill_*`) are *protected exports* provided by Google-signed GKI modules — the reason for the certificate in the cert build.
+4138 distinct symbols are imported by the modules: **2309 come from the kernel** and are covered above; the remaining 1829 are exported by *other vendor modules* (e.g. `mtk_cmdq_drv_ext`, `mediatek_drm`) and are unaffected by rebuilding the kernel. Nine of them (`arc4_*`, `rfkill_*`) are *protected exports* provided by Google-signed GKI modules — the reason for the certificate in the cert build.

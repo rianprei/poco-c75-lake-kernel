@@ -11,6 +11,6 @@ This repository contains original tooling and documentation (MIT, see `LICENSE`)
 | `certs/google_gki_ab13771415_modsign_cert.pem` | Public X.509 certificate embedded in that build's kernel image (public key only, no private material) | n/a |
 | `data/kmi_abi_union_r12.txt` | Symbol names from `android/abi_gki_aarch64*` in the kernel tree | GPL-2.0-only |
 
-No proprietary binary (vendor modules, firmware, partition dumps, boot images) is included. `tools/data/vendor_required_crcs.txt` contains only symbol names and CRC values extracted from the device's own modules.
+No proprietary binary (vendor modules, firmware, partition dumps, boot images) is included. `tools/data/modules_required_crcs.tsv` and `tools/data/modules_inventory.tsv` are derived data (symbol names, CRC values, module file names and vermagic strings) extracted with `tools/dump_modcrcs.py` from the device's own modules; they contain no module code.
 
 "Xiaomi", "POCO", "Redmi", "MediaTek" and "Android" are trademarks of their owners; this project is not affiliated with them.

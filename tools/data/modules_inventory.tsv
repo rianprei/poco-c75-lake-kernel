@@ -1,0 +1,370 @@
+8250_mtk.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+CPU_DVFS.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+MTK_INTERNAL_SPM.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+Upower.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+accel_common.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+accelhub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+adapter_class.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+aee_aed.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+aee_hangdet.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+aee_rs.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+alsps_common.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+alspshub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+archcounter_timesync.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+arm_dsu_pmu.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+atf_logger.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+baro_common.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+barohub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+binder_gki.ko	1	6.6.30-android15-8-gf597b3de5ef5-4k SMP preempt mod_unload modversions aarch64
+binder_prio.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+blocktag.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+bootprof.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+bt_drv_connac1x.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+btif_drv.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+c2k_usb.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+c2k_usb_f_via_atc.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+c2k_usb_f_via_ets.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+c2k_usb_f_via_modem.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+cache-parity.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+cam_qos_4.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+camera_dpe_isp40.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+camera_eeprom_isp4_t.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+camera_fdvt_isp40.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+camera_isp_4_t.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+camera_mem.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ccci_auxadc.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ccci_ccif.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ccci_cldma.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ccci_fsm_scp.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ccci_md_all.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ccci_util_lib.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ccmni.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ccu_isp4.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+cfg80211.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+charger_class.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+clk-common.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+clk-fmeter-mt6768.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+clk-mt6768-pg.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+clk-mt6768.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+clkbuf.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+clkchk-mt6768.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+clkdbg-mt6768.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+cmdq-bdg-mailbox.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+cmdq-bdg-test.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+cmdq-platform-mt6768.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+cmdq-sec-drv.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+cmdq-test.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+cmdq_helper_inf.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+conn_md_drv.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+connadp.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+cpufreq_sugov_ext.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+cpumaxfreq.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+cpuqos_ext.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+cqhci.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dbg_error_flag.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+device-apc-common-legacy.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+device-apc-mt6768.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+drm_display_helper.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+drm_dma_helper.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_35_02_0h_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_35_0f_0e_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_35_0f_0l_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_37_02_0d_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_43_02_0a_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_43_02_0k_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_43_02_0n_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_44_03_0b_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_44_03_0j_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_46_03_0c_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_46_03_0f_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_46_03_0g_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_bias.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dsi_panel_c3n_null_dsc_vdo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+dvfsrc-opp-mt6768.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+eas_ext.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+emi-dummy.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+emicen.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+emictrl.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+emiisu.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+emimpu.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+extcon-mtk-usb.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+extdev_io_class.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+fhctl.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+flashlight.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+fmradio_drv_mt6631.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+fpsgo.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ft8057m_spi.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ft8057p_spi.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+fusion.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gamerotvechub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gc_gc6133c_ii.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ged.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gf_fingerprint.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gmagrotvechub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gps_drv_stp.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gravityhub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gyro_common.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gyrohub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gz_ipc_mod.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gz_irq_mod.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gz_log_mod.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gz_main_mod.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gz_trusty_mod.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gz_tz_system.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+gz_virtio_mod.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+hwmon.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+i2c-mt65xx.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+icnl9916_spi.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+imgsensor_isp4_t.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+iommu_debug.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+iommu_gz.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+iommu_secure.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+iommu_test.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+irq-dbg.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+isee.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+lc_charger_sysfs.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+lct_audio_info.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+lct_tp.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+leds-mt6370-flash.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+leds-mtk-disp.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+leds-mtk-pwm.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+leds-mtk.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+linearacchub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+load_track.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+log_store.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mac80211.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mag_common.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+maghub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+main2af.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+main3af.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mainaf.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mali_kbase_mt6768_r49.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mali_mgm_mt6768_r49.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mali_prot_alloc_mt6768_r49.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mcDrvModule.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mcdi.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mdp_drv_mt6768.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mediatek-drm.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mediatek_eem.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mediatek_static_power.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+memory-amms.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+met.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+met_backlight_api.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+met_emi_api.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+met_gpu_adv_api.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+met_gpu_api.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+met_ipi_api.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+met_mcupm_api.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+met_scmi_api.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+met_sspm_api.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+met_vcore_api.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mi_memory.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mi_rmap_efficiency.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+miev.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+millet_binder.ko	1	6.6.30-android15-8-gf597b3de5ef5-4k SMP preempt mod_unload modversions aarch64
+millet_core.ko	1	6.6.30-android15-8-gf597b3de5ef5-4k SMP preempt mod_unload modversions aarch64
+millet_hs.ko	1	6.6.30-android15-8-gf597b3de5ef5-4k SMP preempt mod_unload modversions aarch64
+millet_oem_cgroup.ko	1	6.6.30-android15-8-gf597b3de5ef5-4k SMP preempt mod_unload modversions aarch64
+millet_pkg.ko	1	6.6.30-android15-8-gf597b3de5ef5-4k SMP preempt mod_unload modversions aarch64
+millet_sig.ko	1	6.6.30-android15-8-gf597b3de5ef5-4k SMP preempt mod_unload modversions aarch64
+mme.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mmprofile.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mmqos-common.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mmqos-mt6768.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+monitor_hang.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mrdump.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mt6358-accdet.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mt6358-regulator.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mt6358_battery.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mt635x-auxadc.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mt6370-adc.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mt6370-charger.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mt6370-regulator.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mt6370.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mt6397.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mt63xx-debug.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mt6577_auxadc.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mt6768-mt6358.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mt6768_dcm.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-afe-external.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-btcvsd.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-cmdq-drv-ext.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-composite.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-cqdma.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-dvfsrc-devfreq.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-dvfsrc-helper.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-dvfsrc-regulator.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-dvfsrc-start.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-dvfsrc.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-emi.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-icc-core.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-kpd.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-mbox.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-mmc-dbg.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-mmc-wp.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-mmc.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-mmdebug-vcp-stub.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-mmdvfs-debug.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-mmdvfs-ftrace.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-mmdvfs.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-mml.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-pmic-keys.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-pmic-wrap.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-pwm.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-scpsys-bringup.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-scpsys-mt6768.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-scpsys.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-smi-bwc.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-smi-dbg.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-smi.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-socinfo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-sp-spk-amp.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-uart-apdma.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk-vcodec-common.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-vcodec-dec-v1.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-vcodec-enc-v1.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk-vcu.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_battery_manager.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_battery_oc_throttling.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_bp_thl.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_charger_algorithm_class.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_charger_cooling.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_charger_framework.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_chg_type_det.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_cm_mgr.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_cm_mgr_mt6768.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_cpu_power_throttling.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_cpuhp.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_cpuidle.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_dcm.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_disp_notify.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_disp_sec.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_dramc.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_dynamic_loading_throttling.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_em.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_fpsgo.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_gpu_hal.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_gpu_qos.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_gpufreq_mt6768.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_gpufreq_wrapper_legacy.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_heap_debug.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_ioctl_powerhal.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_ioctl_touch_boost.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_iommu.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_iommu_util.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_irtx_pwm.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_jpeg.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_low_battery_throttling.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_md_power_throttling.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_mdpm_v1.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_panel_ext.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_pbm.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_pd_adapter.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_pd_charging.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_peak_power_budget.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_pep.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_pep20.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_pep40.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_perf_common.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_perf_ioctl.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_power_gs_v1.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_ppm_v3.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_printk_ctrl.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_qos_legacy.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_rpmsg_mbox.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_sec_heap.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_spi.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_sync.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+mtk_tinysys_ipi.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_u_ether.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_usb_f_rndis.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+mtk_wdt.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+musb_boost.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+musb_hdrc.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+musb_main.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+nt36528_spi.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+nvmem-mt635x-efuse.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+nvmem_mtk-devinfo.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+nxp_i2c.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+orienthub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+pd-chk-mt6768.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+pd_dbg_info.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+perf_helper.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+perfhelper.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+phy-generic.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+phy-mtk-tphy.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+pidmap.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+pinctrl-mt6768.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+pinctrl-mtk-common-v2_debug.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+pinctrl-mtk-v2.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+pmic_lbat_service.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+pmic_lvsys_notify.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+powerhal_cpu_ctrl.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+pwm-mtk-disp.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+reboot-mode.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+regulator-vibrator.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+rotatvechub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+rpmb-mtk.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+rpmb.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+rps_perf.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+rt_pd_manager.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+rtc-mt6397.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+sc_sc080cs_i.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+scheduler.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+scp.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+sec-rng.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+sec.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+sensorHub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+sensor_list.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+sensor_probe.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+sgm41543_charger.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+sil_fingerprint.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+simtray.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+situation.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+situationhub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+snd-soc-fs15xx.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+snd-soc-mt6358.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+snd-soc-mt6660.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+snd-soc-mt6768-afe.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+snd-soc-mtk-common.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+snd-soc-sipa-tuning.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+sp_sp0821_iii.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+spi-mt65xx.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+spi_slave.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+sspm_v1.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+step_counter.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+stepsignhub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+sub2af.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+subaf.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+syscon-reboot-mode.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+system_heap.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+t-base-tui.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+tcpc_class.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+tcpc_rt1711h.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+tcpc_upm7610.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+tcpci_late_sync.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+teeperf.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+thermal_monitor.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+timer-mediatek.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+touch_boost.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+trace_mmstat.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+trusted_mem.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+tui-common.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+ufs-mediatek-dbg.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+ufs-mediatek-mod.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+uload_ind.ko	3	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+uncali_acchub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+uncali_gyrohub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+uncali_maghub.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+upm6920_charger.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+usb_meta.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+v4l2-flash-led-class.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+widevine_driver.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+wifi_ant_check.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+wlan_drv_gen4m_6768.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+wmt_chrdev_wifi.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+wmt_drv.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+xiaomi_touch.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+xm_smart_chg.ko	2	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64|6.6.89-android15-8-gbdb5aebb8ade-4k SMP preempt mod_unload modversions aarch64
+zram.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64
+zsmalloc.ko	1	6.6.89-android15-8-g810fd09a116c-4k SMP preempt mod_unload modversions aarch64

@@ -28,6 +28,7 @@ This is the official target (`//common:kernel_aarch64_dist`, `--config=stamp`) w
 | Check | Expected |
 |---|---|
 | `dist_control/vmlinux.symvers` vs Google's | **byte-identical** (`cmp`) |
+| `tools/gate_kmi_crc.sh dist_control/vmlinux.symvers` | `compared=2309 mismatches=0 missing_exports=0 conflicting_crcs=0` → `PASS` |
 | `bazel-bin/common/kernel_aarch64_config/out_dir/.config` vs the device's `/proc/config.gz` | **0 differences** |
 | `System.map` symbol (type, name) set | 0 differences (addresses differ) |
 | `Image` | same size (36,461,056 B) but **not** byte-identical: the ephemeral signing key and the version banner change the layout |
@@ -47,12 +48,24 @@ This applies two patches (the Kleaf wrapper `define_common_kernels` does not for
 ## 4. Verify before anything else
 
 ```bash
-tools/gate_kmi_crc.sh   $HOME/lake-build/out/dist_cert/vmlinux.symvers      # → PASS
-tools/verify_modsig.sh  $HOME/lake-build/out/dist_cert/Image official/can.ko # → PASS (Google-signed module)
-tools/verify_modsig.sh  $HOME/lake-build/out/dist_control/Image official/can.ko # → FAIL (no cert: proves the need)
+tools/selftest_gates.sh                                                       # → SELFTEST PASS
+tools/gate_kmi_crc.sh $HOME/lake-build/out/dist_cert/vmlinux.symvers          # → see output below
+tools/verify_modsig.sh $HOME/lake-build/out/dist_cert/Image official/can.ko   # → PASS (Google-signed module)
+tools/verify_modsig.sh $HOME/lake-build/out/dist_control/Image official/can.ko # → FAIL (no cert: proves the need)
 ```
 
-See [`KMI-GATES.md`](KMI-GATES.md).
+Measured, for the control and the cert build alike (`data/official-vmlinux.symvers` gives the same):
+
+```
+$ tools/gate_kmi_crc.sh $HOME/lake-build/out/dist_cert/vmlinux.symvers
+modules.files=557 modules.unique=370
+symbols.required=4138 symbols.reference_exports=8795 symbols.reference_provides=2309
+compared=2309 mismatches=0 missing_exports=0 conflicting_crcs=0
+PASS
+exit=0
+```
+
+`official/Image` and `official/can.ko` come from `tools/fetch_official_artifacts.sh Image can.ko` (sha256-checked; see [`KMI-GATES.md`](KMI-GATES.md) for the data files and their metrics).
 
 ## 5. Repack into a boot image (host only)
 

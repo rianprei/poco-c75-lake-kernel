@@ -17,8 +17,8 @@ Xiaomi has not published kernel source for the `lake` device, and community kern
 |---|---|
 | The device runs **Google's unmodified GKI** kernel: its `Image` is byte-identical to the public CI build `13771415` (`android15-6.6-2025-06_r12`, commit `5a0ffb447c1d…`). | `cmp` + sha256 `a023b4fd…bbaca` |
 | The kernel **config is exactly known**: Google's build `.config` is byte-identical to `/proc/config.gz` of the device. | sha256 `9b544345…eb19ec` |
-| All device-specific code lives in **closed vendor modules** (557 `.ko` files: 153 in the `vendor_boot` ramdisk, the rest in `vendor_dlkm`), not in the kernel. | `modinfo` / ELF parsing |
-| A rebuilt kernel exports **exactly the same symbols and CRCs** as stock, so the closed modules keep loading. | `vmlinux.symvers` identical, 0 CRC mismatches |
+| All device-specific code lives in **closed vendor modules** (557 `.ko` files = 370 distinct modules: 342 ramdisk files from `vendor_boot` + 215 in `vendor_dlkm`, 17 names in both), not in the kernel. | `modinfo` / ELF parsing — `tools/data/modules_inventory.tsv` |
+| A rebuilt kernel exports **exactly the same symbols and CRCs** as stock, so the closed modules keep loading. | `vmlinux.symvers` byte-identical to Google's; gate on all 557 `.ko`: 2309 kernel symbols compared, 0 mismatches |
 | A rebuilt kernel has a new ephemeral signing key, so Google-signed GKI modules (`rfkill`, `libarc4`, `bluetooth`, …) would lose `sig_ok` and be refused as *protected exports* — breaking Wi-Fi/Bluetooth. **Fix:** embed Google's public module-signing certificate via `CONFIG_SYSTEM_TRUSTED_KEYS`. | source analysis + controlled signature experiment |
 | The vermagic *version string* does **not** need to match (`same_magic()` ignores it when modules carry CRCs). | `kernel/module/version.c` |
 
@@ -26,13 +26,14 @@ Xiaomi has not published kernel source for the `lake` device, and community kern
 
 | Gate | Result |
 |---|---|
-| Source pinned to the official manifest (36/36 projects, clang `r510928`) | ✅ |
+| Source pinned to the official manifest (36/36 projects — `grep -c '<project' manifests/manifest_13771415.xml` — clang `r510928`) | ✅ |
 | Control build (no changes): `vmlinux.symvers` byte-identical to Google's | ✅ |
 | Control build: `.config` identical to the device config | ✅ |
 | Cert build: only difference vs stock config is `CONFIG_SYSTEM_TRUSTED_KEYS` | ✅ |
-| Per-symbol CRC gate against all 557 vendor modules (1573 kernel symbols) | ✅ 0 mismatches |
-| Google-signed module verifies against the new image; fails against the build without the cert | ✅ |
-| Boot-image repack tool: 32 adversarial test cases | ✅ |
+| Per-symbol CRC gate against **all 557 vendor `.ko` (370 unique modules)**: 4138 symbols required, 2309 provided by the kernel | ✅ 0 mismatches, 0 missing — `tools/gate_kmi_crc.sh` |
+| Google-signed module verifies against the new image; fails against the build without the cert | ✅ `tools/verify_modsig.sh --selftest` |
+| Gate self-test: 1 positive + 3 sabotage cases (corrupted CRC, dropped export, empty symvers) | ✅ `tools/selftest_gates.sh` |
+| Boot-image repack tool refuses truncated input, non-gzip kernel, `ramdisk_size != 0`, existing output, oversize image, and drops the GKI signature block only with `--drop-signature` | ✅ checks in `tools/repack_boot_v2.py` (the author's 32-case harness is **not** published) |
 | **Image boots on a real `lake` device** | ❌ **not yet tested** |
 | Wi-Fi / Bluetooth / modem / camera working with the new kernel | ❌ not yet tested |
 
@@ -42,30 +43,37 @@ The rebuilt `Image` is **not** byte-identical to Google's (the ephemeral signing
 
 ```
 docs/        BUILD, KMI gates, SAFETY, device test protocol, measured-facts plan, research notes
-tools/       gate_kmi_crc.sh, dump_modcrcs.py, verify_modsig.sh, repack_boot_v2.py, fetch_official_artifacts.sh
+tools/       gate_kmi_crc.sh, selftest_gates.sh, dump_modcrcs.py, verify_modsig.sh, repack_boot_v2.py, fetch_official_artifacts.sh
 patches/     Kleaf + common patches that embed the Google module-signing certificate
 certs/       Google GKI module-signing certificate (public)
 manifests/   official CI manifest + pinned variant used here
-data/        official vmlinux.symvers, KMI symbol lists, config safety table
+data/        official vmlinux.symvers, per-module required CRCs (all 557 .ko), KMI symbol lists, config safety table
 scripts/     build.sh (exact commands used)
 ```
 
 ## Quick start (host only — nothing touches a device)
 
 ```bash
-# 1. fetch public Google artifacts (no login) and self-test the signature tooling
-tools/fetch_official_artifacts.sh && tools/verify_modsig.sh --selftest
+# 1. fetch public Google artifacts (no login; sha256-checked) and self-test the signature tooling
+tools/fetch_official_artifacts.sh Image can.ko   # → official/{Image,can.ko}, hashes verified
+tools/verify_modsig.sh --selftest                # → SELFTEST PASS
 
-# 2. get the pinned source (≈12 GB) and build — see docs/BUILD.md for every flag
+# 2. self-test the KMI gate itself (1 positive + 3 sabotage cases) — no build needed
+tools/selftest_gates.sh                          # → SELFTEST PASS
+
+# 3. get the pinned source (≈12 GB) and build — see docs/BUILD.md for every flag
 scripts/build.sh sync
 scripts/build.sh control     # unmodified build → must match Google's symvers/config
 scripts/build.sh cert        # patched build with Google's cert embedded
 
-# 3. prove compatibility with the closed vendor modules before anything else
+# 4. prove compatibility with the closed vendor modules before anything else
 tools/gate_kmi_crc.sh "$HOME/lake-build/out/dist_cert/vmlinux.symvers"
+# → modules.files=557 modules.unique=370
+#   symbols.required=4138 symbols.reference_exports=8795 symbols.reference_provides=2309
+#   compared=2309 mismatches=0 missing_exports=0 conflicting_crcs=0 / PASS
 ```
 
-Requirements: Linux x86-64, ~80 GB free disk, 12+ GB RAM (6 cores recommended), `git`, `python3`, `curl`, `openssl`, `avbtool`.
+Requirements: Linux x86-64, ~80 GB free disk, 12+ GB RAM (6 cores recommended), `git`, `python3`, `curl`, `openssl`, `avbtool`, and Google's `repo` launcher (needed by `scripts/build.sh sync`, see [`docs/BUILD.md`](docs/BUILD.md)).
 
 ## Customizing
 
@@ -82,7 +90,7 @@ You can change anything that does not alter the exported kernel interface. Every
 
 ## Resumo em português
 
-Kernel GKI 6.6.89 do POCO C75 4G (`lake`): o aparelho roda o GKI oficial do Google sem modificações, e este repositório reproduz esse kernel a partir do fonte público, embute o certificado do Google para que os módulos assinados continuem carregando, e traz os "gates" que provam a compatibilidade com os 557 módulos fechados. **Ainda não foi testado no aparelho** — nenhuma imagem é publicada.
+Kernel GKI 6.6.89 do POCO C75 4G (`lake`): o aparelho roda o GKI oficial do Google sem modificações, e este repositório reproduz esse kernel a partir do fonte público, embute o certificado do Google para que os módulos assinados continuem carregando, e traz os "gates" que provam a compatibilidade com os 557 arquivos `.ko` fechados (370 módulos únicos; 4138 símbolos exigidos, 2309 fornecidos pelo kernel, 0 divergências). **Ainda não foi testado no aparelho** — nenhuma imagem é publicada.
 
 ## License
 
