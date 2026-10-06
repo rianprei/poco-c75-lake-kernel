@@ -148,6 +148,16 @@ case_run 25 "V28 tool script without exec bit" check_protocol_invariants.sh '^V2
 case_run 26 "V29 table name dropped from SAFETY" check_protocol_invariants.sh '^V29 FAIL' \
   "sed -i 's/protect2/XXXX/' docs/SAFETY.md"
 
+# FIX11b (V29 bidirectional) — new sabotage cases:
+
+# V29: extra name inserted in controlled table row
+case_run 27 "V29 extra name in controlled table" check_protocol_invariants.sh '^V29 FAIL' \
+  "sed -i 's/nvram, nvcfg, proinfo/nvram, nvcfg, seccfg, proinfo/' docs/SAFETY.md"
+
+# V29: name moved from erase-forbidden to controlled table
+case_run 28 "V29 name moved between tables" check_protocol_invariants.sh '^V29 FAIL' \
+  "sed -i 's/preloader, preloader_a, preloader_b, preloader_ab, preloader_backup, boot0, boot1/preloader, preloader_a, preloader_b, preloader_ab, preloader_backup, boot1/; s/nvram, nvcfg, proinfo/nvram, nvcfg, proinfo, boot0/' docs/SAFETY.md"
+
 # V30: 'getvar all' ordered as an executable step
 case_run 27 "V30 getvar all ordered as executable step" check_protocol_invariants.sh '^V30 FAIL' \
   "printf '\n| T9 | run \`fastboot getvar all\` and continue | no | n/a |\n' >> docs/DEVICE-TEST-PROTOCOL.md"

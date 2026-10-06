@@ -333,26 +333,48 @@ else
 fi
 
 # ------------------------------------------------------------------------------------------------
-# V29 — SAFETY names exactly the measured LK table names; the 7 unprotected names say so
+# V29 — SAFETY table rows exactly match data/lk_tables.tsv (bidirectional)
 # ------------------------------------------------------------------------------------------------
 names29="$(awk '!/^#/ && NF {print $2}' data/lk_tables.tsv)"
 [ "$(printf '%s\n' "$names29" | wc -l)" -eq 14 ] \
   && ok 29 "data/lk_tables.tsv lists 14 table names" \
   || fail 29 "data/lk_tables.tsv does not list 14 names"
-# Row-scoped (FIX11/B34): each name must sit on the line of its own table address,
-# because other lines (e.g. the rule-1 never-touch list) legitimately repeat names.
+
+# Build expected sets from TSV
+controlled_expected="$(awk -F'\t' '$3=="controlled" {print $2}' data/lk_tables.tsv | sort)"
+eraseforbid_expected="$(awk -F'\t' '$3=="erase-forbidden" {print $2}' data/lk_tables.tsv | sort)"
+
+# Row-scoped: each name must sit on the line of its own table address
 controlled29="$(grep -F '0x4c4bf8b0' "$SAFETY")"
 eraseforbid29="$(grep -F '0x4c4bf8cc' "$SAFETY")"
-for n in nvram nvcfg proinfo nvdata protect2 protect1 persist; do
-  printf '%s\n' "$controlled29" | grep -qwF "$n" \
-    && ok 29 "controlled-table row names $n" \
-    || fail 29 "controlled-table row lost name: $n"
+
+# Extract names from SAFETY table rows
+controlled29_names="$(printf '%s\n' "$controlled29" | sed -E 's/.*controlled table at `[^`]+`[^:]*: //; s/;.*//' | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | sort)"
+eraseforbid29_names="$(printf '%s\n' "$eraseforbid29" | sed -E 's/.*erase-forbidden table at `[^`]+`://; s/\(.*//' | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | sort)"
+
+# Bidirectional: SAFETY row must match TSV exactly (no extra, no missing)
+for n in $controlled_expected; do
+  printf '%s\n' "$controlled29_names" | grep -qwF "$n" \
+    && ok 29 "controlled-table row has $n" \
+    || fail 29 "controlled-table row missing expected name: $n"
 done
-for n in preloader preloader_a preloader_b preloader_ab preloader_backup boot0 boot1; do
-  printf '%s\n' "$eraseforbid29" | grep -qwF "$n" \
-    && ok 29 "erase-forbidden row names $n" \
-    || fail 29 "erase-forbidden row lost name: $n"
+for n in $controlled29_names; do
+  printf '%s\n' "$controlled_expected" | grep -qwF "$n" \
+    && ok 29 "controlled-table row has no extra: $n" \
+    || fail 29 "controlled-table row has unexpected name: $n"
 done
+for n in $eraseforbid_expected; do
+  printf '%s\n' "$eraseforbid29_names" | grep -qwF "$n" \
+    && ok 29 "erase-forbidden row has $n" \
+    || fail 29 "erase-forbidden row missing expected name: $n"
+done
+for n in $eraseforbid29_names; do
+  printf '%s\n' "$eraseforbid_expected" | grep -qwF "$n" \
+    && ok 29 "erase-forbidden row has no extra: $n" \
+    || fail 29 "erase-forbidden row has unexpected name: $n"
+done
+
+# Unprotected names still checked
 for s in 'lk is NOT in either table' 'seccfg is NOT in either table' 'expdb is NOT in either table' \
          'misc is NOT in either table' 'boot_para is NOT in either table' 'vbmeta is NOT in either table' \
          'vendor_boot is NOT in either table'; do

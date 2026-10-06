@@ -51,6 +51,7 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B33 | 2026-10-06 | Published research notes carried machine paths (`/tmp/...`, `/home/...`) against the repo's own redaction promise. | V33 |
 | B34 | 2026-10-06 | V29 checked the whole SAFETY.md file instead of the specific table rows, allowing a name removed from the table row to still pass if it appeared elsewhere (e.g., in the never-touch rule). | V29 |
 | B35 | 2026-10-06 | The never-touch rule (rule 1) omitted `misc`, `boot_para`, `expdb` even though the SAFETY table explicitly states the bootloader does not protect them and the protocol already forbids touching them. | V34 |
+| B36 | 2026-10-06 | V29 only checked table rows exist in SAFETY but not that SAFETY rows match TSV exactly (bidirectional); extra names in table rows were not caught. | V29 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -116,7 +117,7 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V26 | ∀ module-count criterion in the Z0 section: `!` the day baseline superset is the criterion and `~429` is reference only; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V27 | ∀ Z0 section: `!` it carries the honest list of what Z0 does not prove (still UNVERIFIED items); else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V28 | ∀ file in `tools/*.sh`: `!` it is executable (mode 100755 in the git index and on disk); else `⊥`. | `tools/check_protocol_invariants.sh` |
-| V29 | ∀ name in `data/lk_tables.tsv` (7 controlled + 7 erase-forbidden): `!` `docs/SAFETY.md` names it in the measured tables; and the seven names `lk`, `seccfg`, `expdb`, `misc`, `boot_para`, `vbmeta`, `vendor_boot` are each explicitly stated NOT to be in either table; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V29 | ∀ name in `data/lk_tables.tsv` (7 controlled + 7 erase-forbidden): `!` `docs/SAFETY.md` names it in the measured tables **on the correct table row** (controlled @0x4c4bf8b0 or erase-forbidden @0x4c4bf8cc), and no extra names appear in those rows; the seven names `lk`, `seccfg`, `expdb`, `misc`, `boot_para`, `vbmeta`, `vendor_boot` are each explicitly stated NOT to be in either table; else `⊥`. **Bidirectional: SAFETY table rows must match TSV exactly (no extra, no missing).** | `tools/check_protocol_invariants.sh` |
 | V30 | ∀ line mentioning `getvar all` in `README.md`/`docs/*.md` (research notes excluded): `!` the line forbids it; an executable `getvar all` instruction is `⊥`. | `tools/check_protocol_invariants.sh` |
 | V31 | ∀ `fastboot flash` command in `docs/DEVICE-TEST-PROTOCOL.md`: `!` there are exactly as many as `README.md` affirms (two protected writes: T-1 backup, T3 kernel) and every one targets `boot_b`; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V32 | ∀ T-1 section in `docs/DEVICE-TEST-PROTOCOL.md`: `!` it comes after the R3 section (it depends on R3); else `⊥`. | `tools/check_protocol_invariants.sh` |
