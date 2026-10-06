@@ -37,7 +37,7 @@
 - `(c) Local dos contadores`: não achamos source for LK MTK AB proprietary: `misc/boot_para` é noзначение per AOSP `ab_implement` (`misc` ou `boot_para`) mas o formato MTK é proprietário.
 - `(d) Xiaomi LK difere?`: para lake, API exposta via fastboot suporta `current-slot/slot-successful/slot-retry-count/slot-unbootable` (FACT: outras MTK android com LK pouco OS felíow no reddit MT8183; **jornal rápido específico C75: UNKNOWN**).
 
-## 2. Repack offline com av  verrenovado (teste em /tmp/repack-work, baseline refirmado)
+## 2. Repack offline com av  verrenovado (teste em <workdir>, baseline refirmado)
 
 - `research/repack_boot.py` (python3 puro) implements:
   - parse header v4: kernel_size@8=…, ramdisk_size@12=0, os_version/hex 16, header_size@20=1584, header_version@40=4;

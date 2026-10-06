@@ -6,12 +6,14 @@
 
 > [!WARNING]
 > **Not boot-tested yet.** Everything here is verified on the host (offline gates). No image from this project has been booted on hardware at the time of writing, so **no flashable images are published**. Flashing a kernel can bootloop or brick a device. Read [`docs/SAFETY.md`](docs/SAFETY.md) first. You are responsible for your device.
+>
+> **Every device measurement below is device-specific:** they were taken on one audited POCO C75 4G (`lake`, slot `_b`, `OS3.0.306.0`, bootloader **unlocked**, `verifiedbootstate=orange`). Different firmware, a different slot or a **locked** bootloader can change the outcome — re-measure before trusting any number here on your device.
 
 ## Why this exists
 
 Xiaomi has not published kernel source for the `lake` device, and community kernels for it are mostly unverified claims. This project started from a different question: *what kernel is the device actually running?* The answer turned out to be much better than expected.
 
-## Key findings (all measured, see [`docs/PLAN-AND-FINDINGS.pt-BR.md`](docs/PLAN-AND-FINDINGS.pt-BR.md))
+## Key findings (all measured on the audited device, see [`docs/PLAN-AND-FINDINGS.pt-BR.md`](docs/PLAN-AND-FINDINGS.pt-BR.md))
 
 | Finding | Evidence |
 |---|---|
@@ -78,6 +80,9 @@ Requirements: Linux x86-64, ~80 GB free disk, 12+ GB RAM (6 cores recommended), 
 ## Customizing
 
 You can change anything that does not alter the exported kernel interface. Every change is a new build that must pass the gates in [`docs/KMI-GATES.md`](docs/KMI-GATES.md) and be tested **in RAM (`fastboot boot`) before anything is written**. What *cannot* be changed by kernel options alone: anything implemented in the closed vendor modules (CPU/GPU DVFS tables, thermal policy, overclocking). `data/config_safety_table.csv` lists config options by risk.
+
+> [!IMPORTANT]
+> **Unlocked bootloader required.** `tools/repack_boot_v2.py` replaces the kernel and regenerates the AVB footer **unsigned** (`--algorithm NONE`, and `--drop-signature` drops Google's 16 KiB GKI signature block, which cannot be re-signed). Such an image is only acceptable on a device whose bootloader is **unlocked** (`verifiedbootstate=orange`, e.g. the audited device). On a **locked** device it does not pass verification — do not flash it, and do not unlock a device to follow this project unless you accept that unlocking itself erases user data. The route from a tested image to a written partition is in [`docs/DEVICE-TEST-PROTOCOL.md`](docs/DEVICE-TEST-PROTOCOL.md).
 
 ## Documentation
 

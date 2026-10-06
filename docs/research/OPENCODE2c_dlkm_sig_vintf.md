@@ -4,11 +4,11 @@
 
 ## Ambiente/fontes locais
 
-- `~/Documentos/mods/lake-kernel/audit/config.stock` — `CONFIG_MODULE_SIG_PROTECT=y`, `CONFIG_MODULE_SIG_FORCE` não setado (`# CONFIG_MODULE_SIG_FORCE is not set`), `TRIM_UNUSED_KSYMS=y`, `MODVERSIONS=y`, `SYSTEM_TRUSTED_KEYS=""` (intrinsic trusted = GKI key only). Metadata: `/tmp/opencode/gki_module.c`.
-- `~/Documentos/mods/lake-kernel/audit/modules/modules.csv` — 557 vendor .ko em `vendor_dlkm/` (g810fd09a116c) + ramdisk/vendor_lib + 7 em 6.6.30, todos não assinados pelo Google mesmo; vendor ramdisk dos die (`SOURCE=binary blobs`).
-- `~/Documentos/mods/lake-kernel/audit/modules/modules_undef_symbols.txt` — 4138 UND únicos. Gate CRC ja validado (`research/gate_kmi_crc.sh`, 0 mismatches vs `official-ab13771415/vmlinux.symvers`).
-- `~/Documentos/mods/lake-kernel/audit/system_vintf/` — `compatibility_matrix.5/6/7/8/202404/202504.xml`, `manifest.xml`. Android 16: provável nível `202504`, com bloco de kernel `6.12.0`. No lake (6.6.89) o que realmente se aplica é o bloco `kernel version="6.6.0" level="202404"` do `compatibility_matrix.202404.xml` → **259 configs obrigatórias**.
-- `~/Documentos/mods/lake-kernel/audit/lpdump_super.txt` — `system_dlkm_a`, `vendor_dlkm_a`, `odm_dlkm_a` como partições lógicas dentro de `super` (14000/29512/472 sectors).
+- `<lake-kernel>/audit/config.stock` — `CONFIG_MODULE_SIG_PROTECT=y`, `CONFIG_MODULE_SIG_FORCE` não setado (`# CONFIG_MODULE_SIG_FORCE is not set`), `TRIM_UNUSED_KSYMS=y`, `MODVERSIONS=y`, `SYSTEM_TRUSTED_KEYS=""` (intrinsic trusted = GKI key only). Metadata: `<workdir>/gki_module.c`.
+- `<lake-kernel>/audit/modules/modules.csv` — 557 vendor .ko em `vendor_dlkm/` (g810fd09a116c) + ramdisk/vendor_lib + 7 em 6.6.30, todos não assinados pelo Google mesmo; vendor ramdisk dos die (`SOURCE=binary blobs`).
+- `<lake-kernel>/audit/modules/modules_undef_symbols.txt` — 4138 UND únicos. Gate CRC ja validado (`research/gate_kmi_crc.sh`, 0 mismatches vs `official-ab13771415/vmlinux.symvers`).
+- `<lake-kernel>/audit/system_vintf/` — `compatibility_matrix.5/6/7/8/202404/202504.xml`, `manifest.xml`. Android 16: provável nível `202504`, com bloco de kernel `6.12.0`. No lake (6.6.89) o que realmente se aplica é o bloco `kernel version="6.6.0" level="202404"` do `compatibility_matrix.202404.xml` → **259 configs obrigatórias**.
+- `<lake-kernel>/audit/lpdump_super.txt` — `system_dlkm_a`, `vendor_dlkm_a`, `odm_dlkm_a` como partições lógicas dentro de `super` (14000/29512/472 sectors).
 - `research/kmi_*.txt`, `dump_modcrcs.py`, `gate_kmi_crc.sh` — gate de CRC/symbols, UND extraction.
 
 ## Q8 — Módulos GKI/system_dlkm com kernel recompilado + chave efêmera nova
@@ -138,7 +138,7 @@ PY
 ## Decisões de engenharia (recomendado)
 
 1. **Não substituir system_dlkm no super.** Manipular `system_dlkm_a` dentro de `super` força update de vbmeta/avb footer e pode impedir unlock após reboot. Se absolutamente necessário, reconstruir `super` usando `lpmake` com o mesmo metadata e re-assinar vbmeta com chave de teste — e **somente** porque o bootloader está em orange.
-2. Para usar "kernel novo" preservando viabilidade: (a) manter o mesmo source (r12) com uma saída adicional em `out/` que re-gera **system_dlkm**; o target correto no manifest Kleaf é `//common:kernel_aarch64_dist` + `common:system_dlkm_dist` (ou `system_dlkm.erofs.img` dependendo da branch) — validação em `/tmp/opencode/filegroup` custará Linux building-tools; (b) ou usar KernelSU em modo LKM/init_boot patch **sem trocar kernel**: 99% das features são LKM+KernelSU got + KSU GKI mode com kernel abi verificato.
+2. Para usar "kernel novo" preservando viabilidade: (a) manter o mesmo source (r12) com uma saída adicional em `out/` que re-gera **system_dlkm**; o target correto no manifest Kleaf é `//common:kernel_aarch64_dist` + `common:system_dlkm_dist` (ou `system_dlkm.erofs.img` dependendo da branch) — validação em `<workdir>/filegroup` custará Linux building-tools; (b) ou usar KernelSU em modo LKM/init_boot patch **sem trocar kernel**: 99% das features são LKM+KernelSU got + KSU GKI mode com kernel abi verificato.
 3. Quanto a compile de kernel: a compatibilidade VINTF basta exigir as 259 keys; não é necessário deixar `MODULE_SIG_FORCE=y`.
 
 ## Não achou

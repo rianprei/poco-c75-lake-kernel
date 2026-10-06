@@ -1,7 +1,7 @@
 # OPENCODE4_review_codex5 — Revisão adversarial do CODEX5_build_signing.md e do patch de certificado
 
 **Data:** 2026-10-05 · **Revisor:** OPENCODE4 (VANTA) · **Alvo:** `research/CODEX5_build_signing.md` (codex) + patch proposto para `kleaf/common_kernels.bzl` @ `kernel/build 4039bcfd`
-**Método:** clone raso somente-leitura de kernel/build na revisão pinada (`--filter=blob:none --no-checkout` + `checkout 4039bcfd`), fontes r12 via `?format=TEXT`+base64, openssl, python. Nada executado de terceiros; sem adb/flash; `audit/`/`backup-*`/`official-*` intocados; trabalho em `/tmp/opencode4-work`.
+**Método:** clone raso somente-leitura de kernel/build na revisão pinada (`--filter=blob:none --no-checkout` + `checkout 4039bcfd`), fontes r12 via `?format=TEXT`+base64, openssl, python. Nada executado de terceiros; sem adb/flash; `audit/`/`backup-*`/`official-*` intocados; trabalho em `<workdir>`.
 **Rótulos:** FACT/MEASURED/INFERRED/UNVERIFIED/UNKNOWN, com saída colada ou URL/linha. 3 abordagens por ponto crítico; medições críticas refeitas por 2 métodos.
 
 ---
@@ -13,7 +13,7 @@
 O bloco ```diff do CODEX5 não é um diff unificado válido: hunk headers descritivos (`@@ defconfig_fragments / blocos de _kernel_build — acrescentar forward:`), reticências de prosa, dois repositórios num só arquivo, e um quarto "hunk" que é um nome de arquivo sem conteúdo. Saída colada:
 
 ```
-$ git -C /tmp/opencode4-work/build apply --check codex_patch.diff
+$ git -C <workdir>/build apply --check codex_patch.diff
 error: No valid patches in input (allow with "--allow-empty")
 exit: 128
 ```
@@ -43,13 +43,13 @@ Logo: adicionar `"system_trusted_key"` ao dict do BUILD.bazel **sem** patchar o 
 
 Escrevi o patch real contra o pinado e o entreguei como **`research/system_trusted_key.patch`**. Estrutura:
 - **Parte 1 — kernel/build @4039bcfd** (`a/kleaf/common_kernels.bzl`), 4 pontos: doc da whitelist `:304`, assinatura de `_define_common_kernel` `:641` (`system_trusted_key = None):`), `json_target_config` `:668` (visível no `print_configs` de debug), e o repasse no `kernel_build(` `:746`.
-- **Parte 2 — kernel/common @r12** (`a/BUILD.bazel`): `"system_trusted_key": "google_gki_ab13771415_modsign_cert.pem",` no dict do `kernel_aarch64` (após `module_implicit_outs`, `:158`) — **label direto de arquivo fonte**, no mesmo padrão upstream do `"android/abi_gki_aarch64"` (adversarial: o filegroup extra do codex `:google_gki_ab13771415_cert` é desnecessário; label direto é menos superfície). O `.pem` entra no repo via `cp ~/Documentos/mods/lake-kernel/research/google_gki_ab13771415_modsign_cert.pem common/` (comando documentado no header do patch).
+- **Parte 2 — kernel/common @r12** (`a/BUILD.bazel`): `"system_trusted_key": "google_gki_ab13771415_modsign_cert.pem",` no dict do `kernel_aarch64` (após `module_implicit_outs`, `:158`) — **label direto de arquivo fonte**, no mesmo padrão upstream do `"android/abi_gki_aarch64"` (adversarial: o filegroup extra do codex `:google_gki_ab13771415_cert` é desnecessário; label direto é menos superfície). O `.pem` entra no repo via `cp <lake-kernel>/research/google_gki_ab13771415_modsign_cert.pem common/` (comando documentado no header do patch).
 
 Saídas coladas (os DOIS repositórios):
 ```
-$ git -C /tmp/opencode4-work/build apply --check stk_part1.diff
+$ git -C <workdir>/build apply --check stk_part1.diff
 exit: 0
-$ git -C /tmp/opencode4-work/build apply stk_part1.diff
+$ git -C <workdir>/build apply stk_part1.diff
 exit: 0
 $ grep -n system_trusted_key kleaf/common_kernels.bzl
 304:    - `system_trusted_key`
@@ -268,4 +268,4 @@ Os demais (H1 repo-Arch, H4 cache invisível, H6 vbmeta_vendor truncado **[JÁ R
 ## §6. Auto-revisão (rótulos e limites)
 - Todos os FACT têm linha citada ou saída colada; medições críticas refeitas por 2 métodos (DER: openssl + python-find no Image; patch: `--check` + `apply` em dois repos; attr: 3 arquivos independentes do kleaf).
 - Ficam UNVERIFIED: parse Bazel real (`print_configs`), conteúdo de `:gki_aarch64_protected_modules`, execução do `verify_modsig.sh` do codex (não o executei — escrevi verificação própria; a evidência do fato 38/45 do plano já cobre o positivo/negativo com re-execução do próprio dj).
-- Nada flasheado; nenhum pacote instalado; `audit/`, `backup-*`, `official-*` intactos; trabalho todo em `/tmp/opencode4-work`; arquivos criados: `research/OPENCODE4_review_codex5.md` + `research/system_trusted_key.patch`.
+- Nada flasheado; nenhum pacote instalado; `audit/`, `backup-*`, `official-*` intactos; trabalho todo em `<workdir>`; arquivos criados: `research/OPENCODE4_review_codex5.md` + `research/system_trusted_key.patch`.

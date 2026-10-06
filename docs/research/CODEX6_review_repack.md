@@ -52,7 +52,7 @@ Casos sem bug (passam iguais): 01–05, 08, 10, 14, 15, 24, 27, 29, 30. Total **
 
 ### 4.1 v1 — 31 casos (falhas que motivaram a v2; log integral)
 ```
-SCRIPT: /tmp/codex-work/repack_boot_v1.py (primeira suíte; corpus idêntico ao da v2)
+SCRIPT: <workdir>/repack_boot_v1.py (primeira suíte; corpus idêntico ao da v2)
 01-baseline: exit=0 :: + avbtool add_hash_footer ... --algorithm NONE ...
 02-tiny-gz: exit=0 :: + avbtool ...
 03-recompressed: exit=0 :: + avbtool ...
@@ -132,7 +132,7 @@ total=32 / EXIT=0
 - Sobrescrita v1: `ovw.img` ("SENTINELA2") virou `ANDROID!` sem aviso.
 - Salt: 2 runs default diferem em 63 B (região do descritor); com `--salt 0011...` sha256 `f57d3116...` idênticos (2 métodos: diff de bytes + info_image mostra `Salt:`).
 - Baseline v2: `header+kernel equal: True`; `unpack_bootimg` parseia (v4, kernel_size 14555421, ramdisk 0); keep-footer: `cmp stock keep1.img` silencioso = byte-idêntico.
-- Pós-correções da própria revisão (fuzz também me pegou): footer AVB é **BE** (`avb_footer.h:53-67`; 1ª v2 lia LE e recusava tudo); `ValueError` do caso 18 era bug do **runner**, não do script; `/tmp` lotou (7.8G/100%) — suíte migrada para `~/codex-work` e relançada do zero (regra /tmp conflitou com realidade: documentado aqui).
+- Pós-correções da própria revisão (fuzz também me pegou): footer AVB é **BE** (`avb_footer.h:53-67`; 1ª v2 lia LE e recusava tudo); `ValueError` do caso 18 era bug do **runner**, não do script; `/tmp` lotou (7.8G/100%) — suíte migrada para `<workdir>` e relançada do zero (regra /tmp conflitou com realidade: documentado aqui).
 - v2 final: `research/repack_boot_v2.py`, 224 linhas, sha256 `122936a8f9db28b525d42ec3b9404dd7a8cd78520b89f9d892074c9cb0c6d1ec`.
 
 ## 5. TOP-5 riscos residuais

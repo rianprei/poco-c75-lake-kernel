@@ -71,4 +71,6 @@ exit=0
 
 `tools/repack_boot_v2.py ORIG_BOOT KERNEL_GZ OUT --drop-signature` replaces only the kernel of a stock boot v4 image, validates the gzip by real decompression, refuses to overwrite files or to exceed the partition, and regenerates the AVB footer with `avbtool` (`--algorithm NONE`, rollback 0). It refuses by default to drop Google's 16 KiB *GKI boot signature* block — pass `--drop-signature` to confirm (it covers the old kernel and cannot be re-signed).
 
+The footer written here is **unsigned** (`--algorithm NONE`) and `--drop-signature` discards Google's 16 KiB GKI signature block (it covers the old kernel and cannot be re-signed). That is only acceptable on a device whose bootloader is **unlocked** (`verifiedbootstate=orange` — the state of the audited device): on a **locked** bootloader the image does not pass AVB verification, so flashing it is pointless at best and a recovery exercise at worst. Verify the produced image before it leaves the host (`avbtool info_image OUT`, `unpack_bootimg --boot_img OUT`), and remember that the RAM path itself (`fastboot boot`) is **UNKNOWN** on `lake` — see [`DEVICE-TEST-PROTOCOL.md`](DEVICE-TEST-PROTOCOL.md) step T0.
+
 **Do not flash the result without reading [`SAFETY.md`](SAFETY.md).**

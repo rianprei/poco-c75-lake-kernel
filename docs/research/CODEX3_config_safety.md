@@ -7,7 +7,7 @@
 
 ### 1.1 Fontes — MEASURED
 
-- `MEASURED` (curl `?format=TEXT` + base64 -d, sem login): `arch/arm64/configs/gki_defconfig` do tag `android15-6.6-2025-06_r12` = 20146 B / 787 linhas (`/tmp/opencode/r12/gki_defconfig`); `build.config.gki.aarch64` (482 B: inclui common+aarch64+gki, `DEFCONFIG=gki_defconfig` via build.config.gki de 62 B, `POST_DEFCONFIG_CMDS=check_defconfig`); `build.config.common` (682 B: `KMI_GENERATION=8`, `CLANG_VERSION` via constants `r510928`); `BUILD.bazel` (79693 B).
+- `MEASURED` (curl `?format=TEXT` + base64 -d, sem login): `arch/arm64/configs/gki_defconfig` do tag `android15-6.6-2025-06_r12` = 20146 B / 787 linhas (`<workdir>/r12/gki_defconfig`); `build.config.gki.aarch64` (482 B: inclui common+aarch64+gki, `DEFCONFIG=gki_defconfig` via build.config.gki de 62 B, `POST_DEFCONFIG_CMDS=check_defconfig`); `build.config.common` (682 B: `KMI_GENERATION=8`, `CLANG_VERSION` via constants `r510928`); `BUILD.bazel` (79693 B).
 - `MEASURED` (locais): `audit/config.stock` 7744 linhas/~207K; `audit/ikconfig.from_image` idêntico (`diff` = 0 linhas); `.config` oficial do filegroup (`kernel_aarch64_filegroup_decl.tar.gz` → `.../kernel_aarch64_config/out_dir/.config`, 211483 B) vs `audit/config.stock` (`sort` + `diff`) = **0 linhas**.
 - `MEASURED` (BUILD.bazel r12, linhas 111-159): `kernel_aarch64` usa `kmi_symbol_list android/abi_gki_aarch64` + 32 `additional_kmi_symbol_lists` (mtk, xiaomi, xiaomi2, ...) + `trim_nonlisted_kmi True` + `strict_mode True` + `protected_exports_list`; base `kernel_aarch64` **sem** `defconfig_fragments` (só variantes autofdo/microdroid têm). Ou seja, config efetiva = `gki_defconfig` + defaults do Kconfig + forças do Kleaf (TRIM/strict/protected), sem fragmento extra. `FACT` (https://android.googlesource.com/kernel/build/+/refs/heads/main-kernel-build-2024/kleaf/common_kernels.bzl, linhas 88-204: trim liga quando há kmi list; `--notrim` desliga).
 
@@ -58,7 +58,7 @@
   tools/bazel build --jobs=4 --config=fast --config=stamp //common:kernel_aarch64_dist
   ```
   `UNVERIFIED`: nome exato da variável que o Kleaf honra (`SOURCE_DATE_EPOCH` vs `KBUILD_BUILD_TIMESTAMP` vs stamp interno) sem ler `kleaf/build.sh` na revisão `4039bcfd...`; testar comparando `strings Image | grep 'Linux version'`.
-- O que **continuará diferente** mesmo com epoch+chave fixa (`INFERRED`): assinatura `MODULE_SIG` dos 79 módulos GKI embutidos (chave efêmera do Google ≠ nossa; `System.map` igual mas `.ko` diferem); `BUILD_SALT` se setado (aqui `""` nos dois — MEASURED); paths absolutos de build (`/buildbot/...` vs `~/lake-gki`) em debug/warnings; perfis PGO/BOLT/MLGO (`CC_VERSION_TEXT` oficial tem `+pgo,+bolt,+lto,+mlgo`; rebuild sem profiles gera código diferente com mesmo clang r510928); `build.number`/suffix se `ab<bid>` divergir (irrelevante p/ CRC por `same_magic`, §1).
+- O que **continuará diferente** mesmo com epoch+chave fixa (`INFERRED`): assinatura `MODULE_SIG` dos 79 módulos GKI embutidos (chave efêmera do Google ≠ nossa; `System.map` igual mas `.ko` diferem); `BUILD_SALT` se setado (aqui `""` nos dois — MEASURED); paths absolutos de build (`/buildbot/...` vs `<workdir>/lake-gki`) em debug/warnings; perfis PGO/BOLT/MLGO (`CC_VERSION_TEXT` oficial tem `+pgo,+bolt,+lto,+mlgo`; rebuild sem profiles gera código diferente com mesmo clang r510928); `build.number`/suffix se `ab<bid>` divergir (irrelevante p/ CRC por `same_magic`, §1).
 - Comparar o resto por seção ELF/System.map (copiável):
   ```bash
   diff <(sort official-ab13771415/System.map) <(sort out/dist/System.map) | head

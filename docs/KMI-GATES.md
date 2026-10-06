@@ -16,13 +16,30 @@ The release string in the vermagic is **not** a constraint: `same_magic()` (kern
 
 | Gate | What it proves | How |
 |---|---|---|
-| **G-CONFIG** | the build config equals the stock config (or differs only in intended lines) | `diff <(sort .config) <(sort config.stock)` — `config.stock` is the device's own `/proc/config.gz`; it is not redistributed here |
+| **G-CONFIG** | the build config equals the stock config (or differs only in intended lines) | `diff <(sort .config) <(sort data/official-kernel_aarch64.config)` — the published file **is** the stock config, see below |
 | **G-SYMVERS** | exported symbol set and all CRCs equal Google's | `cmp vmlinux.symvers` |
 | **G-CRC** | every CRC any of the 557 `.ko` requires from the kernel equals the new kernel's | `tools/gate_kmi_crc.sh <new vmlinux.symvers>` → `mismatches=0` |
 | **G-EXPORTS** | no symbol the modules need (and stock exports) is missing | same script (`missing_exports=0`) |
 | **G-SELFTEST** | the CRC gate itself detects sabotage instead of rubber-stamping | `tools/selftest_gates.sh` → 1 positive PASS + 3 negatives FAIL |
 | **G-CERT** | the Google-signed GKI modules verify against the new image | `tools/verify_modsig.sh` |
 | **G-REPACK** | the boot image changed only where intended | `tools/repack_boot_v2.py` — in-code refusals (truncated input, non-gzip kernel, `ramdisk_size != 0`, existing output, oversize, GKI signature block); the author's 32-case harness is **not** published |
+
+### G-CONFIG
+
+`data/official-kernel_aarch64.config` is the `.config` of Google's build 13771415, taken from the public artifact `kernel_aarch64_filegroup_decl.tar.gz` (path inside the tar: `bazel-out/k8-fastbuild/bin/common/kernel_aarch64_config/out_dir/.config`). Its sha256 is `9b544345144b5e7d050981905a655308700151693ddf9d10f94eee1eadeb19ec`, which is also the sha256 of the audited device's `/proc/config.gz` — so an external reader can run the config gate without owning the device:
+
+```bash
+# control build: expect NO output (identical files)
+diff <(sort out/dist_control/.config | grep -v '^#') <(sort data/official-kernel_aarch64.config | grep -v '^#')
+
+# cert build: expect exactly ONE line, the intended one
+diff <(sort out/dist_cert/.config | grep -v '^#') <(sort data/official-kernel_aarch64.config | grep -v '^#')
+# 2368c2368
+# < CONFIG_SYSTEM_TRUSTED_KEYS="google_gki_ab13771415_modsign_cert.pem"
+# > CONFIG_SYSTEM_TRUSTED_KEYS=""
+```
+
+### G-CRC / G-EXPORTS
 
 `tools/gate_kmi_crc.sh` reads `(symbol, CRC)` pairs extracted from every module's `__versions` section (`data/modules_required_crcs.tsv`, generated with `tools/dump_modcrcs.py`), joins them with the new kernel's `vmlinux.symvers`, and fails on any mismatch or missing export. It prints the corpus metrics first, then the verdict.
 
