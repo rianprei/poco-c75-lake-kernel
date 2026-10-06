@@ -1,0 +1,18 @@
+# lk_tables.tsv — the two measured LK partition-name tables (RE1_opencode_flash.md §4)
+# Columns: string_vaddr	name	table
+# vaddr = file_offset + 0x4C3FFE00 (file 0x200 loads at 0x4C400000). Table bases:
+# controlled (flash+erase refused) @0x4c4bf8b0; erase-forbidden @0x4c4bf8cc.
+0x4c4a14bc	nvram	controlled
+0x4c4a14c4	nvcfg	controlled
+0x4c499d84	proinfo	controlled
+0x4c4a14cc	nvdata	controlled
+0x4c4a14d4	protect2	controlled
+0x4c4a14e0	protect1	controlled
+0x4c4a14ec	persist	controlled
+0x4c49d2a4	preloader	erase-forbidden
+0x4c4a1470	preloader_a	erase-forbidden
+0x4c4a147c	preloader_b	erase-forbidden
+0x4c4a1488	preloader_ab	erase-forbidden
+0x4c4a1498	preloader_backup	erase-forbidden
+0x4c4a14ac	boot0	erase-forbidden
+0x4c4a14b4	boot1	erase-forbidden

@@ -43,3 +43,4 @@ Everything else cited in these notes (GitHub, `android.googlesource.com`, `sourc
 - `CANDIDATES.md`, `AUDIT_codex.md`, `AUDIT_antigravity.md` — device/repo reconnaissance and independent audits.
 - `OPENCODE2_*`, `OPENCODE3_*`, `OPENCODE4_*`, `CODEX2_*`-`CODEX6_*`, `ANTIGRAVITY*` — boot-safety, recovery-firmware, KMI/CRC, config/ABI, signing and repack reviews.
 - `REVIEW3_codex_fmea.md` — 28-scenario FMEA of the bring-up sequence, including the `/data` loss analysis behind [`../SAFETY.md`](../SAFETY.md) and the mitigations now required by [`../DEVICE-TEST-PROTOCOL.md`](../DEVICE-TEST-PROTOCOL.md).
+- `RE1_opencode_flash.md` — disassembly notes on the real `lk_b.img` `flash:` path (controlled/erase-forbidden tables, check-before-write order, ANDROID! magic, size semantics); the measured claims live in [`../SAFETY.md`](../SAFETY.md).

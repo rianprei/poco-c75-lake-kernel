@@ -1,6 +1,6 @@
 # RE4 — Fallback A/B: retry, exaustão total e rollback (desmontagem do lk_b real)
 
-> Continuação focada da frente B (RE2_codex_bootmode.md). MESMO método/base (ARM32 Thumb-2, file 0x200 ↔ 0x4C400000, vaddr = file + 0x4C3FFE00; idioma `ldr.w rX,[pool=OFFSET] … add rX,pc`, alvo = (add+4)+offset). Cópia em `/tmp/codex-work/lk_b.img`; projeto r2 `lkproj` reutilizado. Sem aparelho, sem execução, sem push.
+> Continuação focada da frente B (RE2_codex_bootmode.md). MESMO método/base (ARM32 Thumb-2, file 0x200 ↔ 0x4C400000, vaddr = file + 0x4C3FFE00; idioma `ldr.w rX,[pool=OFFSET] … add rX,pc`, alvo = (add+4)+offset). Cópia em `<workdir>/lk_b.img`; projeto r2 `lkproj` reutilizado. Sem aparelho, sem execução, sem push.
 
 ## D1. O contador de retry (FACT com trechos)
 
@@ -52,7 +52,7 @@ Cadeia de retorno (pares provados por axt): decap fcn.4c452924 (−1) → fcn.4c
 ```
 Reproduzir: `r2 -q -p lkproj -c 'e scr.color=false;e asm.bits=16; s 0x4c42b250; pd 20'`. O mesmo `bl fastboot_init` aparece em ≥3 saídas de falha do fluxo (0x4C42B266, 0x4C42B28C, 0x4C42AF40 — esta última no ramo de tecla). **VEREDITO D2: fastboot.** Nenhum `mtk_arch_reset`/poweroff foi encontrado nos blocos de falha lidos; o terminal é fastboot_init (USB halt loop, aparelho acessível). Ressalva honesta: provei o terminal e os elos decap→…→case4→fastboot_init por pares de caller/callee; a travessia completa fim-a-fim tem 1 elo INFERRED (qual falha exata alimenta cada site — todos convergem, sem ramo de reboot/off visível).
 
-Implicação protocolar (INFERRED, declarada): 'invalidar o outro slot' NÃO é proteção nem perigo de loop — o LK cai em fastboot com o aparelho recuperável; o perigo real continua sendo humano (W7 do REVIEW6) e de firmware (slot A antigo), não deциалoop.
+Implicação protocolar (INFERRED, declarada): 'invalidar o outro slot' NÃO é proteção nem perigo de loop — o LK cai em fastboot com o aparelho recuperável; o perigo real continua sendo humano (W7 de REVIEW6_codex_statemachine.md — retido, não publicado) e de firmware (slot A antigo), não entra em reboot-loop.
 
 ## D3. Rollback ao subir slot antigo: checagem EXISTE mas NÃO barra este slot A
 
@@ -66,7 +66,7 @@ Código (FACT): AVB-verify fcn.4c464a14 contém o ramo (add@0x4C46525C → `: Im
 ```
 Lookup de partição com sufixo provado pelas strings `Partition name and suffix does not fit.` / `[PART_COMMON_LK]find %s(add suffix for %s) index %d` + construção `_a`/`_b` no código de seleção — **o LK usa vbmeta/AVB do slot selecionado normalmente**.
 
-Porém (MEASURED, decisivo): `audit/avb/vbmeta_a.txt` e o vbmeta_b (REVIEW6 M6) têm **Rollback Index 0**, e os footers de boot_a/boot_b/T0/T2 também **rollback 0**. Violação exigiria imagem < armazenado; com tudo em 0, **o slot A antigo (OS3.0.20.0) NÃO é barrado por rollback AVB** — ele passa e boota o OS antigo (confirmando o perigo do fato 62 do plano por via independente). Aplicabilidade em orange (tolerância a erro de verificação, cf. init_boot/Magisk que boota — fato 48) reforça: mesmo se houvesse divergência, o estado orange tende a tolerar. ARB Xiaomi (`anti` getvar existe; seccfg) é mecanismo SEPARADO e **UNVERIFIED** neste binário.
+Porém (MEASURED, decisivo): `audit/avb/vbmeta_a.txt` e o vbmeta_b (REVIEW6_codex_statemachine.md M6 — retido, não publicado) têm **Rollback Index 0**, e os footers de boot_a/boot_b/T0/T2 também **rollback 0**. Violação exigiria imagem < armazenado; com tudo em 0, **o slot A antigo (OS3.0.20.0) NÃO é barrado por rollback AVB** — ele passa e boota o OS antigo (confirmando o perigo do fato 62 do plano por via independente). Aplicabilidade em orange (tolerância a erro de verificação, cf. init_boot/Magisk que boota — fato 48) reforça: mesmo se houvesse divergência, o estado orange tende a tolerar. ARB Xiaomi (`anti` getvar existe; seccfg) é mecanismo SEPARADO e **UNVERIFIED** neste binário.
 **VEREDITO D3: checagem existe no código (sim), mas não impede o slot A antigo nestas condições (não, por índices iguais); ARB: UNVERIFIED.**
 
 ## Sabotagem (método ldr.w+add-pc; scanner python stdlib, janela 256 B)
@@ -78,8 +78,8 @@ Porém (MEASURED, decisivo): `audit/avb/vbmeta_a.txt` e o vbmeta_b (REVIEW6 M6) 
 
 - Cada endereço com comando r2 (`-p lkproj` + `s`/`pd`/`axt`); trechos ≥6 insns; pool→string conferidos byte a byte (alvo = (add+4)+offset, sem máscara — documentado após erro inicial com &~3).
 - Rebaixados: semântica Vol− (INFERRED), decremento (UNVERIFIED), retry inicial (UNVERIFIED), elo final D2 (1 hop INFERRED), ARB (UNVERIFIED), aplicabilidade do rollback em orange (UNVERIFIED).
-- Nada fora de `/tmp/codex-work` (+ projeto r2 pré-existente e relatório); binário nunca executado.
+- Nada fora de `<workdir>` (+ projeto r2 pré-existente e relatório); binário nunca executado.
 
 ## Fontes
 
-Binário `backup-2026-10-05/lk_b.img` (cópias `/tmp/codex-work/`, `/tmp/codex-re2/`); strings `strs6.txt`; RE2_codex_bootmode.md (base/método); audit `avb/vbmeta_a.txt` (rollback 0); REVIEW6 M6 (rollback 0 em vbmeta_b/boot).
+Binário `backup-2026-10-05/lk_b.img` (cópias em `<workdir>/`); strings `strs6.txt`; RE2_codex_bootmode.md (base/método); audit `avb/vbmeta_a.txt` (rollback 0); REVIEW6 M6 (rollback 0 em vbmeta_b/boot).

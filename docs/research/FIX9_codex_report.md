@@ -6,7 +6,7 @@ STATUS: DONE
 
 ## Reconfirmação prévia (item 11 do prompt)
 
-Dump refeito em `/tmp/codex-work/lk_strings.txt`: **byte a byte idêntico** ao `/tmp/lk_b_strings.txt` do revisor (14014 linhas). Linhas citadas conferidas: 5088, 5171–5172, 6537–6538, 6698–6705, 6850–6863, 7133, 7140–7180 (tabela getvar com todos os 15 nomes da allowlist), 7155–7197 (comandos `oem`, incl. `oem allow-wipe-userdata` 7119–7121/7193), 7182, 8500. `getvar all` ausente (confirmado — revisor correto). Único deslize do revisor: `unlocked` duplicado na lista Z0′-3 (deduplicado aqui; resto do relatório sem erro encontrado).
+Dump refeito em `<workdir>/lk_strings.txt`: **byte a byte idêntico** ao `<workdir>/lk_b_strings.txt` do revisor (14014 linhas). Linhas citadas conferidas: 5088, 5171–5172, 6537–6538, 6698–6705, 6850–6863, 7133, 7140–7180 (tabela getvar com todos os 15 nomes da allowlist), 7155–7197 (comandos `oem`, incl. `oem allow-wipe-userdata` 7119–7121/7193), 7182, 8500. `getvar all` ausente (confirmado — revisor correto). Único deslize do revisor: `unlocked` duplicado na lista Z0′-3 (deduplicado aqui; resto do relatório sem erro encontrado).
 
 ## Itens a–g (B21–B27 + V21–V27)
 

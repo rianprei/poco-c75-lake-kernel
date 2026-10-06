@@ -34,6 +34,6 @@ Varredura: nenhuma instrução do repo afirma ausência da variável (SAFETY:36,
 
 - `tools/run_all_checks.sh`: V1–V20 + GATE = **PASS** (21 verificações; fiação V18–V20 adicionada ao resumo).
 - `tools/selftest_backprop.sh`: **17 sabotagens detectadas FAIL->PASS, 0 falhas** (casos 15/16/17 novos; caso 15 exigiu 2 abordagens de mutação).
-- Varredura de sensíveis no repo (fora `.git`): `b3c3369d` = 0, `192.168` = 0, `/home/rianprei` = 0, `serialno|serial_number` nos arquivos tocados = 0.
+- Varredura de sensíveis no repo (fora `.git`): `b3c3369d` = 0, `192.168` = 0, caminho absoluto da home do operador = 0, `serialno|serial_number` nos arquivos tocados = 0.
 
 Commit único local (sem push): ver `git log -1 --format='%H %s'`; conteúdo de código/docs selado em 2b40b0c02f5acbdf13f6a855a59ca92e888c566d, este relatório anexado ao mesmo commit.

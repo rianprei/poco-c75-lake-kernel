@@ -43,6 +43,12 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B25 | 2026-10-06 | No keys-only procedure existed for adb not coming back in 3 min, inviting USB improvisation (freebuff A5). | V25 |
 | B26 | 2026-10-06 | `~429` modules was usable as the acceptance number instead of the day baseline superset (freebuff A4/A6). | V26 |
 | B27 | 2026-10-06 | Z0 stated no honest list of what it does not prove, inviting false confidence (freebuff A6). | V27 |
+| B28 | 2026-10-06 | `tools/*.sh` were mode 100644 in the index while `README.md` tells the reader to execute them directly ("permission denied"). | V28 |
+| B29 | 2026-10-06 | The SAFETY bootloader table listed a wrong protected set (`preloader*`, `seccfg`, `expdb`) — disassembly shows exactly 7 controlled + 7 erase-forbidden names, and none of `lk`/`seccfg`/`expdb`/`misc`/`boot_para`/`vbmeta`/`vendor_boot` is in either. | V29 |
+| B30 | 2026-10-06 | T2b ordered `fastboot getvar all`, contradicting the closed-allowlist discipline the protocol itself requires. | V30 |
+| B31 | 2026-10-06 | `README.md` said "one protected write of `boot_b`" after the protocol grew a second one (T-1 backup). | V31 |
+| B32 | 2026-10-06 | The T-1 section sat before R3 while depending on it ("In fastboot (after R3)"). | V32 |
+| B33 | 2026-10-06 | Published research notes carried machine paths (`/tmp/...`, `/home/...`) against the repo's own redaction promise. | V33 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -70,6 +76,12 @@ Per the fable rule, each bug was searched for again everywhere:
 - TWINS: searched `no-adb-back procedure` — found 1 site: Z0.6 (fixed, 3 min + keys once + day ends); V25 keeps all three tokens.
 - TWINS: searched `429 as acceptance` — found 1 site: Z0.6 (fixed, reference-only); V26 keeps the line carrying both `429` and `reference`.
 - TWINS: searched `what Z0 does not prove` — found 1 site (fixed, honest list); V27 keeps the header.
+- TWINS: searched non-executable `tools/*.sh` — the index listed 7 files at 100644; V28 keeps index mode 100755 and on-disk +x.
+- TWINS: searched `protected-name claims` — the SAFETY row and the NEVER-type paragraph were rewritten from the measured tables; V29 keeps all 14 names plus the 7 NOT-in-either-table sentences.
+- TWINS: searched `getvar all` outside research — remaining sites are prohibitions only (Z0.3); V30 rejects any executable use.
+- TWINS: searched `fastboot flash` in the protocol — exactly 2 occurrences remain (T-1 block line, T3 block line), both `boot_b`; V31 keeps the count and the target.
+- TWINS: searched `### T-1` position — section now follows R3/pre-flight; V32 keeps the order.
+- TWINS: searched `/tmp/|/home/` in research notes — fixed files: RE2, RE4, RE1 (new copy), FIX8/FIX9 reports; V33 keeps all non-README notes clean.
 
 ## §V — invariants (each one testable, with the file that protects it)
 
@@ -87,10 +99,10 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V8 | ∀ fact row in `docs/PLAN-AND-FINDINGS.pt-BR.md`: `!` its `Prova` column is non-empty; ∧ `docs/research/README.md` carries the "contain errors" warning and the UNVERIFIED link table; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V9 | ∀ file F requested from the artifact viewer by `tools/fetch_official_artifacts.sh`: `--dry-run F` prints exactly `https://ci.android.com/builds/submitted/13771415/kernel_aarch64/latest/<viewer path of F>` and writes nothing; else `⊥`. | `tools/selftest_fetch.sh` |
 | V10–V13 | *Aliases.* The FIX6 round spent ids B10–B13 on four doc/tooling defects (missing runnable dmesg command, single-source absence claims, BRE `\|` in `verify_modsig.sh`, unsourced protected-exports claim); the invariants that protect them are V2, V5, V2 and V7 respectively. V10–V13 are reported as aliases of those in `tools/run_all_checks.sh` so the id space stays contiguous. | `tools/run_all_checks.sh` (alias rows) |
-| V14 | ∀ claim C about **this** device's bootloader in `README.md`/`docs/SAFETY.md`/`docs/DEVICE-TEST-PROTOCOL.md`: `!` C cites the real-`lk_b.img` evidence (exact string quoted in the `docs/SAFETY.md` LK table) **or** C is explicitly labelled `INFERRED (other device)`/`UNKNOWN`; `∄` claim presented as fact with neither; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V14 | ∀ claim C about **this** device's bootloader in `README.md`/`docs/SAFETY.md`/`docs/DEVICE-TEST-PROTOCOL.md`: `!` C cites the real-`lk_b.img` evidence (exact string quoted in the `docs/SAFETY.md` LK table, or the RE1 disassembly report) **or** C is explicitly labelled `INFERRED (other device)`/`UNKNOWN`; `∄` claim presented as fact with neither; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V15 | ∀ alternative boot path P (`fastboot boot`, legacy v2 RAM-boot, …) mentioned in `docs/DEVICE-TEST-PROTOCOL.md`: `!` P is not an executable step of the protocol, and the doc states why the legacy RAM-boot was discarded (slot-selection risk); `∃` evidence of slot selection for any path that *is* offered; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V16 | ∀ `getvar` check in `docs/DEVICE-TEST-PROTOCOL.md`: `!` the doc declares the accepted values **including `Variable not found`** for variables the real LK may not implement, and the pre-flight write gate exists (`partition-size:boot_b` = `0x4000000` AND file = 67108864 B AND sha256 recorded); else `⊥`. | `tools/check_protocol_invariants.sh` |
-| V17 | ∀ claim marked PROVED/MEASURED about the bootloader: `!` the evidence is of the right kind — existence claims may cite strings, but **order/behaviour claims require disassembly or an on-device experiment**; a strings-only order claim is `⊥`. Enforced structurally: the SAFETY LK table must carry the `INFERRED (other device)` row and the protocol must derive the oversize protection from its own pre-flight check, not from the bootloader's assumed check order. | `tools/check_protocol_invariants.sh` |
+| V17 | ∀ order/behaviour claim about this bootloader's write path: `!` it cites the RE1 disassembly of the real binary (`research/RE1_opencode_flash.md`); claims sourced only from another device's LK stay labelled `INFERRED (other device)`; a strings-only order claim or the word PROVED is `⊥`. | `tools/check_protocol_invariants.sh` |
 | V18 | ∀ write step in `docs/DEVICE-TEST-PROTOCOL.md`: `!` the first write is an identical-content rehearsal (T-1: hash-verified backup reflashed onto its own partition) gated on Z0 PASS and the owner's explicit yes, and no stale "single write" sentence contradicts it; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V19 | ∀ fallback-behaviour row of the `docs/SAFETY.md` bootloader table: `!` it cites the disassembly reports (`research/RE2_codex_bootmode.md`, `research/RE4_codex_fallback.md`) with the function/address evidence, and anything still unproven stays labelled UNVERIFIED; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V20 | ∀ sentence about `is-userspace` in `README.md`/`docs/SAFETY.md`/`docs/DEVICE-TEST-PROTOCOL.md`/`docs/PLAN-AND-FINDINGS.pt-BR.md`/`docs/KMI-GATES.md`/`docs/BUILD.md`: `!` it never presents the variable as absent from the real binary (the string measurably exists); an absence claim there is `⊥`. Raw notes under `docs/research/` stay out of scope (V8 warning covers them). | `tools/check_protocol_invariants.sh` |
@@ -101,6 +113,12 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V25 | ∀ no-adb-back procedure in the Z0 section: `!` it waits 3 min, retries by keys once, ends the day on second failure, with no USB improvisation; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V26 | ∀ module-count criterion in the Z0 section: `!` the day baseline superset is the criterion and `~429` is reference only; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V27 | ∀ Z0 section: `!` it carries the honest list of what Z0 does not prove (still UNVERIFIED items); else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V28 | ∀ file in `tools/*.sh`: `!` it is executable (mode 100755 in the git index and on disk); else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V29 | ∀ name in `data/lk_tables.tsv` (7 controlled + 7 erase-forbidden): `!` `docs/SAFETY.md` names it in the measured tables; and the seven names `lk`, `seccfg`, `expdb`, `misc`, `boot_para`, `vbmeta`, `vendor_boot` are each explicitly stated NOT to be in either table; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V30 | ∀ line mentioning `getvar all` in `README.md`/`docs/*.md` (research notes excluded): `!` the line forbids it; an executable `getvar all` instruction is `⊥`. | `tools/check_protocol_invariants.sh` |
+| V31 | ∀ `fastboot flash` command in `docs/DEVICE-TEST-PROTOCOL.md`: `!` there are exactly as many as `README.md` affirms (two protected writes: T-1 backup, T3 kernel) and every one targets `boot_b`; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V32 | ∀ T-1 section in `docs/DEVICE-TEST-PROTOCOL.md`: `!` it comes after the R3 section (it depends on R3); else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V33 | ∀ file in `docs/research/*.md` except `README.md` (which documents the redaction): `!` it contains `/tmp/` or `/home/` paths; else `⊥`. | `tools/check_protocol_invariants.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):

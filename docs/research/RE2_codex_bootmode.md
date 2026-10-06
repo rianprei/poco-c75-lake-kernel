@@ -1,6 +1,6 @@
 # RE2 (FRENTE B) — Seleção de modo de boot e boot inválido, por DESMONTAGEM do lk_b real
 
-> Autor: frente B (reversor) | Data: 2026-10-06 | Alvo (SOMENTE LEITURA): `backup-2026-10-05/lk_b.img` → cópia em `/tmp/codex-re2/lk_b.img` (+ `lk_work.img`, `lk_sabot.img` p/ sabotagem).
+> Autor: frente B (reversor) | Data: 2026-10-06 | Alvo (SOMENTE LEITURA): `backup-2026-10-05/lk_b.img` → cópia em `<workdir>/lk_b.img` (+ `lk_work.img`, `lk_sabot.img` p/ sabotagem).
 > Ferramentas: `r2 6.2.0`, `objdump`/`llvm-objdump` (instalados), python3 stdlib. NADA instalado, nenhum push, aparelho intocado, LK nunca executado.
 > Rótulos: FACT (código lido) / MEASURED (saída colada) / INFERRED / UNVERIFIED / UNKNOWN.
 
@@ -90,5 +90,5 @@ Achados (FACT): (i) **fcn.4c42aff8** lê sufixo (`bl fcn.4c453ae4`) + retry (`bl
 
 ## Fontes
 
-- Binário: `backup-2026-10-05/lk_b.img` (lido; cópias `/tmp/codex-re2/`); strings `/tmp/lk_b_strings.txt` + `strs6.txt` (offsets, gerado local).
-- Cruzamento: REVIEW3_opencode_cmdaudit.md §1 (strings do cmd_boot legacy — este relatório NÃO usa gemini-lk; todas as provas são do binário real).
+- Binário: `backup-2026-10-05/lk_b.img` (lido; cópias em `<workdir>/`); strings `<workdir>/lk_b_strings.txt` + `strs6.txt` (offsets, gerado local).
+- Cruzamento: REVIEW3_opencode_cmdaudit.md §1 (retido — não publicado; strings do cmd_boot legacy — este relatório NÃO usa gemini-lk; todas as provas são do binário real).

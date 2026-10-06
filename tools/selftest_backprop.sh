@@ -87,8 +87,8 @@ case_run 13 "V16 pré-voo de gravação removido do protocolo" check_protocol_in
   "sed -i '/partition-size:boot_b/d; /0x4000000/d; /67108864/d; /sha256sum boot_b_new.img/d' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V17: check order presented as fact (strings-only proof) — INFERRED label replaced by 'measured'
-case_run 14 "V17 rótulo INFERRED (other device) trocado por 'measured'" check_protocol_invariants.sh '^V17 FAIL' \
-  "sed -i 's/the \\*order\\* of this check relative to the write is \\*\\*INFERRED (other device)\\*\\*/the order of this check is measured/' docs/SAFETY.md"
+case_run 14 "V17 RE1 disassembly citation dropped from SAFETY" check_protocol_invariants.sh '^V17 FAIL' \
+  "sed -i 's/RE1_opencode_flash.md/XXX/' docs/SAFETY.md"
 
 # FIX8 (T-1 rehearsal) — the write path must be demonstrated with identical content first:
 
@@ -137,6 +137,32 @@ case_run 23 "V26 day baseline replaced by ~429 criterion" check_protocol_invaria
 # V27: honest list of what Z0 does not prove deleted
 case_run 24 "V27 honest not-proven list deleted" check_protocol_invariants.sh '^V27 FAIL' \
   "sed -i '/What Z0 does not prove/d' docs/DEVICE-TEST-PROTOCOL.md"
+
+# FIX10 (exec bits) — one sabotage per new invariant:
+
+# V28: a tool script loses its exec bit
+case_run 25 "V28 tool script without exec bit" check_protocol_invariants.sh '^V28 FAIL' \
+  "chmod 644 tools/gate_kmi_crc.sh"
+
+# V29: a measured table name dropped from SAFETY
+case_run 26 "V29 table name dropped from SAFETY" check_protocol_invariants.sh '^V29 FAIL' \
+  "sed -i 's/protect2/XXXX/' docs/SAFETY.md"
+
+# V30: 'getvar all' ordered as an executable step
+case_run 27 "V30 getvar all ordered as executable step" check_protocol_invariants.sh '^V30 FAIL' \
+  "printf '\n| T9 | run \`fastboot getvar all\` and continue | no | n/a |\n' >> docs/DEVICE-TEST-PROTOCOL.md"
+
+# V31: a third 'fastboot flash' command appears in the protocol
+case_run 28 "V31 third fastboot flash in protocol" check_protocol_invariants.sh '^V31 FAIL' \
+  "printf '\nfastboot flash super super.img\n' >> docs/DEVICE-TEST-PROTOCOL.md"
+
+# V32: T-1 moved back before R3
+case_run 29 "V32 T-1 before R3 again" check_protocol_invariants.sh '^V32 FAIL' \
+  "sed -i '1i ### T-1 MOVED' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V33: a machine path planted in a research note
+case_run 30 "V33 machine path in research note" check_protocol_invariants.sh '^V33 FAIL' \
+  "printf '\nsee /tmp/scratch/debug.log\n' >> docs/research/RE1_opencode_flash.md"
 
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

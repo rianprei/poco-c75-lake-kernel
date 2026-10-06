@@ -132,9 +132,11 @@ fi
 for s in 'size too large, space small' 'Forbidden to erase boot/preloader partition.' "download for partition '%s' is not allowed" 'flash preloader is not permitted.'; do
   grep -qF "$s" "$SAFETY" || fail 14 "$SAFETY não cita mais a string do lk_b real: $s"
 done
-grep -qF 'INFERRED (other device)' "$PROTO" \
-  && ok 14 "protocol marks the LK check order as INFERRED (other device)" \
-  || fail 14 "$PROTO does not label the bootloader check order as INFERRED (other device)"
+if grep -qF 'INFERRED (other device)' "$PROTO" || grep -qF 'RE1_opencode_flash.md' "$PROTO"; then
+  ok 14 "protocol labels LK check order (INFERRED other-device, or cites RE1 disassembly)"
+else
+  fail 14 "$PROTO states LK check order with neither INFERRED (other device) nor RE1 evidence"
+fi
 note 14 "that each quoted string really is in lk_b.img is NOT automatable here (the binary is retained, not published); the quoted strings were grepped against /tmp/lk_b_strings.txt during the FIX7 review"
 
 # ------------------------------------------------------------------------------------------------
@@ -174,11 +176,15 @@ note 16 "the runtime value of is-userspace on this LK is UNVERIFIED (SPEC.md §T
 # ------------------------------------------------------------------------------------------------
 # V17 — PROVED/MEASURED bootloader claims need evidence of the right kind (order needs disassembly)
 # ------------------------------------------------------------------------------------------------
-if grep -qF 'the *order* of this check relative to the write is **INFERRED (other device)**' "$SAFETY" && \
-   grep -qF '**INFERRED (other device)** — never cite as a property of this bootloader' "$SAFETY"; then
-  ok 17 "the size-check ORDER is labelled INFERRED (other device), not PROVED from strings"
+if grep -qF 'RE1_opencode_flash.md' "$SAFETY"; then
+  ok 17 "the size/write order cites RE1 disassembly of the real binary"
 else
-  fail 17 "$SAFETY presents or omits the LK check order without the INFERRED (other device) label"
+  fail 17 "$SAFETY lost the RE1 disassembly citation for the size/write order"
+fi
+if grep -qF '**INFERRED (other device)** — never cite as a property of this bootloader' "$SAFETY"; then
+  ok 17 "gemini-sourced claims keep the INFERRED (other device) label"
+else
+  fail 17 "$SAFETY lost the INFERRED (other device) label on gemini-sourced claims"
 fi
 grep -qiE 'PROVED' "$SAFETY" "$PROTO" \
   && fail 17 "the word PROVED appears in device-facing docs (strings-only existence must not be called proof of order)" \
@@ -190,7 +196,7 @@ grep -qF 'from *this* check, run by you' "$PROTO" \
 # ------------------------------------------------------------------------------------------------
 # V18 — the first write is an identical-content rehearsal (T-1) gated on Z0 PASS + owner yes
 # ------------------------------------------------------------------------------------------------
-t1="$(sed -n '/^### T-1/,/^### R3/p' "$PROTO")"
+t1="$(sed -n '/^### T-1/,/^| T2b/p' "$PROTO")"
 if [ -z "$t1" ]; then
   fail 18 "$PROTO lost the T-1 identical-content write rehearsal"
 else
@@ -206,9 +212,10 @@ else
   printf '%s\n' "$t1" | grep -qi 'identical' \
     && ok 18 "T-1 writes identical content only" \
     || fail 18 "T-1 does not state identical content"
-  printf '%s\n' "$t1" | grep -q 'command fastboot flash boot_b' \
-    && ok 18 "T-1 uses the guarded bypass form for its single command" \
-    || fail 18 "T-1 write command is not in 'command fastboot' form"
+  printf '%s\n' "$t1" | grep -q 'flash boot_b' \
+    && printf '%s\n' "$t1" | grep -q 'backup' \
+    && ok 18 "T-1 names the backup-image flash command" \
+    || fail 18 "T-1 does not name the backup-image flash command"
 fi
 grep -qF 'one and only write command' "$PROTO" \
   && fail 18 "$PROTO still claims a single write command (T-1 is the second)" \
@@ -307,6 +314,90 @@ printf '%s\n' "$z0" | grep -qi 'does not prove' \
   && printf '%s\n' "$z0" | grep -q 'UNVERIFIED' \
   && ok 27 "Z0 carries the honest list of what it does not prove" \
   || fail 27 "Z0 lost the honest list of what it does not prove"
+
+# ------------------------------------------------------------------------------------------------
+# V28 — every tools/*.sh is executable (index 100755 and on-disk +x)
+# ------------------------------------------------------------------------------------------------
+bad28=""
+for f in tools/*.sh; do
+  [ -x "$f" ] || bad28="$bad28 $f"
+done
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  idxbad="$(git ls-files -s tools/*.sh | awk '$1 != "100755" {print $4}')"
+  [ -z "$idxbad" ] || bad28="$bad28(index:$idxbad)"
+fi
+if [ -z "$bad28" ]; then
+  ok 28 "every tools/*.sh is executable (index 100755, on-disk +x)"
+else
+  fail 28 "non-executable tools/*.sh:$bad28"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V29 — SAFETY names exactly the measured LK table names; the 7 unprotected names say so
+# ------------------------------------------------------------------------------------------------
+names29="$(awk '!/^#/ && NF {print $2}' data/lk_tables.tsv)"
+[ "$(printf '%s\n' "$names29" | wc -l)" -eq 14 ] \
+  && ok 29 "data/lk_tables.tsv lists 14 table names" \
+  || fail 29 "data/lk_tables.tsv does not list 14 names"
+for n in $names29; do
+  grep -qF "$n" "$SAFETY" \
+    && ok 29 "SAFETY names table entry $n" \
+    || fail 29 "SAFETY lost table name: $n"
+done
+for s in 'lk is NOT in either table' 'seccfg is NOT in either table' 'expdb is NOT in either table' \
+         'misc is NOT in either table' 'boot_para is NOT in either table' 'vbmeta is NOT in either table' \
+         'vendor_boot is NOT in either table'; do
+  grep -qF "$s" "$SAFETY" \
+    && ok 29 "SAFETY states: $s" \
+    || fail 29 "SAFETY lost: $s"
+done
+
+# ------------------------------------------------------------------------------------------------
+# V30 — no doc outside research orders 'getvar all' (only prohibitions may mention it)
+# ------------------------------------------------------------------------------------------------
+hits30="$(grep -rn 'getvar all' README.md docs/*.md 2>/dev/null || true)"
+bad30="$(printf '%s\n' "$hits30" | grep -viE 'forbid|PROIBIDO|never run|not run|allowlist|instead' || true)"
+if [ -z "$bad30" ]; then
+  ok 30 "no executable 'getvar all' outside docs/research/"
+else
+  fail 30 "executable 'getvar all': $(printf '%s' "$bad30" | head -1 | cut -c1-120)"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V31 — 'fastboot flash' count in the protocol == README number (2), target always boot_b
+# ------------------------------------------------------------------------------------------------
+nflash="$(grep -c 'fastboot flash' "$PROTO")"
+[ "$nflash" -eq 2 ] \
+  && ok 31 "protocol has exactly 2 'fastboot flash' commands (T-1, T3)" \
+  || fail 31 "protocol has $nflash 'fastboot flash' commands, README affirms 2"
+grep 'fastboot flash' "$PROTO" | grep -vq 'flash boot_b' \
+  && fail 31 "a 'fastboot flash' targets something other than boot_b" \
+  || ok 31 "every 'fastboot flash' targets boot_b"
+grep -qF 'two protected writes of `boot_b` (T-1 backup, T3 kernel)' README.md \
+  && ok 31 "README affirms two protected writes (T-1 backup, T3 kernel)" \
+  || fail 31 "README lost the two-writes count"
+grep -q 'command fastboot flash boot_b <path/to/backup/boot_b.img>' "$PROTO" \
+  && ok 31 "T-1 block line keeps the guarded bypass form" \
+  || fail 31 "T-1 block line lost the guarded bypass form"
+
+# ------------------------------------------------------------------------------------------------
+# V32 — T-1 comes after R3 (it depends on R3)
+# ------------------------------------------------------------------------------------------------
+t1line="$(grep -n '^### T-1' "$PROTO" | head -1 | cut -d: -f1)"
+r3line="$(grep -n '^### R3' "$PROTO" | head -1 | cut -d: -f1)"
+[ -n "$t1line" ] && [ -n "$r3line" ] && [ "$t1line" -gt "$r3line" ] \
+  && ok 32 "T-1 section (line $t1line) comes after R3 (line $r3line)" \
+  || fail 32 "T-1 is not after R3 (t1=$t1line r3=$r3line)"
+
+# ------------------------------------------------------------------------------------------------
+# V33 — research notes carry no machine paths (README documents the redaction)
+# ------------------------------------------------------------------------------------------------
+bad33="$(grep -rn '/tmp/\|/home/' docs/research/*.md 2>/dev/null | grep -v 'docs/research/README.md' || true)"
+if [ -z "$bad33" ]; then
+  ok 33 "no /tmp/ or /home/ paths in docs/research/ notes"
+else
+  fail 33 "machine paths in notes: $(printf '%s' "$bad33" | head -1 | cut -c1-120)"
+fi
 
 # ------------------------------------------------------------------------------------------------
 # V8 — every fact row has a proof; the raw notes carry the warning
