@@ -1,0 +1,8 @@
+[    0.000000] Booting Linux on physical CPU 0x0000000000 [0x410fd034]
+[   12.345679] can: Unknown symbol foo_bar (err -2)
+[   12.345680] can: disagrees about version of symbol mutex_lock
+[   12.345681] rfkill: exports protected symbol rfkill_alloc
+[   12.345682] can: Invalid module format
+[   12.345683] kCFI failure at can_init+0x1c/0x40 (target: can_rx_register+0x0/0x180; expected type: 0x8f2c1d4a)
+[   12.345684] BUG: kernel NULL pointer dereference, address: 0000000000000000
+[   12.345685] Kernel panic - not syncing: Attempted to kill init! exitcode=0x0000000b

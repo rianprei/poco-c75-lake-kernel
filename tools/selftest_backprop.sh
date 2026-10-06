@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# selftest_backprop.sh — PROOF OF SABOTAGE for every new check (SPEC.md §V).
+#
+# For each invariant the defect that the check is supposed to catch is planted in a throwaway
+# copy of the repo (mktemp -d, never the working tree): the check must FAIL and cite the line,
+# and the pristine copy must PASS. No case is trusted unless it demonstrably flips FAIL -> PASS.
+#
+# usage: tools/selftest_backprop.sh      (read-only on the repo; exit 0 = every case detected)
+set -uo pipefail; export LC_ALL=C
+HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/.." && pwd)"
+
+BASE="$(mktemp -d)"; trap 'rm -rf "$BASE"' EXIT
+PRISTINE="$BASE/pristine"; mkdir -p "$PRISTINE"
+cp -a "$ROOT/tools" "$ROOT/tests" "$ROOT/docs" "$ROOT/data" "$ROOT/scripts" "$ROOT/README.md" "$PRISTINE/"
+
+pass=0; fail=0
+case_run() { # <n> <label> <check script> <expected FAIL pattern> <mutation (bash, runs inside the copy)>
+  local n="$1" label="$2" script="$3" pat="$4" mut="$5"
+  local dir out rc
+  dir="$(mktemp -d "$BASE/case.XXXXXX")"; cp -a "$PRISTINE/." "$dir/"
+  ( cd "$dir" && eval "$mut" ) >/dev/null 2>&1
+  out="$( cd "$dir" && bash "tools/$script" 2>&1 )"; rc=$?
+  printf '### [%s] %s\n' "$n" "$label"
+  if [ "$rc" -ne 0 ] && printf '%s\n' "$out" | grep -qE "$pat"; then
+    printf '    defeito plantado DETECTADO: exit=%s, casou /%s/\n' "$rc" "$pat"
+    printf '%s\n' "$out" | grep -E "$pat" | head -2 | sed 's/^/      /'
+    local pout prc
+    pout="$( cd "$PRISTINE" && bash "tools/$script" 2>&1 )"; prc=$?
+    if [ "$prc" -eq 0 ]; then
+      printf '    cópia limpa: PASS (exit=0)\n  => OK   FAIL->PASS\n\n'
+      pass=$((pass + 1))
+    else
+      printf '    cópia limpa NÃO passa (exit=%s) — invariante quebrado no repo!\n  => FALHA (pristine)\n\n' "$prc"
+      fail=$((fail + 1))
+    fi
+  else
+    printf '    defeito NÃO detectado (exit=%s) — teste cego\n  => FALHA\n\n' "$rc"
+    fail=$((fail + 1))
+  fi
+  rm -rf "$dir"
+}
+
+DMESG_PAT='Unknown symbol|disagrees about version|exports protected symbol|Invalid module format|kCFI|BUG: kernel NULL pointer|Kernel panic'
+
+case_run 1 "V1 README 557 -> 215 (o bug da auditoria de 2026-10-06)" check_docs_numbers.sh '^V1 FAIL' \
+  "sed -i 's/557/215/g' README.md"
+
+case_run 2 "V2 controle POSITIVO: padrão dmesg trocado por algo que nunca casa" check_regex_controls.sh '^V2 FAIL' \
+  "sed -i 's/$DMESG_PAT/ZZZ_never_matches/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 3 "V2 pipe escapado dentro de -E (o padrão que nunca casava)" check_regex_controls.sh '^V2 FAIL' \
+  "sed -i 's/Unknown symbol|disagrees/Unknown symbol\\\\|disagrees/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 4 "V3 instrução positiva de troca de slot no protocolo" check_protocol_invariants.sh '^V3 FAIL' \
+  "printf '\n| T4 | then run \`fastboot set_active a\` to test the other slot | yes | n/a |\n' >> docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 5 "V4 fastboot boot afirmado como suportado" check_protocol_invariants.sh '^V4 FAIL' \
+  "printf '\nfastboot boot is supported on lake for v4 images.\n' >> docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 6 "V5 alegação de ausência com uma única fonte" check_protocol_invariants.sh '^V5 FAIL' \
+  "printf '\n7. **The userdata partition is not in this project backup.**\n' >> docs/SAFETY.md"
+
+case_run 7 "V6 rm -rf em caminho literal" check_destructive_ops.sh '^V6 FAIL' \
+  "printf '\nrm -rf /tmp/opencode\n' >> tools/gate_kmi_crc.sh"
+
+case_run 8 "V7 afirmação de comportamento do kernel sem fonte" check_protocol_invariants.sh '^V7 FAIL' \
+  "python3 -c \"import pathlib;p=pathlib.Path('docs/KMI-GATES.md');p.write_text(p.read_text().replace('\`same_magic()\` (kernel/module/version.c)','\`same_magic()\`'))\""
+
+case_run 9 "V8 linha da tabela de fatos sem coluna de prova" check_protocol_invariants.sh '^V8 FAIL' \
+  "python3 -c \"import pathlib;p=pathlib.Path('docs/PLAN-AND-FINDINGS.pt-BR.md');p.write_text(p.read_text().replace('| OPENCODE2_boot_safety.md §1 |','|   |'))\""
+
+case_run 10 "V9 URL do fetch alterada (build errado)" selftest_fetch.sh '^V9 FAIL' \
+  "sed -i 's/^BID=13771415/BID=99999999/' tools/fetch_official_artifacts.sh"
+
+printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
+[ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

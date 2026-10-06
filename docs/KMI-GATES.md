@@ -72,4 +72,4 @@ python3 tools/dump_modcrcs.py --inventory "$MODS/ramdisk" "$MODS/vendor_dlkm" > 
 
 ## Inter-module symbols
 
-4138 distinct symbols are imported by the modules: **2309 come from the kernel** and are covered above; the remaining 1829 are exported by *other vendor modules* (e.g. `mtk_cmdq_drv_ext`, `mediatek_drm`) and are unaffected by rebuilding the kernel. Nine of them (`arc4_*`, `rfkill_*`) are *protected exports* provided by Google-signed GKI modules — the reason for the certificate in the cert build.
+4138 distinct symbols are imported by the modules: **2309 come from the kernel** and are covered above; the remaining 1829 are exported by *other vendor modules* (e.g. `mtk_cmdq_drv_ext`, `mediatek_drm`) and are unaffected by rebuilding the kernel. Nine of them (`arc4_*`, `rfkill_*`) are *protected exports* provided by Google-signed GKI modules — the reason for the certificate in the cert build. Source for that set: the `android/abi_gki_protected_exports_aarch64` list of the pinned r12 tree, cross-checked against the module dump (`docs/PLAN-AND-FINDINGS.pt-BR.md` fact 37).

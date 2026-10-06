@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# check_protocol_invariants.sh — structural invariants of the device-facing docs:
+#   V3  no slot switch without the documented both-slots firmware comparison
+#   V4  bootloader-dependent commands are never asserted as supported (fastboot boot = UNKNOWN)
+#   V5  an absence claim cites >= 2 independent sources
+#   V7  a claim about kernel behaviour cites the source file (a .c/.h/.cpp, or the CONFIG symbol)
+#   V8  every fact row in the facts log carries a non-empty proof column, and the raw research
+#       notes carry the "contains errors / UNVERIFIED links" warning
+#
+# What each check can and cannot automate is spelled out in SPEC.md §V; anything left to manual
+# review is printed as "V<n> NOTE manual-review" so the gap is visible instead of silent.
+#
+# usage: tools/check_protocol_invariants.sh     (read-only; prints V<n> PASS|FAIL lines)
+set -uo pipefail; export LC_ALL=C
+HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/.." && pwd)"; cd "$ROOT"
+
+fails=0
+fail() { printf 'V%s FAIL %s\n' "$1" "$2"; fails=$((fails + 1)); }
+note() { printf 'V%s NOTE manual-review %s\n' "$1" "$2"; }
+ok()   { printf 'V%s OK %s\n' "$1" "$2"; }
+
+PROTO=docs/DEVICE-TEST-PROTOCOL.md
+SAFETY=docs/SAFETY.md
+
+# ------------------------------------------------------------------------------------------------
+# V3 — slot switching is forbidden unless both slots' firmware is compared first
+# ------------------------------------------------------------------------------------------------
+if grep -qE 'avbtool info_image' "$PROTO" && grep -qE 'vbmeta_a' "$PROTO" && grep -qE 'vbmeta_b' "$PROTO" \
+   && grep -qiE 'never switch slots|do \*\*not\*\* run `set_active`' "$PROTO"; then
+  ok 3 "protocol compares avbtool info_image of vbmeta_a and vbmeta_b and forbids slot switching"
+else
+  fail 3 "$PROTO does not both forbid slot switching AND require avbtool info_image on vbmeta_a + vbmeta_b"
+fi
+# no *executable* positive slot-switch instruction (the shell guard that blocks one is fine)
+exec_switch="$(grep -nE 'fastboot +(--?set-active|set_active)\b' "$PROTO" | grep -viE 'not|never|BLOQUEADO|proibido|blocked|STOP|abort' || true)"
+if [ -n "$exec_switch" ]; then
+  fail 3 "positivo comando de troca de slot em $PROTO: $(printf '%s' "$exec_switch" | head -1 | cut -c1-100)"
+else
+  ok 3 "no un-negated 'fastboot set_active' instruction in $PROTO"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V4 — fastboot boot is UNKNOWN on lake, never asserted as a fact
+# ------------------------------------------------------------------------------------------------
+if grep -E 'fastboot boot' "$PROTO" | grep -qiE 'UNKNOWN'; then
+  ok 4 "$PROTO states the fastboot boot caveat (UNKNOWN) next to the command"
+else
+  fail 4 "$PROTO mentions fastboot boot without any UNKNOWN caveat"
+fi
+asserted="$(grep -nEi 'fastboot boot (is|works|is supported|will work|is available|supports)|supported on (lake|this device)' "$PROTO" "$SAFETY" README.md || true)"
+if [ -n "$asserted" ]; then
+  fail 4 "afirmação positiva de suporte a fastboot boot: $(printf '%s' "$asserted" | head -1 | cut -c1-100)"
+else
+  ok 4 "no positive support claim for fastboot boot in $PROTO/$SAFETY/README.md"
+fi
+grep -qE 'unknown command' "$PROTO" && grep -qiE 'stop' "$PROTO" \
+  && ok 4 "protocol STOPs when the bootloader answers 'unknown command'" \
+  || fail 4 "protocol does not STOP on 'unknown command'"
+
+# ------------------------------------------------------------------------------------------------
+# V5 — an absence claim cites >= 2 independent sources
+# ------------------------------------------------------------------------------------------------
+python3 - "$PROTO" "$SAFETY" <<'PY'
+import re, sys
+# Empirical absence claims about the device/firmware/backup. Statements about the doc's own tables
+# ("nothing in T0/T2 writes flash") are not absence claims and are out of scope — see SPEC.md §V5.
+MARK = re.compile(r'does not contain|is not in (?:this project|the backup|the dump|the repo)'
+                  r'|has no public recovery|no `wipe` flag|no entry in'
+                  r'|is \*\*UNKNOWN\*\*|never (?:verified|observed|present)')
+TOKEN = re.compile(r'`[^`]*(?:/|\.(?:md|cpp|cc|c|h|txt|log|tsv|csv|bzl))[^`]*`'
+                   r'|\bfacts? \d+|\bfato \d+|\bmeasurement M\d+|\bM\d\b')
+bad = 0
+for path in sys.argv[1:]:
+    for i, line in enumerate(open(path), 1):
+        if not MARK.search(line):
+            continue
+        n = len(set(m.group(0) for m in TOKEN.finditer(line)))
+        if n < 2:
+            bad += 1
+            print(f'V5 FAIL {path}:{i} alegação de ausência com {n} fonte(s) independente(s): {line.strip()[:110]}')
+if bad == 0:
+    print('V5 OK every absence claim in the protocol/safety docs cites 2+ independent sources')
+sys.exit(1 if bad else 0)
+PY
+[ $? -eq 0 ] || fails=$((fails + 1))
+note 5 "scope: empirical absence claims only; 'nothing in T0/T2 writes flash' is a statement about the doc's own table, checked by reading the table"
+
+# ------------------------------------------------------------------------------------------------
+# V7 — claims about kernel behaviour cite their source
+# ------------------------------------------------------------------------------------------------
+python3 - README.md docs/KMI-GATES.md docs/SAFETY.md <<'PY'
+import re, sys
+BEHAVIOUR = re.compile(r'same_magic|skips the first token|MODULE_SIG_PROTECT|sig_ok|protected export'
+                       r'|partition_wiped|first_stage_mount|fs_mgr_do_format|MODVERSIONS')
+CITE = re.compile(r'\.(?:c|h|cpp)\b|CONFIG_[A-Z0-9_]+|\bAOSP\b|`[^`]*/[^`]*`')
+bad = 0
+for path in sys.argv[1:]:
+    for i, line in enumerate(open(path), 1):
+        if BEHAVIOUR.search(line) and not CITE.search(line):
+            bad += 1
+            print(f'V7 FAIL {path}:{i} afirmação de comportamento do kernel sem fonte: {line.strip()[:110]}')
+if bad == 0:
+    print('V7 OK every kernel-behaviour claim cites a source file or CONFIG symbol')
+sys.exit(1 if bad else 0)
+PY
+[ $? -eq 0 ] || fails=$((fails + 1))
+
+# ------------------------------------------------------------------------------------------------
+# V8 — every fact row has a proof; the raw notes carry the warning
+# ------------------------------------------------------------------------------------------------
+# NB: [|] rather than \| — in ERE an escaped pipe is a literal pipe anyway, and this file's own
+# V2 rule rejects the confusing form.
+rows="$(grep -cE '^[|] *[0-9]+ *[|]' docs/PLAN-AND-FINDINGS.pt-BR.md)"
+empty="$(awk -F'|' '/^[|] *[0-9]+ *[|]/ {p=$5; gsub(/^[ \t]+|[ \t]+$/,"",p); if (p=="") print NR}' docs/PLAN-AND-FINDINGS.pt-BR.md)"
+if [ -n "$empty" ]; then
+  fail 8 "linha(s) de fato sem coluna Prova em docs/PLAN-AND-FINDINGS.pt-BR.md: $(printf '%s' "$empty" | tr '\n' ' ')"
+else
+  ok 8 "$rows fact rows, all with a non-empty proof column"
+fi
+if grep -qE '\*\*They contain errors\.\*\*' docs/research/README.md && grep -qE 'UNVERIFIED' docs/research/README.md; then
+  ok 8 "docs/research/README.md carries the 'contain errors' warning and the UNVERIFIED link table"
+else
+  fail 8 "docs/research/README.md lost the 'contain errors' warning or the UNVERIFIED link table"
+fi
+note 8 "that each individual FACT sentence in the raw notes has a source is NOT automatable (free prose); the proof column of the facts log is the enforced landing place"
+
+if [ "$fails" -eq 0 ]; then
+  echo "PASS protocol invariants (V3 V4 V5 V7 V8)"
+  exit 0
+fi
+echo "FAIL $fails invariante(s) de protocolo"
+exit 1

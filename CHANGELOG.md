@@ -22,3 +22,13 @@ Everything below is host-side; still not boot-tested on hardware. Supersedes the
 - `tools/dump_modcrcs.py` rewritten (deterministic output, `--inventory` mode, slot-prefix normalisation); `tools/data/vendor_required_crcs.txt` and `tools/data/kmi_need_from_kernel.txt` removed as superseded.
 - `tools/fetch_official_artifacts.sh` hardened: browser User-Agent, 3 attempts with backoff, explicit error with the manual URL when `artifactUrl` is absent, and sha256 verification of `Image`/`can.ko`.
 - `tools/verify_modsig.sh` no longer writes to a hard-coded `/tmp/opencode`: temporary workdirs come from `mktemp -d` and are removed by an `EXIT` trap.
+
+## 0.1.2 (2026-10-06)
+
+Backprop pass: every real error found so far became a machine-checked invariant, so it cannot return silently. Host-side only; still **not boot-tested on hardware**.
+
+- New `SPEC.md`: bug registry (§B, B1–B13 with date, root cause and the invariant that prevents it), invariants V1–V9 (§V, testable phrasing + the file that protects each), open tasks (§T: boot on `lake`, `fastboot boot`, A/B fallback, Wi-Fi/BT, thermal stress, `pstore` after a panic) and the convergence criterion for the adversarial review (two consecutive rounds with no new concrete finding).
+- New checks (all read-only, `mktemp` only): `tools/check_docs_numbers.sh` (V1: documented corpus numbers must equal `tools/gate_kmi_crc.sh` output and `tools/data/*.tsv`), `tools/check_regex_controls.sh` (V2: every documented `grep -E` needs a positive *and* a negative control; `\|` inside `-E` is rejected), `tools/check_protocol_invariants.sh` (V3/V4/V5/V7/V8), `tools/check_destructive_ops.sh` (V6), `tools/selftest_fetch.sh` (V9), plus `tools/run_all_checks.sh` (summary per invariant, exit ≠ 0 on failure) and `tools/selftest_backprop.sh` (10 sabotage cases, each proven FAIL→PASS).
+- New fixtures `tests/fixtures/dmesg_bad.txt`, `dmesg_clean.txt`, `sha256sums_bad.txt`, `sha256sums_clean.txt` as the controls those checks run against.
+- Real defects the new checks exposed and that are now fixed: the protocol's dmesg acceptance had no runnable command (B10, command block added, with its own host-side controls); six absence claims in `SAFETY.md`/`DEVICE-TEST-PROTOCOL.md` rested on a single observation (B11, each now cites two independent sources); `tools/verify_modsig.sh` used `grep -i "serial\|issuer"` (B12, now `-iE`); `KMI-GATES.md` asserted the protected-exports set with no source (B13, now cites `android/abi_gki_protected_exports_aarch64` and facts 37).
+- `tools/fetch_official_artifacts.sh` gained `--dry-run`, which prints the viewer URL it would request and writes nothing — the URL V9 verifies is the script's own, not a copy.

@@ -8,8 +8,8 @@ This protocol is written for the **audited device** (POCO C75 4G `lake`, slot `_
 
 ## Read this first (brick / data-loss rules)
 
-1. **If `fastboot boot` does not exist on this bootloader there is no RAM test — the protocol STOPS.** `fastboot boot <image>` loads a kernel without writing to flash, but its support on `lake` is **UNKNOWN** (`docs/SAFETY.md`: the MediaTek LK source has `cmd_boot`; never observed on this device). If it answers `unknown command`, stop: nothing was transferred and nothing changed.
-2. **Never choose "Factory data reset" on any screen.** If the device shows *"Can't load Android system. Your data may be corrupt"* with *Try again* / *Factory data reset*, choose **Try again** — and photograph the screen before touching anything. **Your backup does not contain `userdata`**, so a wipe is permanent loss of photos/apps/data (`research/REVIEW3_codex_fmea.md` §2, measurement M5: `grep -ciE "userdata|user_data" backup/SHA256SUMS.log` → 0). **Back up your personal data first** (cloud/PC), before you even connect the cable.
+1. **If `fastboot boot` does not exist on this bootloader there is no RAM test — the protocol STOPS.** `fastboot boot <image>` loads a kernel without writing to flash, but its support on `lake` is **UNKNOWN** — two independent sources agree there is no evidence either way: the command exists in the LK source (MediaTek `cmd_boot`, `docs/SAFETY.md` rule 4) and it was never seen working on this device (`docs/PLAN-AND-FINDINGS.pt-BR.md` fact 10, `research/OPENCODE2_boot_safety.md` §1). If it answers `unknown command`, stop: nothing was transferred and nothing changed.
+2. **Never choose "Factory data reset" on any screen.** If the device shows *"Can't load Android system. Your data may be corrupt"* with *Try again* / *Factory data reset*, choose **Try again** — and photograph the screen before touching anything. **Your backup does not contain `userdata`**, so a wipe is permanent loss of photos/apps/data (`research/REVIEW3_codex_fmea.md` §2, measurement M5: `grep -ciE "userdata|user_data" backup/SHA256SUMS.log` → 0; `docs/PLAN-AND-FINDINGS.pt-BR.md` fact 21). **Back up your personal data first** (cloud/PC), before you even connect the cable.
 3. **Never switch slots.** On the audited device slot A holds an **older firmware (OS3.0.20.0)** while slot B runs OS3.0.306.0, so booting slot A means an old OS on top of newer user data (`docs/PLAN-AND-FINDINGS.pt-BR.md` facts 62/64). Do **not** run `set_active`, and do not use "the inactive slot" as a test slot.
 4. **Any `FAILED (...)` from fastboot is a STOP**, whatever the text says — do not improvise, do not retry with another cable "just once more", do not switch to a flash command. Note the exact message; it decides what can be tried another day.
 5. **Nothing in T0/T2 writes flash** — that is the whole point. If a command you are about to run is not in the table below, don't run it.
@@ -54,10 +54,31 @@ fastboot() {
 
 - `uname -r` shows the new kernel; `sys.boot_completed=1`.
 - `/proc/modules` module-name set ⊇ your baseline captured today.
-- `dmesg` has **no** `Unknown symbol`, `disagrees about version`, `exports protected symbol`, `Invalid module format`, `kCFI`/panic.
+- `dmesg` has **no** `Unknown symbol`, `disagrees about version`, `exports protected symbol`, `Invalid module format`, `kCFI`/panic — verified by the command in *Acceptance commands* below (not by eye).
 - `wlan0` up and connected; Bluetooth turns on; SIM registers; display/touch/audio/camera/GPU/sensors work; charging works.
 - All checks above work **without root** (`adb shell`, `adb bugreport`).
 - First normal boot also confirms `ro.build.version.incremental` is still the OS3.0.306.0 line — if it is not, the device booted the **other slot**: power off, do not unlock the screen, and reassess (FMEA-26).
+
+### Acceptance commands (copy them, never retype)
+
+```bash
+# 1. kernel log: module-loading errors and panics. EXPECT: no output on the device (grep exits 1)
+adb shell 'dmesg | grep -iE "Unknown symbol|disagrees about version|exports protected symbol|Invalid module format|kCFI|BUG: kernel NULL pointer|Kernel panic"'
+#    control that the pattern itself works, on the host, before trusting it:
+grep -iE "Unknown symbol|disagrees about version|exports protected symbol|Invalid module format|kCFI|BUG: kernel NULL pointer|Kernel panic" tests/fixtures/dmesg_bad.txt    # must print lines
+grep -iE "Unknown symbol|disagrees about version|exports protected symbol|Invalid module format|kCFI|BUG: kernel NULL pointer|Kernel panic" tests/fixtures/dmesg_clean.txt   # must print nothing
+
+# 2. module set is a superset of the baseline captured today
+diff <(adb shell 'cat /proc/modules' | awk '{print $1}' | sort) baseline_modules.txt
+
+# 3. identity and build line (must still be the OS3.0.306.0 line, not the other slot)
+adb shell getprop ro.build.version.incremental; adb shell uname -r; adb shell getprop sys.boot_completed
+```
+
+`tools/check_regex_controls.sh` keeps these patterns honest: each one must match a planted bad log
+(`tests/fixtures/dmesg_bad.txt`) and nothing in a clean one (`tests/fixtures/dmesg_clean.txt`), and
+`\|` inside a `-E` pattern is rejected outright (a literal pipe never matches — that is how this
+acceptance once passed on nothing).
 
 ## Abort criteria
 

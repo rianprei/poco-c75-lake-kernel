@@ -4,14 +4,26 @@
 # NOTE: the URL is embedded in the *per-file* page (<base>/<file>). The base index (<base>) is a JS
 # shell without "artifactUrl" and is never requested here.
 #
-# usage: tools/fetch_official_artifacts.sh [file ...]
+# usage: tools/fetch_official_artifacts.sh [--dry-run] [file ...]
 #        (default: Image can.ko boot-gz.img vmlinux.symvers System.map)
+#        --dry-run prints the viewer URL that would be requested for each file and writes nothing
+#                  (used by tools/selftest_fetch.sh, invariant V9: the URL tested is the script's own).
 # Exit 0 = every requested file downloaded (and hash-checked when a known hash exists), 1 otherwise.
 set -euo pipefail
 BID=13771415
 B="https://ci.android.com/builds/submitted/$BID/kernel_aarch64/latest"
-OUT="$(cd "$(dirname "$0")/.." && pwd)/official"; mkdir -p "$OUT"
+OUT="$(cd "$(dirname "$0")/.." && pwd)/official"
+DRY=0
+[ "${1:-}" = "--dry-run" ] && { DRY=1; shift; }
 FILES=("$@"); [ ${#FILES[@]} -gt 0 ] || FILES=(Image can.ko boot-gz.img vmlinux.symvers System.map)
+
+viewer_path() { case "$1" in BUILD_INFO|repo.prop) printf 'view/%s' "$1";; *) printf '%s' "$1";; esac; }
+
+if [ "$DRY" -eq 1 ]; then
+  for f in "${FILES[@]}"; do printf '%s/%s\n' "$B" "$(viewer_path "$f")"; done
+  exit 0
+fi
+mkdir -p "$OUT"
 UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
 ATTEMPTS=3
 SLEEP=5
@@ -24,7 +36,7 @@ declare -A KNOWN=(
 
 artifact_url() { # <name> -> prints the signed URL; retries, then a clear human error
   local f="$1" path html url attempt
-  case "$f" in BUILD_INFO|repo.prop) path="view/$f";; *) path="$f";; esac
+  path="$(viewer_path "$f")"
   for attempt in $(seq 1 "$ATTEMPTS"); do
     html="$(curl -fsS -A "$UA" --retry 2 --max-time 60 "$B/$path" 2>/dev/null || true)"
     url="$(printf '%s' "$html" | grep -o '"artifactUrl":"[^"]*"' | sed -n '1p' \

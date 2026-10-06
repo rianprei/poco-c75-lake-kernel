@@ -101,7 +101,9 @@ cmd_verify() {
     [ "${#CERTS[@]}" -gt 0 ] || { echo 'FAIL: nenhum cert no Image'; return 1; }
     echo "[2/3] método B (independente): fingerprint do signatário no PKCS#7 do módulo..."
     read -r CONTENT SIG < <(mod_split "$ko" "$work/mod")
-    openssl cms -inform DER -in "$SIG" -cmsout -print 2>/dev/null | grep -a -m2 -i "serial\|issuer" | sed 's/^/      /' || true
+    # -iE (not -i "a\|b"): escaped alternation is needless here and is the construct the
+    # protocol checks reject (SPEC.md V2/B12) — the two forms print the same lines.
+    openssl cms -inform DER -in "$SIG" -cmsout -print 2>/dev/null | grep -a -m2 -iE "serial|issuer" | sed 's/^/      /' || true
     echo "[3/3] verificando assinatura contra cada cert do Image..."
     for c in "${CERTS[@]}"; do
         if verify_one "$CONTENT" "$SIG" "$c"; then
