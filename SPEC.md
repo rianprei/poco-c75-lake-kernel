@@ -53,6 +53,27 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B35 | 2026-10-06 | The never-touch rule (rule 1) omitted `misc`, `boot_para`, `expdb` even though the SAFETY table explicitly states the bootloader does not protect them and the protocol already forbids touching them. | V34 |
 | B36 | 2026-10-06 | V29 only checked table rows exist in SAFETY but not that SAFETY rows match TSV exactly (bidirectional); extra names in table rows were not caught. | V29 |
 
+
+| B34 | 2026-10-06 | "Z0 writes nothing" in the protocol header contradicted Z0.0 which admits `adb reboot bootloader` writes a boot reason. | V35 |
+| B35 | 2026-10-06 | SAFETY.md said "single protected T3 command" after the protocol grew T-1. | V36 |
+| B36 | 2026-10-06 | V2 only covered greps in the protocol; reader-runnable greps in README/SAFETY/BUILD/KMI-GATES had no positive/negative controls. | V37 |
+| B37 | 2026-10-06 | V21 allowed extra `getvar` commands outside the closed allowlist by only checking presence of the 15 names. | V38 |
+| B38 | 2026-10-06 | V18 sentinel ("one and only write command") did not exist in any doc; the real contradiction is "single write" vs two writes. | V39 |
+| B39 | 2026-10-06 | V22/V26 accepted loose tokens (`powered off` + `Vol` anywhere; `429` + `reference` on same line) without co-location. | V40 |
+| B40 | 2026-10-06 | `docs/research/README.md` missing the V8 "contain errors" warning and UNVERIFIED link table. | V41 |
+| B41 | 2026-10-06 | V30 filter permissive: any `getvar all` outside `docs/research/` only allowed in lines that forbid it; lines ordering `getvar all` as executable passed. | V42 |
+| B42 | 2026-10-06 | `current-slot != b` exception said "old slot not barred by rollback" but rollback index 0 means LK **can** boot old slot A (RE4 D3). | V43 |
+| B43 | 2026-10-06 | `is-userspace` text said string "may not exist" but the string measurably exists in the LK getvar table. | V44 |
+| B44 | 2026-10-06 | Check-before-write order cited as INFERRED (other device) but RE1 §3.3 measured it in the real binary (check `bl 0x4c4367d2` precedes write `bl 0x4c436834`). | V45 |
+| B45 | 2026-10-06 | T-1.2 and T2b steps referenced commands indirectly; the exact commands were not inline. | V46 |
+| B46 | 2026-10-06 | T-1 used `command fastboot` to bypass the shell guard but T3 did not; the guard blocks both. | V47 |
+| B47 | 2026-10-06 | `protect1`/`protect2` order differed across docs; measured table has `protect2` then `protect1`. | V48 |
+| B48 | 2026-10-06 | Baseline "429 modules" presented as the audited device's number without clarifying it's an example; the reader's number is their own baseline. | V49 |
+| B49 | 2026-10-06 | No guidance on when/how to read `pstore` (next normal boot on a good kernel). | V50 |
+| B50 | 2026-10-06 | "Never touch" list in SAFETY.md presented as bootloader protection; it is project policy, wider than LK tables. | V51 |
+| B51 | 2026-10-06 | "Accept in writing" for slot firmware comparison was unspecified (how to document). | V52 |
+| B52 | 2026-10-06 | Six symptom lacunae not covered in abort criteria (EDL mode, fastboot OKAY but no boot, hardware failure, guard bypass, locked bootloader, empty pstore). | V53 |
+
 ### TWINS — the same pattern searched across the whole repository
 
 Per the fable rule, each bug was searched for again everywhere:
@@ -86,12 +107,53 @@ Per the fable rule, each bug was searched for again everywhere:
 - TWINS: searched `### T-1` position — section now follows R3/pre-flight; V32 keeps the order.
 - TWINS: searched `/tmp/|/home/` in research notes — fixed files: RE2, RE4, RE1 (new copy), FIX8/FIX9 reports; V33 keeps all non-README notes clean.
 
+
+- TWINS: searched `Z0 header contradiction` — found 1 site: the Z0 header (fixed, mandatory/optional distinction + boot reason); V35 keeps the wording.
+- TWINS: searched `single T3 write claim` — found 1 site: SAFETY.md (fixed, now says two protected writes); V36 keeps the wording.
+- TWINS: searched `regex controls outside protocol` — found 4 sites: README, SAFETY, BUILD, KMI-GATES (fixed, V37 extends V2); V37 keeps them covered.
+- TWINS: searched `allowlist extra getvar` — found 1 site: Z0.3 (fixed, V38 checks for extras); V38 keeps the list closed.
+- TWINS: searched `stale single-write sentence` — found 1 site: protocol (fixed, V39 removes stale claims); V39 keeps the count correct.
+- TWINS: searched `loose tokens V22/V26` — found 2 sites: Z0.1/Z0.6 (fixed, V40 enforces exact phrases); V40 keeps the exact wording.
+- TWINS: searched `research README warning` — found 1 site: research/README.md (fixed, V42 adds warning + UNVERIFIED table); V42 keeps the warning.
+- TWINS: searched `getvar all executable with allowlist` — found 1 site: protocol (fixed, V42 strict filter); V42 keeps it forbidden.
+- TWINS: searched `rollback index 0 means LK can boot old slot` — found 1 site: Z0.4 exception (fixed, V43 clarifies rollback index 0 means LK CAN boot old slot); V43 keeps the clarification.
+- TWINS: searched `is-userspace string exists in LK` — found 1 site: protocol/SAFETY (fixed, V44 states string exists); V44 keeps the fact.
+- TWINS: searched `check-before-write order MEASURED` — found 1 site: protocol (fixed, V45 cites RE1); V45 keeps the citation.
+- TWINS: searched `inline commands T-1.2/T2b` — found 2 sites: T-1.2, T2b (fixed, V46 adds inline commands); V46 keeps them inline.
+- TWINS: searched `same command form T-1/T3` — found 2 sites: T-1, T3 (fixed, V47 enforces same `command fastboot` form); V47 keeps the form consistent.
+- TWINS: searched `protect1/protect2 order` — found 3 sites: PROTOCOL, SAFETY, README (fixed, V48 enforces measured order); V48 keeps the order.
+- TWINS: searched `baseline 429 modules example` — found 1 site: protocol (fixed, V49 adds "example only"); V49 keeps the clarification.
+- TWINS: searched `pstore reading guidance` — found 1 site: protocol (fixed, V50 adds "next normal boot on good kernel"); V50 keeps the guidance.
+- TWINS: searched `never-touch project policy` — found 1 site: SAFETY.md (fixed, V51 states it is project policy); V51 keeps the statement.
+- TWINS: searched `accept in writing specific phrase` — found 1 site: protocol (fixed, V52 adds exact phrase); V52 keeps the exact phrase.
+- TWINS: searched `lacunae L1-L6 in abort criteria` — found 6 sites: protocol (fixed, V53 adds all six); V53 keeps them all.
+
 ## §V — invariants (each one testable, with the file that protects it)
 
 Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail).
 
 | id | invariant | protected by |
 |---|---|---|
+| V35 | The Z0 section header states that mandatory Z0 (Z0.1–Z0.3) writes nothing; Z0.0 (optional) writes only the Android boot reason. | `tools/check_protocol_invariants.sh` |
+| V36 | `docs/SAFETY.md` states there are two protected writes: T-1 backup and T3 kernel. | `tools/check_protocol_invariants.sh` |
+| V37 | ∀ `grep -E`/`-iE` pattern P a reader is told to run in `README.md`/`docs/SAFETY.md`/`docs/BUILD.md`/`docs/KMI-GATES.md`/`docs/DEVICE-TEST-PROTOCOL.md`: `!` P has positive+negative controls; `∄ \|` in P; else `⊥`. | `tools/check_regex_controls.sh` |
+| V38 | The Z0 section's allowlist is **closed**: `∀` line in Z0.3 matching `getvar ...`: the name is one of the 15; `∄` other `getvar` in Z0.3; `∄` `oem` in Z0.3; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V39 | The protocol contains no stale sentence claiming a single write (e.g., "one protected write", "single write", "one and only write"); the README affirms two protected writes (T-1 backup, T3 kernel). | `tools/check_protocol_invariants.sh` |
+| V40 | V22 requires the exact phrase "key-reached fastboot" + `Vol− + Power` in Z0.1/Z0.2; V26 requires the line with `429` to also contain "reference" or "reference only" with the meaning that baseline is criterion. | `tools/check_protocol_invariants.sh` |
+| V42 | `docs/research/README.md` carries the "contain errors" warning **and** the UNVERIFIED link table. | `tools/check_protocol_invariants.sh` |
+| V43 | ∀ line mentioning `getvar all` in `README.md`/`docs/*.md` (research excluded): the line **forbids** it (contains `forbid`/`PROIBIDO`/`never`/`not run`/`allowlist`/`instead`); an executable `getvar all` is `⊥`. | `tools/check_protocol_invariants.sh` |
+| V43 | Z0.4 exception states that rollback index 0 means the LK **can** boot old slot A (RE4 D3), so power off by keys is required. | `tools/check_protocol_invariants.sh` |
+| V44 | `is-userspace` text states the string **exists** in the LK getvar table; `no` or `Variable not found` accepted; `yes` = STOP. | `tools/check_protocol_invariants.sh` |
+| V45 | Protocol cites RE1 disassembly for check-before-write order (check `bl 0x4c4367d2` precedes write `bl 0x4c436834`). | `tools/check_protocol_invariants.sh` |
+| V46 | T-1.2 contains the exact command `command fastboot flash boot_b <path/to/backup/boot_b.img>`; T2b lists the six exact `getvar` commands inline. | `tools/check_protocol_invariants.sh` |
+| V47 | The shell guard blocks `fastboot flash lk ...` but allows exactly the two permitted commands (`command fastboot flash boot_b <backup>` and `fastboot flash boot_b boot_b_new.img`). | `tools/check_protocol_invariants.sh` |
+| V48 | `protect2` appears before `protect1` in all device-facing docs (measured table order). | `tools/check_protocol_invariants.sh` |
+| V49 | Baseline modules text says "429 modules (example only); your number is your baseline". | `tools/check_protocol_invariants.sh` |
+| V50 | Protocol states when/how to read `pstore`: after a crash, on the **next normal boot** on a good kernel. | `tools/check_protocol_invariants.sh` |
+| V51 | SAFETY.md "Never touch" list explicitly states it is project policy, wider than the bootloader's measured tables. | `tools/check_protocol_invariants.sh` |
+| V52 | Slot firmware comparison "accept in writing" = type `I accept that slot A is older firmware OS3.0.20.0 and fallback would boot old OS over new data` in the terminal. | `tools/check_protocol_invariants.sh` |
+| V53 | Abort criteria table includes entries for L1–L6 lacunae. | `tools/check_protocol_invariants.sh` |
+
 | V1 | ∀ number N quoted in `README.md`/`docs/KMI-GATES.md` about the module corpus (files, modules, required/provided symbols, rows, copies): `! N == value produced by tools/gate_kmi_crc.sh over data/official-vmlinux.symvers and by tools/data/*.tsv`, else `⊥`. Numbers that only came from the unpublished device dump are listed as out of scope. | `tools/check_docs_numbers.sh` |
 | V2 | ∀ `grep -E`/`-iE` pattern P a reader is told to run in `docs/DEVICE-TEST-PROTOCOL.md`: `! (∃ line in the matching *_bad fixture matching P) ∧ (∄ line in the matching *_clean fixture matching P) ∧ ∄ `\|` inside P`; ∀ planted error class in `dmesg_bad.txt`: `∃ P` that matches it; else `⊥`. Same `\|`-in-`-E` rule over `tools/**.sh` and `scripts/**.sh`. | `tools/check_regex_controls.sh` |
 | V3 | ∀ instruction in the protocol that can reach a slot change: `!` the doc forbids slot switching ∧ requires `avbtool info_image` on `vbmeta_a` **and** `vbmeta_b`; ∄ un-negated `fastboot set_active`; else `⊥`. | `tools/check_protocol_invariants.sh` |
