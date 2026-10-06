@@ -37,6 +37,9 @@ Source: `strings -n 5 backup-2026-10-05/lk_b.img` run on the audited device's **
 | `fastboot boot` works on this bootloader | `cmd_boot` string exists (`cmd_boot,boot_hdr = NULL`); the message `not support flash` known from a reference LK does **not** exist here | UNVERIFIED — existence of the string is not support; no RAM-boot step in the protocol |
 | The LK tests size before writing, allowlist before download, etc. | code from dguidipc/gemini-lk (MT6797), **not** this binary | **INFERRED (other device)** — never cite as a property of this bootloader |
 | Reaching fastboot with `Vol− + Power` on a device whose `boot_b` is bad | never exercised (device untouched) | UNVERIFIED — that is exactly what the mandatory **Z0** rehearsal in `docs/DEVICE-TEST-PROTOCOL.md` tests, risk-free, before any write |
+| Invalid `boot_b` falls back to the other slot in the same boot | sequential `_a`→`_b` attempts with direct back-edge branches (no reboot between tries); `set_active_slot` implemented | MEASURED (disassembly of the real `lk_b.img`: `research/RE4_codex_fallback.md` D1, `research/RE2_codex_bootmode.md` B2) — the retry *decrement* and its initial value stay UNVERIFIED |
+| Both slots invalid lands in fastboot (non-returning) | normal-boot fail exit runs `fastboot_init` (`movs r0, 1` + `bl` at `0x4c42b264`); `fastboot_init` (`fcn.4c461724`) brings up USB and ends in an infinite halt loop | MEASURED (disassembly: `research/RE4_codex_fallback.md` D2, `research/RE2_codex_bootmode.md` B1c) — on-device behaviour still UNVERIFIED until observed |
+| The retry counter's exact decrement and initial value | the counter is read as a 3-bit field (`ubfx r0, r0, 4, 3` in `get_retry_count`); no decrement+writeback sequence was isolated | UNVERIFIED (`research/RE4_codex_fallback.md` D1) — the protocol never relies on a specific count |
 
 ## Why a modified boot image is plausibly accepted
 

@@ -33,6 +33,9 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B15 | 2026-10-06 | The legacy (v2-header) RAM-boot was offered as a safe test path although the image carries no `androidboot.*`/`slot_suffix` and nothing proves the LK injects them — Android could come up slot-less and mount the old slot-A system over current data. | V15 |
 | B16 | 2026-10-06 | The protocol demanded a STOP unless `fastboot getvar is-userspace` answers `no`, but that variable may not exist in the real LK (its runtime behaviour is unverified) — a guaranteed false STOP. | V16 |
 | B17 | 2026-10-06 | A review report marked the bootloader's check order as "PROVED" from `strings` output alone — strings prove a message exists, not the order in which code reaches it. | V17 |
+| B18 | 2026-10-06 | The protocol's first write was the new kernel itself: nothing demonstrated the flash path beforehand with identical, zero-risk content. | V18 |
+| B19 | 2026-10-06 | The SAFETY bootloader table recorded fallback behaviour as UNKNOWN although RE2/RE4 had measured it by disassembling the real `lk_b.img` (immediate same-boot fallback; both-invalid lands in a non-returning `fastboot_init`; retry mechanics partly unproven). | V19 |
+| B20 | 2026-10-06 | Historical wording ("`is-userspace` may not exist") could leak back into an instruction as an absence claim about the real binary, where the string measurably exists. | V20 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -50,6 +53,9 @@ Per the fable rule, each bug was searched for again everywhere:
 - TWINS: searched `bootloader-behaviour claims sourced from another device` — found 2 sites: `docs/research/OPENCODE2e_lk_repack_review.md` (raw note, carries the "contain errors" warning) and the now-labelled INFERRED row in the `docs/SAFETY.md` LK table; V14/V17 enforce the label.
 - TWINS: searched `RAM-boot presented as a safe path` — found 3 sites, all now negative or discarded: `README.md` ("tested **in RAM (`fastboot boot`)** before anything is written" — reworded to point at the protocol), `docs/SAFETY.md` rule 4 and `docs/DEVICE-TEST-PROTOCOL.md` rule 1; V15 forbids an executable RAM-boot step in the protocol.
 - TWINS: searched `getvar checks that assume a variable exists` — found 1 site: the protocol's `is-userspace` check (fixed, accepts `Variable not found`); the other getvars in R3/Z0 are already phrased as "when the bootloader exposes them"; V16 keeps the tolerated-answer list in the doc.
+- TWINS: searched `write steps without a rehearsal` — found 1 site: the protocol's T3 was the first write (fixed, T-1 reflashes the hash-verified backup first); V18 keeps the T-1 gates (Z0 PASS, owner yes, hash check, no stale single-write sentence).
+- TWINS: searched `bootloader fallback stated as UNKNOWN` — found 1 site: the SAFETY LK table (fixed, disassembly rows with RE2/RE4 cites); V19 keeps the cites and the UNVERIFIED labels on what is still unproven.
+- TWINS: searched `is-userspace described as absent` — found 0 sites in instructions (only the historical B16 row and raw notes, both out of V20 scope); V20 rejects any such sentence if one appears.
 
 ## §V — invariants (each one testable, with the file that protects it)
 
@@ -71,6 +77,9 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V15 | ∀ alternative boot path P (`fastboot boot`, legacy v2 RAM-boot, …) mentioned in `docs/DEVICE-TEST-PROTOCOL.md`: `!` P is not an executable step of the protocol, and the doc states why the legacy RAM-boot was discarded (slot-selection risk); `∃` evidence of slot selection for any path that *is* offered; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V16 | ∀ `getvar` check in `docs/DEVICE-TEST-PROTOCOL.md`: `!` the doc declares the accepted values **including `Variable not found`** for variables the real LK may not implement, and the pre-flight write gate exists (`partition-size:boot_b` = `0x4000000` AND file = 67108864 B AND sha256 recorded); else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V17 | ∀ claim marked PROVED/MEASURED about the bootloader: `!` the evidence is of the right kind — existence claims may cite strings, but **order/behaviour claims require disassembly or an on-device experiment**; a strings-only order claim is `⊥`. Enforced structurally: the SAFETY LK table must carry the `INFERRED (other device)` row and the protocol must derive the oversize protection from its own pre-flight check, not from the bootloader's assumed check order. | `tools/check_protocol_invariants.sh` |
+| V18 | ∀ write step in `docs/DEVICE-TEST-PROTOCOL.md`: `!` the first write is an identical-content rehearsal (T-1: hash-verified backup reflashed onto its own partition) gated on Z0 PASS and the owner's explicit yes, and no stale "single write" sentence contradicts it; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V19 | ∀ fallback-behaviour row of the `docs/SAFETY.md` bootloader table: `!` it cites the disassembly reports (`research/RE2_codex_bootmode.md`, `research/RE4_codex_fallback.md`) with the function/address evidence, and anything still unproven stays labelled UNVERIFIED; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V20 | ∀ sentence about `is-userspace` in `README.md`/`docs/SAFETY.md`/`docs/DEVICE-TEST-PROTOCOL.md`/`docs/PLAN-AND-FINDINGS.pt-BR.md`/`docs/KMI-GATES.md`/`docs/BUILD.md`: `!` it never presents the variable as absent from the real binary (the string measurably exists); an absence claim there is `⊥`. Raw notes under `docs/research/` stay out of scope (V8 warning covers them). | `tools/check_protocol_invariants.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):
@@ -87,7 +96,7 @@ script that cannot automate it):
 
 - **Boot on a real `lake` device** — no image from this project has been booted on hardware.
 - **`fastboot boot` support on this bootloader** — UNKNOWN; if absent, the whole RAM-test path disappears and the protocol STOPS.
-- **Automatic A/B fallback on this device** — UNKNOWN (`slot-retry-count`/`slot-successful` behaviour never observed here); the T2b mitigation is a precaution, not a measurement.
+- **Automatic A/B fallback on this device** — disassembly of the real `lk_b.img` shows the mechanism (same-boot `_a`→`_b` fallback with direct branches; both-invalid lands in a non-returning `fastboot_init`; retry read is a 3-bit field, decrement/initial value unproven: `docs/research/RE4_codex_fallback.md` D1–D2); on-device behaviour still UNVERIFIED.
 - **Wi-Fi / Bluetooth / modem / camera with the new kernel** — untested; the certificate reasoning is host-side only.
 - **Acceptance of an unsigned repacked `boot` by the chained-partition verifier** — analogous to the measured `init_boot_b` tolerance, but unproven.
 - **30-minute thermal/GPU stress with the new kernel** — not run.
@@ -95,7 +104,7 @@ script that cannot automate it):
 - **`fastboot getvar is-userspace` runtime value on this LK** — the string exists in `lk_b.img`, but the value it returns (or `Variable not found`) was never read on the device; the protocol tolerates both non-fastbootd answers.
 - **The exact order of the LK's size/allowlist checks before a write** — INFERRED (other device) only; proving it here requires disassembly of `lk_b.img` or a deliberate (unsafe) experiment, so the protocol never relies on it.
 - **Denylist completeness** — `lk`, `misc`, `boot_para` do not appear explicitly in the protected-name lists inside the binary; whether a `flash`/`erase` on them would be refused is unknown and must stay untested.
-- **The Z0 rehearsal itself** — mandatory before any write, still unlogged: reaching fastboot by keys with a *healthy* device is proven only by the general key-combo lore, and with a *bad* `boot_b` it is UNVERIFIED until Z0 runs.
+- **The Z0 rehearsal itself** — mandatory before any write, still unlogged: reaching fastboot by keys with a *healthy* device is proven only by the general key-combo lore, and with a *bad* `boot_b` it is UNVERIFIED until Z0 runs. (Disassembly bounds the risk: key detection runs before any boot-partition read, `docs/research/RE2_codex_bootmode.md` B1; it does not replace the rehearsal.)
 
 ## Critério de convergência (adversarial review)
 

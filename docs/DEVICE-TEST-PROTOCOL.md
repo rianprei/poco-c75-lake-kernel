@@ -2,7 +2,7 @@
 
 > Status: **planned, not run.** Results will be added here with logs.
 
-Images are built and verified on the host (`docs/BUILD.md`). Order matters — each step is only attempted if the previous one passed, and every step before the last writes nothing to flash.
+Images are built and verified on the host (`docs/BUILD.md`). Order matters — each step is only attempted if the previous one passed. Only two steps write anything to flash, and both are explicit below (T-1 rewrites identical bytes, T3 writes the new kernel); everything else writes nothing.
 
 This protocol is written for the **audited device** (POCO C75 4G `lake`, slot `_b`, `OS3.0.306.0`, bootloader unlocked/`orange`). Every expectation below is labelled with where it was measured; anything not marked is a precondition you must confirm **on your own device before starting**. The adversarial analysis behind the mitigations is in [`research/REVIEW3_codex_fmea.md`](research/REVIEW3_codex_fmea.md) (28 scenarios) and the command list under review is `research/DEVICE_COMMANDS_T0_T2.md`. What was verified **in the real bootloader binary** (and what was not) is tabulated in [`SAFETY.md`](SAFETY.md) §*What we verified in the real bootloader*.
 
@@ -12,7 +12,7 @@ This protocol is written for the **audited device** (POCO C75 4G `lake`, slot `_
 2. **Never choose "Factory data reset" on any screen.** If the device shows *"Can't load Android system. Your data may be corrupt"* with *Try again* / *Factory data reset*, choose **Try again** — and photograph the screen before touching anything. **Your backup does not contain `userdata`**, so a wipe is permanent loss of photos/apps/data (`research/REVIEW3_codex_fmea.md` §2, measurement M5: `grep -ciE "userdata|user_data" backup/SHA256SUMS.log` → 0; `docs/PLAN-AND-FINDINGS.pt-BR.md` fact 21). **Back up your personal data first** (cloud/PC), before you even connect the cable.
 3. **Never switch slots.** On the audited device slot A holds an **older firmware (OS3.0.20.0)** while slot B runs OS3.0.306.0, so booting slot A means an old OS on top of newer user data (`docs/PLAN-AND-FINDINGS.pt-BR.md` facts 62/64). Do **not** run `set_active`, and do not use "the inactive slot" as a test slot.
 4. **Any `FAILED (...)` from fastboot is a STOP**, whatever the text says — do not improvise, do not retry with another cable "just once more", do not switch to a flash command. Note the exact message; it decides what can be tried another day.
-5. **Every step before T3 writes nothing to flash** — that is the whole point. If a command you are about to run is not in the table below, don't run it.
+5. **Every step before T3 writes nothing to flash, except T-1** — which rewrites the byte-identical backup (see below) and is itself gated like a write. If a command you are about to run is not in the table below, don't run it.
 
 ## Why the legacy RAM-boot is discarded (3 lines)
 
@@ -34,6 +34,22 @@ Purpose: prove, with the device **powered off** and using read-only fastboot com
 | Z0.4 | `fastboot reboot` | device boots the normal system (slot `_b`, `OS3.0.306.0` line) |
 
 **Z0 PASS** = all four rows green. **Only after Z0 passes** may any later step be attempted on another day or the same day. If fastboot is not reachable by keys with a healthy device, **do not proceed**: every recovery path in this project depends on reaching fastboot, and that assumption is exactly what Z0 tests (it stays **UNVERIFIED** until a Z0 run is logged).
+
+### T-1 — write-path rehearsal with identical content (a write; gated like T3)
+
+Purpose: demonstrate the flash path itself works — with bytes identical to what is already on
+the device — before the new kernel is ever written. This is the first of the two write commands
+of this protocol (T-1 identical content, T3 new kernel).
+
+Only after **Z0 PASS**, and only with the owner's explicit "yes" on the day:
+
+| T-1 | Action | Pass criteria |
+|---|---|---|
+| T-1.1 | On the host, confirm the backup file: `stat -c%s <path/to/backup/boot_b.img>` (= 67108864) and `sha256sum <path/to/backup/boot_b.img>` (= the hash recorded in `SHA256SUMS.log` for `boot_b`) | size exact, hash matches the recorded backup hash |
+| T-1.2 | In fastboot (after R3): `command fastboot flash boot_b <path/to/backup/boot_b.img>` (with the shell guard from *Host-side guard* active, bypassed only via `command` for this line, exactly as for T3) | `OKAY`, no `FAILED (...)` |
+| T-1.3 | `fastboot reboot`; confirm the normal system: `ro.build.version.incremental` still the OS3.0.306.0 line, `uname -r` the stock kernel | device boots exactly as before (the content written was identical, so behaviour must be identical) |
+
+**T-1 PASS** = all three rows green. If T-1.2 returns `FAILED (...)`: STOP (rule 4) — the write path itself is not demonstrated on this device, and T3 is off the table. No rollback flash is needed after T-1: the bytes written are the backup bytes.
 
 ### R3 / pre-flight (read-only identity checks)
 
@@ -60,9 +76,9 @@ binary, but you must not *rely* on reaching it.
 | Step | Action | Writes to flash? | Pass criteria |
 |---|---|---|---|
 | T2b | in fastboot before the first normal boot after any RAM experiment: `fastboot getvar all`; re-read `slot-successful:*`, `slot-retry-count:*`, `slot-unbootable:*` for **both** slots and compare with the R3 values | no | slot `_b` not marked `unbootable`, retry count not exhausted — **only then let the device boot normally** |
-| T3 | only if everything above is green **and the owner agrees**: the **single** write command, below, with the verified backup as immediate rollback | **yes** | same acceptance, then 30 min stress |
+| T3 | only if everything above is green **and the owner agrees**: the write command for the new kernel, below, with the verified backup as immediate rollback | **yes** | same acceptance, then 30 min stress |
 
-**The one and only write command of this protocol** (paste it; never retype):
+**The two write commands of this protocol** (paste them; never retype):
 
 ```bash
 fastboot flash boot_b boot_b_new.img
@@ -73,7 +89,7 @@ fastboot flash boot_b boot_b_new.img
 
 **Why T2b exists** (FMEA-26, the main gap this revision closes): a partial boot can reach userspace, fail a health check and leave slot `_b` marked unbootable — and the LK would then fall back to the **other** slot, which on this device is old firmware. Check the slot state *before* the first normal boot, and if `_b` looks unhealthy: stay in fastboot, photograph `getvar all`, and stop for the day.
 
-**T3 warning, in full.** Writing `boot_b` is the first and only step that changes flash. If the written image does not boot, the LK may mark `boot_b` unbootable and **automatically fall back to the other slot**, which on the audited device contains **OS3.0.20.0 over data created by OS3.0.306.0** — that path risks "data corrupted"/anti-rollback prompts, and it is the one route to data loss that does not require a human mistake. Before T3 you must have: **Z0 passed**, the firmware comparison below, the R3/T2b slot readouts saved, `boot_b` + `init_boot_b` + `vbmeta*_b` backups verified on a second disk, USB cable and `Vol− + Power` at hand for the fastboot rollback (`fastboot flash boot_b <backup>`), and the owner's explicit "yes". If the device does fall back to slot A, do **not** fight it with slot commands: power off and re-read the slot state in fastboot.
+**T3 warning, in full.** Writing `boot_b` is the step that changes flash content for the first time (T-1 only rewrites identical bytes, and only after T-1 PASS does T3 become eligible). If the written image does not boot, the LK may mark `boot_b` unbootable and **automatically fall back to the other slot**, which on the audited device contains **OS3.0.20.0 over data created by OS3.0.306.0** — that path risks "data corrupted"/anti-rollback prompts, and it is the one route to data loss that does not require a human mistake. Before T3 you must have: **Z0 passed**, **T-1 passed**, the firmware comparison below, the R3/T2b slot readouts saved, `boot_b` + `init_boot_b` + `vbmeta*_b` backups verified on a second disk, USB cable and `Vol− + Power` at hand for the fastboot rollback (`fastboot flash boot_b <backup>`), and the owner's explicit "yes". If the device does fall back to slot A, do **not** fight it with slot commands: power off and re-read the slot state in fastboot.
 
 ## Preconditions
 
@@ -97,7 +113,7 @@ fastboot() {
 }
 ```
 
-The guard stays active for T0/T2/R3/Z0; for the single T3 command, run it with `command fastboot flash boot_b boot_b_new.img` after re-reading the pre-flight checks out loud. The LK's own denylist strings (`docs/SAFETY.md`) are a second layer, not a substitute.
+The guard stays active for T0/T2/R3/Z0; for the T-1/T3 commands, run them with `command fastboot ...` after re-reading the pre-flight checks out loud. The LK's own denylist strings (`docs/SAFETY.md`) are a second layer, not a substitute.
 
 ## Acceptance (all required)
 

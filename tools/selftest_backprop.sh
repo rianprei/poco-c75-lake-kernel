@@ -90,5 +90,23 @@ case_run 13 "V16 pré-voo de gravação removido do protocolo" check_protocol_in
 case_run 14 "V17 rótulo INFERRED (other device) trocado por 'measured'" check_protocol_invariants.sh '^V17 FAIL' \
   "sed -i 's/the \\*order\\* of this check relative to the write is \\*\\*INFERRED (other device)\\*\\*/the order of this check is measured/' docs/SAFETY.md"
 
+# FIX8 (T-1 rehearsal) — the write path must be demonstrated with identical content first:
+
+# V18: the T-1 step (identical-content reflash) removed
+case_run 15 "V18 T-1 write rehearsal removed from the protocol" check_protocol_invariants.sh '^V18 FAIL' \
+  "sed -i '/^### T-1 /d' docs/DEVICE-TEST-PROTOCOL.md"
+
+# FIX8 (disassembly findings) — the SAFETY LK table must keep the RE2/RE4 rows:
+
+# V19: a disassembly citation dropped from the SAFETY bootloader table
+case_run 16 "V19 fastboot_init citation dropped from the SAFETY LK table" check_protocol_invariants.sh '^V19 FAIL' \
+  "sed -i '/fcn.4c461724/d' docs/SAFETY.md"
+
+# FIX8 (is-userspace) — absence claims about the variable must be caught:
+
+# V20: is-userspace described as absent from the real binary
+case_run 17 "V20 is-userspace described as absent" check_protocol_invariants.sh '^V20 FAIL' \
+  "printf '\nNote: is-userspace does not exist in lk_b.\n' >> docs/SAFETY.md"
+
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

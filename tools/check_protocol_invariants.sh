@@ -11,6 +11,9 @@
 #   V16 every getvar check declares tolerated answers incl. 'Variable not found'; write pre-flight
 #       (partition-size:boot_b = 0x4000000 == file bytes 67108864 + sha256) is present
 #   V17 order/behaviour claims about the LK are labelled INFERRED (other device), never PROVED from
+#   V18 the first write is an identical-content rehearsal (T-1) gated on Z0 PASS + owner yes
+#   V19 SAFETY bootloader-fallback rows cite the RE2/RE4 disassembly reports
+#   V20 is-userspace is never described as absent from the real binary
 #
 # What each check can and cannot automate is spelled out in SPEC.md §V; anything left to manual
 # review is printed as "V<n> NOTE manual-review" so the gap is visible instead of silent.
@@ -178,6 +181,55 @@ grep -qF 'from *this* check, run by you' "$PROTO" \
   || fail 17 "$PROTO does not state that the size protection is the reader's own pre-flight check"
 
 # ------------------------------------------------------------------------------------------------
+# V18 — the first write is an identical-content rehearsal (T-1) gated on Z0 PASS + owner yes
+# ------------------------------------------------------------------------------------------------
+t1="$(sed -n '/^### T-1/,/^### R3/p' "$PROTO")"
+if [ -z "$t1" ]; then
+  fail 18 "$PROTO lost the T-1 identical-content write rehearsal"
+else
+  printf '%s\n' "$t1" | grep -qi 'Z0 PASS' \
+    && ok 18 "T-1 is gated on Z0 PASS" \
+    || fail 18 "T-1 is not gated on Z0 PASS"
+  printf '%s\n' "$t1" | grep -qiE "owner.*yes" \
+    && ok 18 "T-1 requires the owner's explicit yes" \
+    || fail 18 "T-1 lacks the owner-yes gate"
+  printf '%s\n' "$t1" | grep -q 'sha256sum' \
+    && ok 18 "T-1 verifies the backup hash before writing" \
+    || fail 18 "T-1 lacks the backup hash check"
+  printf '%s\n' "$t1" | grep -qi 'identical' \
+    && ok 18 "T-1 writes identical content only" \
+    || fail 18 "T-1 does not state identical content"
+  printf '%s\n' "$t1" | grep -q 'command fastboot flash boot_b' \
+    && ok 18 "T-1 uses the guarded bypass form for its single command" \
+    || fail 18 "T-1 write command is not in 'command fastboot' form"
+fi
+grep -qF 'one and only write command' "$PROTO" \
+  && fail 18 "$PROTO still claims a single write command (T-1 is the second)" \
+  || ok 18 "no stale single-write sentence in $PROTO"
+
+# ------------------------------------------------------------------------------------------------
+# V19 — SAFETY bootloader-fallback rows cite the RE2/RE4 disassembly reports
+# ------------------------------------------------------------------------------------------------
+for token in 'RE4_codex_fallback.md' 'RE2_codex_bootmode.md' 'fcn.4c461724' '0x4c42b264'; do
+  grep -qF "$token" "$SAFETY" \
+    && ok 19 "$SAFETY cites $token" \
+    || fail 19 "$SAFETY lost the disassembly citation: $token"
+done
+grep -qiE 'retry.*UNVERIFIED' "$SAFETY" \
+  && ok 19 "retry mechanics stay labelled UNVERIFIED" \
+  || fail 19 "retry mechanics lost the UNVERIFIED label"
+
+# ------------------------------------------------------------------------------------------------
+# V20 — is-userspace is never described as absent from the real binary
+# ------------------------------------------------------------------------------------------------
+bad20="$(grep -nEi 'is-userspace[^`]{0,90}(does not exist|do not exist|not exist|absent|missing|no such)' README.md docs/SAFETY.md docs/DEVICE-TEST-PROTOCOL.md docs/PLAN-AND-FINDINGS.pt-BR.md docs/KMI-GATES.md docs/BUILD.md 2>/dev/null || true)"
+if [ -z "$bad20" ]; then
+  ok 20 "no instruction presents is-userspace as absent from lk_b.img"
+else
+  fail 20 "absence claim about is-userspace: $(printf '%s' "$bad20" | head -1 | cut -c1-120)"
+fi
+
+# ------------------------------------------------------------------------------------------------
 # V8 — every fact row has a proof; the raw notes carry the warning
 # ------------------------------------------------------------------------------------------------
 # NB: [|] rather than \| — in ERE an escaped pipe is a literal pipe anyway, and this file's own
@@ -197,7 +249,7 @@ fi
 note 8 "that each individual FACT sentence in the raw notes has a source is NOT automatable (free prose); the proof column of the facts log is the enforced landing place"
 
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17)"
+  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17 V18 V19 V20)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"
