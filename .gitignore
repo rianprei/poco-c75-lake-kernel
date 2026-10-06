@@ -1,0 +1,6 @@
+official/
+out/
+*.img
+*.zip
+*.tmp
+__pycache__/

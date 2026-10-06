@@ -1,0 +1,10 @@
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -155,6 +155,7 @@
+         "protected_exports_list": "android/abi_gki_protected_exports_aarch64",
+         "protected_modules_list": ":gki_aarch64_protected_modules",
+         "module_implicit_outs": get_gki_modules_list("arm64") + get_kunit_modules_list("arm64"),
++        "system_trusted_key": "google_gki_ab13771415_modsign_cert.pem",
+         "make_goals": _GKI_AARCH64_MAKE_GOALS,
+         "ddk_headers_archive": ":kernel_aarch64_ddk_headers_archive",
+         "extra_dist": [

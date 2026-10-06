@@ -1,0 +1,36 @@
+--- a/kleaf/common_kernels.bzl
++++ b/kleaf/common_kernels.bzl
+@@ -301,6 +301,7 @@
+     - `trim_nonlisted_kmi`
+     - `kmi_symbol_list_strict_mode`
+     - `module_implicit_outs` (corresponds to `GKI_MODULES_LIST`)
++    - `system_trusted_key`
+ 
+     In addition, the values of `target_configs` may contain the following keys:
+     - `build_gki_artifacts`
+@@ -636,7 +637,8 @@
+         deprecation = None,
+         ddk_headers_archive = None,
+         extra_dist = None,
+-        clang_autofdo_profile = None):
++        clang_autofdo_profile = None,
++        system_trusted_key = None):
+     json_target_config = dict(
+         name = name,
+         outs = outs,
+@@ -663,6 +665,7 @@
+         deprecation = deprecation,
+         ddk_headers_archive = ddk_headers_archive,
+         extra_dist = extra_dist,
++        system_trusted_key = system_trusted_key,
+     )
+     json_target_config = json.encode_indent(json_target_config, indent = "    ")
+     json_target_config = json_target_config.replace("null", "None")
+@@ -740,6 +743,7 @@
+             Label("//build/kernel/kleaf/impl/defconfig:signing_modules_disabled"),
+         ],
+         clang_autofdo_profile = clang_autofdo_profile,
++        system_trusted_key = system_trusted_key,
+     )
+ 
+     kernel_abi(
