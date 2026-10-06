@@ -27,7 +27,7 @@
 #
 # usage: tools/check_protocol_invariants.sh     (read-only; prints V<n> PASS|FAIL lines)
 set -uo pipefail; export LC_ALL=C
-HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/.." && pwd)"; cd "$ROOT"
+ROOT="${CHECK_ROOT:-$(cd "$(dirname "$0")" && pwd)/..}"; cd "$ROOT"
 
 fails=0
 fail() { printf 'V%s FAIL %s\n' "$1" "$2"; fails=$((fails + 1)); }
@@ -339,10 +339,19 @@ names29="$(awk '!/^#/ && NF {print $2}' data/lk_tables.tsv)"
 [ "$(printf '%s\n' "$names29" | wc -l)" -eq 14 ] \
   && ok 29 "data/lk_tables.tsv lists 14 table names" \
   || fail 29 "data/lk_tables.tsv does not list 14 names"
-for n in $names29; do
-  grep -qF "$n" "$SAFETY" \
-    && ok 29 "SAFETY names table entry $n" \
-    || fail 29 "SAFETY lost table name: $n"
+# Row-scoped (FIX11/B34): each name must sit on the line of its own table address,
+# because other lines (e.g. the rule-1 never-touch list) legitimately repeat names.
+controlled29="$(grep -F '0x4c4bf8b0' "$SAFETY")"
+eraseforbid29="$(grep -F '0x4c4bf8cc' "$SAFETY")"
+for n in nvram nvcfg proinfo nvdata protect2 protect1 persist; do
+  printf '%s\n' "$controlled29" | grep -qwF "$n" \
+    && ok 29 "controlled-table row names $n" \
+    || fail 29 "controlled-table row lost name: $n"
+done
+for n in preloader preloader_a preloader_b preloader_ab preloader_backup boot0 boot1; do
+  printf '%s\n' "$eraseforbid29" | grep -qwF "$n" \
+    && ok 29 "erase-forbidden row names $n" \
+    || fail 29 "erase-forbidden row lost name: $n"
 done
 for s in 'lk is NOT in either table' 'seccfg is NOT in either table' 'expdb is NOT in either table' \
          'misc is NOT in either table' 'boot_para is NOT in either table' 'vbmeta is NOT in either table' \
@@ -398,6 +407,20 @@ if [ -z "$bad33" ]; then
 else
   fail 33 "machine paths in notes: $(printf '%s' "$bad33" | head -1 | cut -c1-120)"
 fi
+
+# ------------------------------------------------------------------------------------------------
+# V34 — the never-touch set covers all unprotected-but-critical partitions, in both docs
+# ------------------------------------------------------------------------------------------------
+rule1="$(grep -F 'Never touch' "$SAFETY" | head -1)"
+never="$(grep -A6 'NEVER type' "$PROTO")"
+for n in preloader lk seccfg nvram nvdata nvcfg persist proinfo protect1 protect2 misc boot_para expdb; do
+  printf '%s\n' "$rule1" | grep -qwF "$n" \
+    && ok 34 "never-touch rule lists $n" \
+    || fail 34 "never-touch rule lost: $n"
+  printf '%s\n' "$never" | grep -qwF "$n" \
+    && ok 34 "protocol NEVER list covers $n" \
+    || fail 34 "protocol NEVER list lost: $n"
+done
 
 # ------------------------------------------------------------------------------------------------
 # V8 — every fact row has a proof; the raw notes carry the warning

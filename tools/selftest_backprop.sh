@@ -19,13 +19,13 @@ case_run() { # <n> <label> <check script> <expected FAIL pattern> <mutation (bas
   local dir out rc
   dir="$(mktemp -d "$BASE/case.XXXXXX")"; cp -a "$PRISTINE/." "$dir/"
   ( cd "$dir" && eval "$mut" ) >/dev/null 2>&1
-  out="$( cd "$dir" && bash "tools/$script" 2>&1 )"; rc=$?
+  out="$( cd "$dir" && CHECK_ROOT="$dir" bash "tools/$script" 2>&1 )"; rc=$?
   printf '### [%s] %s\n' "$n" "$label"
   if [ "$rc" -ne 0 ] && printf '%s\n' "$out" | grep -qE "$pat"; then
     printf '    defeito plantado DETECTADO: exit=%s, casou /%s/\n' "$rc" "$pat"
     printf '%s\n' "$out" | grep -E "$pat" | head -2 | sed 's/^/      /'
     local pout prc
-    pout="$( cd "$PRISTINE" && bash "tools/$script" 2>&1 )"; prc=$?
+    pout="$( cd "$PRISTINE" && CHECK_ROOT="$PRISTINE" bash "tools/$script" 2>&1 )"; prc=$?
     if [ "$prc" -eq 0 ]; then
       printf '    cópia limpa: PASS (exit=0)\n  => OK   FAIL->PASS\n\n'
       pass=$((pass + 1))
@@ -164,5 +164,16 @@ case_run 29 "V32 T-1 before R3 again" check_protocol_invariants.sh '^V32 FAIL' \
 case_run 30 "V33 machine path in research note" check_protocol_invariants.sh '^V33 FAIL' \
   "printf '\nsee /tmp/scratch/debug.log\n' >> docs/research/RE1_opencode_flash.md"
 
+# V34: never-touch rule missing misc
+case_run 31 "V34 never-touch rule missing misc" check_protocol_invariants.sh '^V34 FAIL' \
+  "python3 -c \"import re; t=open('docs/SAFETY.md').read(); open('docs/SAFETY.md','w').write(re.sub(r'\\\`misc\\\`, ', '', t))\""
+
+# V34b: protocol NEVER list missing boot_para
+case_run 32 "V34 protocol NEVER list missing boot_para" check_protocol_invariants.sh '^V34 FAIL' \
+  "python3 -c \"import re; t=open('docs/DEVICE-TEST-PROTOCOL.md').read(); open('docs/DEVICE-TEST-PROTOCOL.md','w').write(re.sub(r'\\\`boot_para\\\`', 'XXX', t))\""
+
+# V34c: protocol NEVER list missing expdb
+case_run 33 "V34 protocol NEVER list missing expdb" check_protocol_invariants.sh '^V34 FAIL' \
+  "python3 -c \"import re; t=open('docs/DEVICE-TEST-PROTOCOL.md').read(); open('docs/DEVICE-TEST-PROTOCOL.md','w').write(re.sub(r'\\\`expdb\\\`, ', '', t))\""
+
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
-[ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

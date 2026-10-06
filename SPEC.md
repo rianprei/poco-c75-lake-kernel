@@ -49,6 +49,8 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B31 | 2026-10-06 | `README.md` said "one protected write of `boot_b`" after the protocol grew a second one (T-1 backup). | V31 |
 | B32 | 2026-10-06 | The T-1 section sat before R3 while depending on it ("In fastboot (after R3)"). | V32 |
 | B33 | 2026-10-06 | Published research notes carried machine paths (`/tmp/...`, `/home/...`) against the repo's own redaction promise. | V33 |
+| B34 | 2026-10-06 | V29 checked the whole SAFETY.md file instead of the specific table rows, allowing a name removed from the table row to still pass if it appeared elsewhere (e.g., in the never-touch rule). | V29 |
+| B35 | 2026-10-06 | The never-touch rule (rule 1) omitted `misc`, `boot_para`, `expdb` even though the SAFETY table explicitly states the bootloader does not protect them and the protocol already forbids touching them. | V34 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -119,6 +121,7 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V31 | ∀ `fastboot flash` command in `docs/DEVICE-TEST-PROTOCOL.md`: `!` there are exactly as many as `README.md` affirms (two protected writes: T-1 backup, T3 kernel) and every one targets `boot_b`; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V32 | ∀ T-1 section in `docs/DEVICE-TEST-PROTOCOL.md`: `!` it comes after the R3 section (it depends on R3); else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V33 | ∀ file in `docs/research/*.md` except `README.md` (which documents the redaction): `!` it contains `/tmp/` or `/home/` paths; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V34 | ∀ never-touch rule (rule 1 of SAFETY.md) and protocol NEVER list: `!` both contain {preloader, lk, seccfg, nvram, nvdata, nvcfg, persist, proinfo, protect1, protect2, misc, boot_para, expdb}; preloader covers preloader_*, boot0/1 covered by preloader; else `⊥`. | `tools/check_protocol_invariants.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):
