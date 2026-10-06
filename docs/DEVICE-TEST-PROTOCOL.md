@@ -24,16 +24,38 @@ This protocol is written for the **audited device** (POCO C75 4G `lake`, slot `_
 
 ### Z0 — recovery rehearsal (mandatory before any write; zero-risk)
 
-Purpose: prove, with the device **powered off** and using read-only fastboot commands only, that you can reach fastboot and get back out — the exact motions you would need if a written `boot_b` ever failed. This step writes nothing.
+Purpose: prove, with the device **powered off** and using read-only fastboot commands only, that you can reach fastboot **by keys** and get back out — the exact motions you would need if a written `boot_b` ever failed. Z0 writes nothing: it runs only `fastboot devices`, the closed getvar list of Z0.3, and `fastboot reboot`.
 
-| Z0 | Action | Pass criteria |
-|---|---|---|
-| Z0.1 | Device **off** → hold `Vol− + Power` until the fastboot screen appears | fastboot screen visible |
-| Z0.2 | Host: `fastboot devices` | exactly one device listed |
-| Z0.3 | Read-only commands only: `fastboot getvar current-slot`, `unlocked`, `is-userspace`, `slot-count`, `max-download-size`, `partition-size:boot_b`, and the per-slot `slot-successful:*`, `slot-retry-count:*`, `slot-unbootable:*` when exposed | every command answers (value or `Variable not found`); **no** `FAILED (...)` |
-| Z0.4 | `fastboot reboot` | device boots the normal system (slot `_b`, `OS3.0.306.0` line) |
+Preconditions (host): data cable to the PC, **charger disconnected** (a connected charger can park the LK in off-mode-charge instead of booting); `adb` already authorized with exactly one device; hash-verified backup present; day baseline captured (`cat /proc/modules | awk '{print $1}' | sort > baseline_modules.txt`); shell guard from *Host-side guard* active.
 
-**Z0 PASS** = all four rows green. **Only after Z0 passes** may any later step be attempted on another day or the same day. If fastboot is not reachable by keys with a healthy device, **do not proceed**: every recovery path in this project depends on reaching fastboot, and that assumption is exactly what Z0 tests (it stays **UNVERIFIED** until a Z0 run is logged).
+- **Z0.0 (optional, documentary):** `adb -s <serial> reboot bootloader` warms the path only; it is NOT the criterion (it writes a boot reason and follows a warm path, while T-1/T3 need the cold key path). The PASS criterion is Z0.1/Z0.2.
+- **Z0.1:** device **powered off** (long Power until dark) → hold `Vol− + Power` until the fastboot screen. PASS = fastboot screen visible. Anything else = STOP (without key-reached fastboot there is no recovery path for T-1/T3).
+- **Z0.2:** `fastboot devices` → exactly one device, else STOP.
+- **Z0.3 (closed allowlist — run only these, nothing else):**
+  `fastboot getvar product`
+  `fastboot getvar current-slot`
+  `fastboot getvar slot-count`
+  `fastboot getvar is-userspace`
+  `fastboot getvar unlocked`
+  `fastboot getvar max-download-size`
+  `fastboot getvar partition-size:boot_b`
+  `fastboot getvar slot-successful:a`
+  `fastboot getvar slot-successful:b`
+  `fastboot getvar slot-unbootable:a`
+  `fastboot getvar slot-unbootable:b`
+  `fastboot getvar slot-retry-count:a`
+  `fastboot getvar slot-retry-count:b`
+  `fastboot getvar battery-soc-ok`
+  `fastboot getvar battery-voltage`
+  **Forbidden**: `getvar all`, any `oem` (the real LK carries `oem allow-wipe-userdata`), anything outside this list.
+- **Z0.4 (stop Opinions):** PASS when `product=lake`; `current-slot=b`; `is-userspace` is `no` or `Variable not found` (`yes` = fastbootd → STOP); `unlocked=yes`; `slot-unbootable:b` shows `no`; `slot-retry-count:b` above `0`; `partition-size:boot_b = 0x4000000`. Any other answer: record it, do not advance to T-1/T3 that day. Exception: `current-slot` other than `b` → **power off by keys** (long Power), never `fastboot reboot` (an old slot is not barred by rollback).
+- **Z0.5 (record twice):** save the full allowlist output as `z0_fastboot_before.txt` (+ photograph the screen). Reference state for later slot readouts.
+- **Z0.6 (exit):** `fastboot reboot` → wait for Android (3 min). Confirm: `adb devices` lists it again; `ro.boot.slot_suffix=_b`; `ro.product.device=lake`; `ro.build.version.incremental` the OS3.0.306.0 line; modules ⊇ day baseline (`~429` is only a reference to the audited device, not your criterion). If adb is not back in 3 min: long Power 10–15 s → re-enter by keys → repeat Z0.3 + `fastboot reboot` **once**; a second failure ends the day (no USB improvisation). If it boots a different slot/OS line: power off, do not unlock the screen, report.
+- **Z0.7 (close):** log Z0.6 + keep `z0_fastboot_before.txt` as the reference for the pre-T-1 readout. **Z0 PASS** = Z0.1–Z0.4 green + Z0.6 on slot `_b`/OS3.0.306.0/modules ⊇ baseline.
+
+**What Z0 does not prove (read before claiming confidence):** key-reached fastboot with a *bad* `boot_b`; acceptance of a v4 image; retry decrement/exhaustion and its initial value; the exact Vol−↔code mapping; expected getvar *values* (the binary proves a handler exists; Z0 measures the values). All still UNVERIFIED after Z0.
+
+**Z0 PASS** = all rows above green. **Only after Z0 passes** may any later step be attempted on another day or the same day. If fastboot is not reachable by keys with a healthy device, **do not proceed**: every recovery path in this project depends on reaching fastboot, and that assumption is exactly what Z0 tests (it stays **UNVERIFIED** until a Z0 run is logged).
 
 ### T-1 — write-path rehearsal with identical content (a write; gated like T3)
 

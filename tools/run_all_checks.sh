@@ -16,6 +16,9 @@
 #   V18  first write is identical-content rehearsal  tools/check_protocol_invariants.sh
 #   V19  SAFETY fallback rows cite RE2/RE4 disassembly  tools/check_protocol_invariants.sh
 #   V20  is-userspace never described as absent ..... tools/check_protocol_invariants.sh
+#   V21-V27  Z0 closed allowlist, key-entry criterion, slot-mismatch power-off,
+#            charger off, no-adb procedure, day baseline, honest not-proven list
+#                                            ....... tools/check_protocol_invariants.sh
 #   V10-V13  aliases of V2/V5/V2/V7 (FIX6 ids, see SPEC.md §V)
 #   GATE  the CRC gate's own self-test ............. tools/selftest_gates.sh
 #
@@ -39,7 +42,7 @@ RC[V1]=$(grep -q '^V1 FAIL' "$T/V1 docs numbers.out" && echo 1 || echo 0)
 run "V2 regex controls"        "$HERE/check_regex_controls.sh"
 RC[V2]=$(grep -q '^V2 FAIL' "$T/V2 regex controls.out" && echo 1 || echo 0)
 run "V3-V8+V14-V17 invariants" "$HERE/check_protocol_invariants.sh"
-for v in 3 4 5 7 8 14 15 16 17 18 19 20; do RC[V$v]=$(grep -q "^V$v FAIL" "$T/V3-V8+V14-V17 invariants.out" && echo 1 || echo 0); done
+for v in 3 4 5 7 8 14 15 16 17 18 19 20 21 22 23 24 25 26 27; do RC[V$v]=$(grep -q "^V$v FAIL" "$T/V3-V8+V14-V17 invariants.out" && echo 1 || echo 0); done
 # V10-V13 are aliases of V2/V5/V2/V7 respectively (SPEC.md §V)
 for v in 10 12; do RC[V$v]="${RC[V2]}"; done
 for v in 11; do RC[V$v]="${RC[V5]}"; done
@@ -53,12 +56,12 @@ RC[GATE]=$(grep -q 'SELFTEST PASS' "$T/GATE crc self-test.out" && echo 0 || echo
 
 echo "=== resumo dos invariantes ==="
 bad=0
-for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 GATE; do
+for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 GATE; do
   if [ "${RC[$v]:-1}" -eq 0 ]; then printf '%-5s PASS\n' "$v"; else printf '%-5s FAIL\n' "$v"; bad=$((bad + 1)); fi
 done
 if [ "$bad" -eq 0 ]; then
-  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V20 + gate self-test)"
+  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V27 + gate self-test)"
   exit 0
 fi
-echo "run_all_checks: FAIL ($bad de 21 verificações falharam)"
+echo "run_all_checks: FAIL ($bad de 28 verificações falharam)"
 exit 1

@@ -108,5 +108,35 @@ case_run 16 "V19 fastboot_init citation dropped from the SAFETY LK table" check_
 case_run 17 "V20 is-userspace described as absent" check_protocol_invariants.sh '^V20 FAIL' \
   "printf '\nNote: is-userspace does not exist in lk_b.\n' >> docs/SAFETY.md"
 
+# FIX9 (Z0 closed allowlist) — one sabotage per new invariant:
+
+# V21: one allowlist getvar deleted from Z0.3
+case_run 18 "V21 Z0 allowlist getvar deleted" check_protocol_invariants.sh '^V21 FAIL' \
+  "sed -i '/^  \`fastboot getvar battery-soc-ok\`$/d' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V22: adb reboot promoted from optional/documentary to required
+case_run 19 "V22 adb reboot no longer marked optional" check_protocol_invariants.sh '^V22 FAIL' \
+  "sed -i 's/Z0.0 (optional, documentary)/Z0.0 (mandatory)/' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V23: slot!=b rule flipped to 'always fastboot reboot'
+case_run 20 "V23 slot!=b rule flipped" check_protocol_invariants.sh '^V23 FAIL' \
+  "sed -i 's/never \`fastboot reboot\`/always \`fastboot reboot\`/' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V24: charger requirement flipped to connected
+case_run 21 "V24 charger requirement flipped" check_protocol_invariants.sh '^V24 FAIL' \
+  "sed -i 's/charger disconnected/charger connected/' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V25: second failure no longer ends the day
+case_run 22 "V25 second failure no longer ends the day" check_protocol_invariants.sh '^V25 FAIL' \
+  "sed -i 's/second failure ends the day/second failure try again/' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V26: '~429' promoted from reference to criterion
+case_run 23 "V26 day baseline replaced by ~429 criterion" check_protocol_invariants.sh '^V26 FAIL' \
+  "sed -i 's/\`~429\` is only a reference/\`~429\` is the criterion/' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V27: honest list of what Z0 does not prove deleted
+case_run 24 "V27 honest not-proven list deleted" check_protocol_invariants.sh '^V27 FAIL' \
+  "sed -i '/What Z0 does not prove/d' docs/DEVICE-TEST-PROTOCOL.md"
+
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

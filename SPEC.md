@@ -36,6 +36,13 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B18 | 2026-10-06 | The protocol's first write was the new kernel itself: nothing demonstrated the flash path beforehand with identical, zero-risk content. | V18 |
 | B19 | 2026-10-06 | The SAFETY bootloader table recorded fallback behaviour as UNKNOWN although RE2/RE4 had measured it by disassembling the real `lk_b.img` (immediate same-boot fallback; both-invalid lands in a non-returning `fastboot_init`; retry mechanics partly unproven). | V19 |
 | B20 | 2026-10-06 | Historical wording ("`is-userspace` may not exist") could leak back into an instruction as an absence claim about the real binary, where the string measurably exists. | V20 |
+| B21 | 2026-10-06 | Z0 ran an open-ended getvar list with no prohibition of `getvar all` or any `oem`, while the real LK carries `oem allow-wipe-userdata yes` (freebuff A1). | V21 |
+| B22 | 2026-10-06 | `adb reboot bootloader` was usable as the Z0 entry, testing a warm path instead of the cold key path T-1/T3 recovery needs (freebuff A2). | V22 |
+| B23 | 2026-10-06 | No rule said what to do when `current-slot` is not `b`; a plain `fastboot reboot` there would boot the old slot-A firmware over new data (freebuff A3b/A7). | V23 |
+| B24 | 2026-10-06 | Z0 did not require the charger disconnected, so the LK could park in off-mode-charge instead of booting (freebuff A4). | V24 |
+| B25 | 2026-10-06 | No keys-only procedure existed for adb not coming back in 3 min, inviting USB improvisation (freebuff A5). | V25 |
+| B26 | 2026-10-06 | `~429` modules was usable as the acceptance number instead of the day baseline superset (freebuff A4/A6). | V26 |
+| B27 | 2026-10-06 | Z0 stated no honest list of what it does not prove, inviting false confidence (freebuff A6). | V27 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -56,6 +63,13 @@ Per the fable rule, each bug was searched for again everywhere:
 - TWINS: searched `write steps without a rehearsal` — found 1 site: the protocol's T3 was the first write (fixed, T-1 reflashes the hash-verified backup first); V18 keeps the T-1 gates (Z0 PASS, owner yes, hash check, no stale single-write sentence).
 - TWINS: searched `bootloader fallback stated as UNKNOWN` — found 1 site: the SAFETY LK table (fixed, disassembly rows with RE2/RE4 cites); V19 keeps the cites and the UNVERIFIED labels on what is still unproven.
 - TWINS: searched `is-userspace described as absent` — found 0 sites in instructions (only the historical B16 row and raw notes, both out of V20 scope); V20 rejects any such sentence if one appears.
+- TWINS: searched `getvar outside a closed list` — found 1 site: the Z0 section (fixed, 15-line allowlist + `getvar all`/`oem` prohibition); V21 keeps every name and both prohibitions.
+- TWINS: searched `adb reboot as a pass criterion` — found 1 site: Z0.0 (fixed, marked optional/documentary); V22 keeps the wording.
+- TWINS: searched `reboot on slot mismatch` — found 1 site: Z0.4 exception (fixed, power off by keys); V23 keeps the `never \`fastboot reboot\`` rule.
+- TWINS: searched `charger` in preconditions — found 1 site: Z0 preconditions (fixed, disconnected); V24 keeps it.
+- TWINS: searched `no-adb-back procedure` — found 1 site: Z0.6 (fixed, 3 min + keys once + day ends); V25 keeps all three tokens.
+- TWINS: searched `429 as acceptance` — found 1 site: Z0.6 (fixed, reference-only); V26 keeps the line carrying both `429` and `reference`.
+- TWINS: searched `what Z0 does not prove` — found 1 site (fixed, honest list); V27 keeps the header.
 
 ## §V — invariants (each one testable, with the file that protects it)
 
@@ -80,6 +94,13 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V18 | ∀ write step in `docs/DEVICE-TEST-PROTOCOL.md`: `!` the first write is an identical-content rehearsal (T-1: hash-verified backup reflashed onto its own partition) gated on Z0 PASS and the owner's explicit yes, and no stale "single write" sentence contradicts it; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V19 | ∀ fallback-behaviour row of the `docs/SAFETY.md` bootloader table: `!` it cites the disassembly reports (`research/RE2_codex_bootmode.md`, `research/RE4_codex_fallback.md`) with the function/address evidence, and anything still unproven stays labelled UNVERIFIED; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V20 | ∀ sentence about `is-userspace` in `README.md`/`docs/SAFETY.md`/`docs/DEVICE-TEST-PROTOCOL.md`/`docs/PLAN-AND-FINDINGS.pt-BR.md`/`docs/KMI-GATES.md`/`docs/BUILD.md`: `!` it never presents the variable as absent from the real binary (the string measurably exists); an absence claim there is `⊥`. Raw notes under `docs/research/` stay out of scope (V8 warning covers them). | `tools/check_protocol_invariants.sh` |
+| V21 | ∀ `getvar` named in the Z0 section of `docs/DEVICE-TEST-PROTOCOL.md`: `!` it is one of the closed allowlist (product, current-slot, slot-count, is-userspace, unlocked, max-download-size, partition-size:boot_b, slot-successful/unbootable/retry-count:a/b, battery-soc-ok, battery-voltage), and the section forbids `getvar all` and any `oem`; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V22 | ∀ Z0 entry path in `docs/DEVICE-TEST-PROTOCOL.md`: `!` the PASS criterion is powered-off key entry and `adb reboot bootloader` is marked optional/documentary (Z0.0); else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V23 | ∀ slot-mismatch branch in the Z0 section: `!` `current-slot` other than `b` means power off by keys, never `fastboot reboot`; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V24 | ∀ Z0 preconditions: `!` the charger is required disconnected; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V25 | ∀ no-adb-back procedure in the Z0 section: `!` it waits 3 min, retries by keys once, ends the day on second failure, with no USB improvisation; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V26 | ∀ module-count criterion in the Z0 section: `!` the day baseline superset is the criterion and `~429` is reference only; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V27 | ∀ Z0 section: `!` it carries the honest list of what Z0 does not prove (still UNVERIFIED items); else `⊥`. | `tools/check_protocol_invariants.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):

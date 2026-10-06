@@ -14,6 +14,13 @@
 #   V18 the first write is an identical-content rehearsal (T-1) gated on Z0 PASS + owner yes
 #   V19 SAFETY bootloader-fallback rows cite the RE2/RE4 disassembly reports
 #   V20 is-userspace is never described as absent from the real binary
+#   V21 Z0 runs a closed getvar allowlist; 'getvar all' and any 'oem' are forbidden there
+#   V22 Z0 PASS is powered-off key entry; adb reboot is documentary only
+#   V23 slot != b means power off by keys, never 'fastboot reboot'
+#   V24 charger disconnected during Z0
+#   V25 3-min no-adb procedure ends the day on second failure, no USB improvisation
+#   V26 day baseline is the criterion, '~429' is reference only
+#   V27 the honest list of what Z0 does not prove is present
 #
 # What each check can and cannot automate is spelled out in SPEC.md §V; anything left to manual
 # review is printed as "V<n> NOTE manual-review" so the gap is visible instead of silent.
@@ -230,6 +237,78 @@ else
 fi
 
 # ------------------------------------------------------------------------------------------------
+# V21 — Z0 runs a closed getvar allowlist; 'getvar all' and any 'oem' are forbidden there
+# ------------------------------------------------------------------------------------------------
+z0="$(sed -n '/^### Z0/,/^### T-1/p' "$PROTO")"
+if [ -z "$z0" ]; then
+  fail 21 "$PROTO lost the Z0 section the allowlist lives in"
+else
+  for v in product current-slot slot-count is-userspace unlocked max-download-size \
+      partition-size:boot_b slot-successful:a slot-successful:b slot-unbootable:a \
+      slot-unbootable:b slot-retry-count:a slot-retry-count:b battery-soc-ok battery-voltage; do
+    printf '%s\n' "$z0" | grep -qF "getvar $v" \
+      && ok 21 "Z0 allowlist contains getvar $v" \
+      || fail 21 "Z0 allowlist lost getvar $v"
+  done
+  printf '%s\n' "$z0" | grep -q 'getvar all' \
+    && printf '%s\n' "$z0" | grep -qiE 'forbidden|PROIBIDO|outside this list' \
+    && ok 21 "Z0 forbids 'getvar all'" \
+    || fail 21 "Z0 does not forbid 'getvar all'"
+  printf '%s\n' "$z0" | grep -q 'oem allow-wipe-userdata' \
+    && ok 21 "Z0 names the oem wipe permission it refuses to touch" \
+    || fail 21 "Z0 lost the 'oem allow-wipe-userdata' warning"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V22 — Z0 PASS is powered-off key entry; adb reboot is documentary only
+# ------------------------------------------------------------------------------------------------
+printf '%s\n' "$z0" | grep -qi 'powered off' \
+  && printf '%s\n' "$z0" | grep -q 'Vol' \
+  && ok 22 "Z0 PASS requires powered-off key entry" \
+  || fail 22 "Z0 PASS is not powered-off key entry"
+printf '%s\n' "$z0" | grep -qF 'Z0.0 (optional' \
+  && ok 22 "adb reboot bootloader is marked optional/documentary (Z0.0)" \
+  || fail 22 "adb reboot bootloader is not marked optional (Z0.0)"
+
+# ------------------------------------------------------------------------------------------------
+# V23 — slot != b means power off by keys, never 'fastboot reboot'
+# ------------------------------------------------------------------------------------------------
+printf '%s\n' "$z0" | grep -qF 'never `fastboot reboot`' \
+  && ok 23 "slot != b means power off by keys, never 'fastboot reboot'" \
+  || fail 23 "Z0 lost the slot!=b power-off rule"
+
+# ------------------------------------------------------------------------------------------------
+# V24 — charger disconnected during Z0
+# ------------------------------------------------------------------------------------------------
+printf '%s\n' "$z0" | grep -qi 'charger disconnected' \
+  && ok 24 "Z0 requires the charger disconnected" \
+  || fail 24 "Z0 lost the charger-disconnected requirement"
+
+# ------------------------------------------------------------------------------------------------
+# V25 — 3-min no-adb procedure ends the day on second failure, no USB improvisation
+# ------------------------------------------------------------------------------------------------
+printf '%s\n' "$z0" | grep -q '3 min' \
+  && printf '%s\n' "$z0" | grep -q 'second failure ends the day' \
+  && printf '%s\n' "$z0" | grep -q 'no USB improvisation' \
+  && ok 25 "Z0 no-adb procedure: 3 min, keys once, second failure ends the day" \
+  || fail 25 "Z0 lost the no-adb procedure"
+
+# ------------------------------------------------------------------------------------------------
+# V26 — day baseline is the criterion, '~429' is reference only
+# ------------------------------------------------------------------------------------------------
+printf '%s\n' "$z0" | grep -E '429' | grep -qi 'reference' \
+  && ok 26 "day baseline is the criterion, '~429' is reference only" \
+  || fail 26 "Z0 lost the day-baseline rule"
+
+# ------------------------------------------------------------------------------------------------
+# V27 — the honest list of what Z0 does not prove is present
+# ------------------------------------------------------------------------------------------------
+printf '%s\n' "$z0" | grep -qi 'does not prove' \
+  && printf '%s\n' "$z0" | grep -q 'UNVERIFIED' \
+  && ok 27 "Z0 carries the honest list of what it does not prove" \
+  || fail 27 "Z0 lost the honest list of what it does not prove"
+
+# ------------------------------------------------------------------------------------------------
 # V8 — every fact row has a proof; the raw notes carry the warning
 # ------------------------------------------------------------------------------------------------
 # NB: [|] rather than \| — in ERE an escaped pipe is a literal pipe anyway, and this file's own
@@ -249,7 +328,7 @@ fi
 note 8 "that each individual FACT sentence in the raw notes has a source is NOT automatable (free prose); the proof column of the facts log is the enforced landing place"
 
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17 V18 V19 V20)"
+  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"
