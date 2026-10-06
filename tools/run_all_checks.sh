@@ -11,6 +11,9 @@
 #   V7  kernel-behaviour claims cite a source ...... tools/check_protocol_invariants.sh
 #   V8  every fact row has a proof ................. tools/check_protocol_invariants.sh
 #   V9  fetch URL == documented viewer URL ......... tools/selftest_fetch.sh
+#   V14-V17  bootloader evidence, no RAM-boot step, getvar tolerance, evidence kinds
+#                                            ....... tools/check_protocol_invariants.sh
+#   V10-V13  aliases of V2/V5/V2/V7 (FIX6 ids, see SPEC.md §V)
 #   GATE  the CRC gate's own self-test ............. tools/selftest_gates.sh
 #
 # usage: tools/run_all_checks.sh            (read-only apart from mktemp dirs)
@@ -32,8 +35,12 @@ run "V1 docs numbers"          "$HERE/check_docs_numbers.sh"
 RC[V1]=$(grep -q '^V1 FAIL' "$T/V1 docs numbers.out" && echo 1 || echo 0)
 run "V2 regex controls"        "$HERE/check_regex_controls.sh"
 RC[V2]=$(grep -q '^V2 FAIL' "$T/V2 regex controls.out" && echo 1 || echo 0)
-run "V3-V8 protocol invariants" "$HERE/check_protocol_invariants.sh"
-for v in 3 4 5 7 8; do RC[V$v]=$(grep -q "^V$v FAIL" "$T/V3-V8 protocol invariants.out" && echo 1 || echo 0); done
+run "V3-V8+V14-V17 invariants" "$HERE/check_protocol_invariants.sh"
+for v in 3 4 5 7 8 14 15 16 17; do RC[V$v]=$(grep -q "^V$v FAIL" "$T/V3-V8+V14-V17 invariants.out" && echo 1 || echo 0); done
+# V10-V13 are aliases of V2/V5/V2/V7 respectively (SPEC.md §V)
+for v in 10 12; do RC[V$v]="${RC[V2]}"; done
+for v in 11; do RC[V$v]="${RC[V5]}"; done
+for v in 13; do RC[V$v]="${RC[V7]}"; done
 run "V6 destructive ops"       "$HERE/check_destructive_ops.sh"
 RC[V6]=$(grep -q '^V6 FAIL' "$T/V6 destructive ops.out" && echo 1 || echo 0)
 run "V9 fetch url"             "$HERE/selftest_fetch.sh"
@@ -43,12 +50,12 @@ RC[GATE]=$(grep -q 'SELFTEST PASS' "$T/GATE crc self-test.out" && echo 0 || echo
 
 echo "=== resumo dos invariantes ==="
 bad=0
-for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 GATE; do
+for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 GATE; do
   if [ "${RC[$v]:-1}" -eq 0 ]; then printf '%-5s PASS\n' "$v"; else printf '%-5s FAIL\n' "$v"; bad=$((bad + 1)); fi
 done
 if [ "$bad" -eq 0 ]; then
-  echo "run_all_checks: PASS (9 invariantes + gate self-test)"
+  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V17 + gate self-test)"
   exit 0
 fi
-echo "run_all_checks: FAIL ($bad de 10 verificações falharam)"
+echo "run_all_checks: FAIL ($bad de 18 verificações falharam)"
 exit 1

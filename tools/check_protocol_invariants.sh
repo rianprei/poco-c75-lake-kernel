@@ -6,6 +6,11 @@
 #   V7  a claim about kernel behaviour cites the source file (a .c/.h/.cpp, or the CONFIG symbol)
 #   V8  every fact row in the facts log carries a non-empty proof column, and the raw research
 #       notes carry the "contains errors / UNVERIFIED links" warning
+#   V14 every bootloader claim cites real-lk_b.img evidence or is labelled INFERRED (other device)
+#   V15 no alternative boot path is an executable protocol step; legacy RAM-boot discarded
+#   V16 every getvar check declares tolerated answers incl. 'Variable not found'; write pre-flight
+#       (partition-size:boot_b = 0x4000000 == file bytes 67108864 + sha256) is present
+#   V17 order/behaviour claims about the LK are labelled INFERRED (other device), never PROVED from
 #
 # What each check can and cannot automate is spelled out in SPEC.md §V; anything left to manual
 # review is printed as "V<n> NOTE manual-review" so the gap is visible instead of silent.
@@ -106,6 +111,73 @@ PY
 [ $? -eq 0 ] || fails=$((fails + 1))
 
 # ------------------------------------------------------------------------------------------------
+# V14 — bootloader claims cite the real lk_b.img evidence or are labelled INFERRED (other device)
+# ------------------------------------------------------------------------------------------------
+if grep -qE 'What we verified in the real bootloader' "$SAFETY" && grep -qF 'strings -n 5 backup-2026-10-05/lk_b.img' "$SAFETY" && grep -qF 'INFERRED (other device)' "$SAFETY"; then
+  ok 14 "$SAFETY has the real-bootloader evidence table (lk_b.img strings source + INFERRED labelling)"
+else
+  fail 14 "$SAFETY lost the LK evidence table (source command, INFERRED label, or the table itself)"
+fi
+# the key protective strings must stay quoted somewhere in the public docs
+for s in 'size too large, space small' 'Forbidden to erase boot/preloader partition.' "download for partition '%s' is not allowed" 'flash preloader is not permitted.'; do
+  grep -qF "$s" "$SAFETY" || fail 14 "$SAFETY não cita mais a string do lk_b real: $s"
+done
+grep -qF 'INFERRED (other device)' "$PROTO" \
+  && ok 14 "protocol marks the LK check order as INFERRED (other device)" \
+  || fail 14 "$PROTO does not label the bootloader check order as INFERRED (other device)"
+note 14 "that each quoted string really is in lk_b.img is NOT automatable here (the binary is retained, not published); the quoted strings were grepped against /tmp/lk_b_strings.txt during the FIX7 review"
+
+# ------------------------------------------------------------------------------------------------
+# V15 — no alternative boot path is an executable step; legacy RAM-boot explicitly discarded
+# ------------------------------------------------------------------------------------------------
+ram_exec="$(grep -nE 'fastboot +boot ' "$PROTO" | grep -viE 'NOT part|UNKNOWN|discarded|hypothesis|never|no fastboot boot|without' || true)"
+if [ -n "$ram_exec" ]; then
+  fail 15 "$PROTO still offers 'fastboot boot' as a step: $(printf '%s' "$ram_exec" | head -1 | cut -c1-100)"
+else
+  ok 15 "no executable 'fastboot boot' step in $PROTO"
+fi
+grep -qF 'Why the legacy RAM-boot is discarded' "$PROTO" \
+  && grep -qF 'slot_suffix' "$PROTO" \
+  && ok 15 "protocol documents why the legacy RAM-boot was discarded (slot-selection risk)" \
+  || fail 15 "$PROTO lost the 'Why the legacy RAM-boot is discarded' rationale (slot_suffix risk)"
+grep -qE 'no fastboot boot|No RAM test|NOT part of this protocol' "$SAFETY" \
+  && ok 15 "$SAFETY states the RAM path is not used" \
+  || fail 15 "$SAFETY no longer rules out the RAM path"
+
+# ------------------------------------------------------------------------------------------------
+# V16 — getvar checks tolerate 'Variable not found'; the write pre-flight is present
+# ------------------------------------------------------------------------------------------------
+grep -qF 'Variable not found' "$PROTO" \
+  && ok 16 "protocol declares 'Variable not found' as an accepted answer" \
+  || fail 16 "$PROTO does not tolerate 'Variable not found' (false-stop risk, B16)"
+grep -qF 'partition-size:boot_b' "$PROTO" \
+  && grep -qF '0x4000000' "$PROTO" \
+  && grep -qF '67108864' "$PROTO" \
+  && grep -qF 'sha256sum' "$PROTO" \
+  && ok 16 "write pre-flight present: partition-size:boot_b = 0x4000000, file = 67108864 B, sha256 checked" \
+  || fail 16 "$PROTO lost the pre-flight write gate (partition-size/size/hash)"
+grep -qE 'is-userspace.?=.?(yes|fastbootd)' "$PROTO" && grep -qiE 'STOP' "$PROTO" \
+  && ok 16 "is-userspace=yes (fastbootd) is a STOP" \
+  || fail 16 "$PROTO does not STOP on is-userspace=yes (fastbootd)"
+note 16 "the runtime value of is-userspace on this LK is UNVERIFIED (SPEC.md §T); tolerating both non-fastbootd answers is the only safe reading until a Z0 run"
+
+# ------------------------------------------------------------------------------------------------
+# V17 — PROVED/MEASURED bootloader claims need evidence of the right kind (order needs disassembly)
+# ------------------------------------------------------------------------------------------------
+if grep -qF 'the *order* of this check relative to the write is **INFERRED (other device)**' "$SAFETY" && \
+   grep -qF '**INFERRED (other device)** — never cite as a property of this bootloader' "$SAFETY"; then
+  ok 17 "the size-check ORDER is labelled INFERRED (other device), not PROVED from strings"
+else
+  fail 17 "$SAFETY presents or omits the LK check order without the INFERRED (other device) label"
+fi
+grep -qiE 'PROVED' "$SAFETY" "$PROTO" \
+  && fail 17 "the word PROVED appears in device-facing docs (strings-only existence must not be called proof of order)" \
+  || ok 17 "no PROVED claim in the device-facing docs"
+grep -qF 'from *this* check, run by you' "$PROTO" \
+  && ok 17 "protocol derives the oversize protection from its own pre-flight, not from the LK's assumed order" \
+  || fail 17 "$PROTO does not state that the size protection is the reader's own pre-flight check"
+
+# ------------------------------------------------------------------------------------------------
 # V8 — every fact row has a proof; the raw notes carry the warning
 # ------------------------------------------------------------------------------------------------
 # NB: [|] rather than \| — in ERE an escaped pipe is a literal pipe anyway, and this file's own
@@ -125,7 +197,7 @@ fi
 note 8 "that each individual FACT sentence in the raw notes has a source is NOT automatable (free prose); the proof column of the facts log is the enforced landing place"
 
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3 V4 V5 V7 V8)"
+  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"

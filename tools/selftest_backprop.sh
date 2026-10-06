@@ -72,5 +72,23 @@ case_run 9 "V8 linha da tabela de fatos sem coluna de prova" check_protocol_inva
 case_run 10 "V9 URL do fetch alterada (build errado)" selftest_fetch.sh '^V9 FAIL' \
   "sed -i 's/^BID=13771415/BID=99999999/' tools/fetch_official_artifacts.sh"
 
+# FIX7 (lk evidence) — the failures the cross-review found, and their checks:
+
+# V14: a bootloader-behaviour claim with no evidence and no INFERRED label
+case_run 11 "V14 afirmação sobre o LK sem evidência e sem rótulo" check_protocol_invariants.sh '^V14 FAIL' \
+  "printf '\\nThe LK always writes the image in one single uninterrupted pass.\\n' >> docs/SAFETY.md && sed -i 's/What we verified in the real bootloader (and what we did not)/XXX/' docs/SAFETY.md"
+
+# V15: the legacy RAM-boot offered again as an executable step
+case_run 12 "V15 fastboot boot de volta como passo executável" check_protocol_invariants.sh '^V15 FAIL' \
+  "printf '\\n| T-pre | fastboot boot boot_b_new.img to try it in RAM | no | boots |\\n' >> docs/DEVICE-TEST-PROTOCOL.md"
+
+# V16: the whole pre-flight write gate removed (size/partition-size/hash gone)
+case_run 13 "V16 pré-voo de gravação removido do protocolo" check_protocol_invariants.sh '^V16 FAIL' \
+  "sed -i '/partition-size:boot_b/d; /0x4000000/d; /67108864/d; /sha256sum boot_b_new.img/d' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V17: check order presented as fact (strings-only proof) — INFERRED label replaced by 'measured'
+case_run 14 "V17 rótulo INFERRED (other device) trocado por 'measured'" check_protocol_invariants.sh '^V17 FAIL' \
+  "sed -i 's/the \\*order\\* of this check relative to the write is \\*\\*INFERRED (other device)\\*\\*/the order of this check is measured/' docs/SAFETY.md"
+
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

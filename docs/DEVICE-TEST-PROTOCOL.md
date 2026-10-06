@@ -4,15 +4,76 @@
 
 Images are built and verified on the host (`docs/BUILD.md`). Order matters — each step is only attempted if the previous one passed, and every step before the last writes nothing to flash.
 
-This protocol is written for the **audited device** (POCO C75 4G `lake`, slot `_b`, `OS3.0.306.0`, bootloader unlocked/`orange`). Every expectation below is labelled with where it was measured; anything not marked is a precondition you must confirm **on your own device before starting**. The adversarial analysis behind the mitigations is in [`research/REVIEW3_codex_fmea.md`](research/REVIEW3_codex_fmea.md) (28 scenarios) and the command list under review is `research/DEVICE_COMMANDS_T0_T2.md`.
+This protocol is written for the **audited device** (POCO C75 4G `lake`, slot `_b`, `OS3.0.306.0`, bootloader unlocked/`orange`). Every expectation below is labelled with where it was measured; anything not marked is a precondition you must confirm **on your own device before starting**. The adversarial analysis behind the mitigations is in [`research/REVIEW3_codex_fmea.md`](research/REVIEW3_codex_fmea.md) (28 scenarios) and the command list under review is `research/DEVICE_COMMANDS_T0_T2.md`. What was verified **in the real bootloader binary** (and what was not) is tabulated in [`SAFETY.md`](SAFETY.md) §*What we verified in the real bootloader*.
 
 ## Read this first (brick / data-loss rules)
 
-1. **If `fastboot boot` does not exist on this bootloader there is no RAM test — the protocol STOPS.** `fastboot boot <image>` loads a kernel without writing to flash, but its support on `lake` is **UNKNOWN** — two independent sources agree there is no evidence either way: the command exists in the LK source (MediaTek `cmd_boot`, `docs/SAFETY.md` rule 4) and it was never seen working on this device (`docs/PLAN-AND-FINDINGS.pt-BR.md` fact 10, `research/OPENCODE2_boot_safety.md` §1). If it answers `unknown command`, stop: nothing was transferred and nothing changed.
+1. **`fastboot boot` is NOT part of this protocol.** A legacy-v2 RAM-boot path was **discarded** after review (see *Why the legacy RAM-boot is discarded* below), and support for `fastboot boot` on this bootloader is **UNKNOWN** — two independent sources agree there is no evidence either way: the command exists in the LK source and binary (`cmd_boot`, `docs/SAFETY.md` rule 4 and its LK table) and it was never demonstrated on this device (`docs/PLAN-AND-FINDINGS.pt-BR.md` fact 10, `research/OPENCODE2_boot_safety.md` §1). If a future revision ever re-introduces it and the bootloader answers `unknown command`, stop: nothing was transferred and nothing changed.
 2. **Never choose "Factory data reset" on any screen.** If the device shows *"Can't load Android system. Your data may be corrupt"* with *Try again* / *Factory data reset*, choose **Try again** — and photograph the screen before touching anything. **Your backup does not contain `userdata`**, so a wipe is permanent loss of photos/apps/data (`research/REVIEW3_codex_fmea.md` §2, measurement M5: `grep -ciE "userdata|user_data" backup/SHA256SUMS.log` → 0; `docs/PLAN-AND-FINDINGS.pt-BR.md` fact 21). **Back up your personal data first** (cloud/PC), before you even connect the cable.
 3. **Never switch slots.** On the audited device slot A holds an **older firmware (OS3.0.20.0)** while slot B runs OS3.0.306.0, so booting slot A means an old OS on top of newer user data (`docs/PLAN-AND-FINDINGS.pt-BR.md` facts 62/64). Do **not** run `set_active`, and do not use "the inactive slot" as a test slot.
 4. **Any `FAILED (...)` from fastboot is a STOP**, whatever the text says — do not improvise, do not retry with another cable "just once more", do not switch to a flash command. Note the exact message; it decides what can be tried another day.
-5. **Nothing in T0/T2 writes flash** — that is the whole point. If a command you are about to run is not in the table below, don't run it.
+5. **Every step before T3 writes nothing to flash** — that is the whole point. If a command you are about to run is not in the table below, don't run it.
+
+## Why the legacy RAM-boot is discarded (3 lines)
+
+1. A legacy (v2-header) boot image carries no `androidboot.*` parameters — not even `slot_suffix` — and there is no evidence that this LK injects them on its `fastboot boot` path, so the system could come up **without knowing which slot it is on**.
+2. That means Android could mount the **old system of slot A on top of the current data** — exactly the data-loss scenario this protocol exists to avoid (rule 3).
+3. Therefore no instruction in this repository presents the legacy RAM-boot as a safe path; `fastboot boot` of the *stock-equivalent v4 repack* remains a **hypothesis** to be re-evaluated separately, never a default.
+
+## Steps
+
+### Z0 — recovery rehearsal (mandatory before any write; zero-risk)
+
+Purpose: prove, with the device **powered off** and using read-only fastboot commands only, that you can reach fastboot and get back out — the exact motions you would need if a written `boot_b` ever failed. This step writes nothing.
+
+| Z0 | Action | Pass criteria |
+|---|---|---|
+| Z0.1 | Device **off** → hold `Vol− + Power` until the fastboot screen appears | fastboot screen visible |
+| Z0.2 | Host: `fastboot devices` | exactly one device listed |
+| Z0.3 | Read-only commands only: `fastboot getvar current-slot`, `unlocked`, `is-userspace`, `slot-count`, `max-download-size`, `partition-size:boot_b`, and the per-slot `slot-successful:*`, `slot-retry-count:*`, `slot-unbootable:*` when exposed | every command answers (value or `Variable not found`); **no** `FAILED (...)` |
+| Z0.4 | `fastboot reboot` | device boots the normal system (slot `_b`, `OS3.0.306.0` line) |
+
+**Z0 PASS** = all four rows green. **Only after Z0 passes** may any later step be attempted on another day or the same day. If fastboot is not reachable by keys with a healthy device, **do not proceed**: every recovery path in this project depends on reaching fastboot, and that assumption is exactly what Z0 tests (it stays **UNVERIFIED** until a Z0 run is logged).
+
+### R3 / pre-flight (read-only identity checks)
+
+| Step | Action | Writes to flash? | Pass criteria |
+|---|---|---|---|
+| R3 | in fastboot: `fastboot getvar current-slot`, `unlocked`, `is-userspace`, `slot-count`, `max-download-size`, and the per-slot `slot-successful:*`, `slot-retry-count:*`, `slot-unbootable:*` when the bootloader exposes them | no | `current-slot=b` (**abort if ≠ b**), `is-userspace` accepts `no` **or `Variable not found`** (the real LK binary carries the `is-userspace` string, but its runtime value on this device is unverified — `docs/SAFETY.md` LK table and `docs/PLAN-AND-FINDINGS.pt-BR.md` fact 10), `is-userspace=yes` = **STOP** (you are talking to fastbootd, not the LK), `unlocked=yes`, `max-download-size ≥ 67108864` |
+
+### Pre-flight for the write (T3 gate) — all three must agree
+
+```bash
+# a) what the device says the partition is
+fastboot getvar partition-size:boot_b          # EXPECT: 0x4000000  (= 67108864 bytes)
+# b) what the file is
+stat -c%s boot_b_new.img                       # EXPECT: 67108864  (exactly; not one byte more or less)
+sha256sum boot_b_new.img                       # EXPECT: the hash you recorded when building it
+```
+
+**Any divergence between (a), (b) and the recorded hash = PARAR.** The oversize protection must come
+from *this* check, run by you — not from assuming the order of the bootloader's internal tests
+(that order is `INFERRED (other device)`, see `docs/SAFETY.md`). The LK string
+`size too large, space small. image length[0x%llx], partition max size[0x%llx]` exists in the real
+binary, but you must not *rely* on reaching it.
+
+| Step | Action | Writes to flash? | Pass criteria |
+|---|---|---|---|
+| T2b | in fastboot before the first normal boot after any RAM experiment: `fastboot getvar all`; re-read `slot-successful:*`, `slot-retry-count:*`, `slot-unbootable:*` for **both** slots and compare with the R3 values | no | slot `_b` not marked `unbootable`, retry count not exhausted — **only then let the device boot normally** |
+| T3 | only if everything above is green **and the owner agrees**: the **single** write command, below, with the verified backup as immediate rollback | **yes** | same acceptance, then 30 min stress |
+
+**The one and only write command of this protocol** (paste it; never retype):
+
+```bash
+fastboot flash boot_b boot_b_new.img
+```
+
+**NEVER type** (not in this protocol, not "just to fix" anything):
+`flash` on any other partition (`preloader*`, `lk*`, `seccfg`, `nvram`, `nvdata`, `nvcfg`, `persist`, `proinfo`, `expdb`, `vbmeta*`, `vendor_boot*`, `init_boot*`, `dtbo*`, `system*`, `super`, `misc`, `boot_para`), `erase` (anything), `format` (anything), `oem` (anything), `flashing` (anything), `set_active` / `--set-active` (anything), `update`, `flashall`. The real LK strings confirm several of these are refused by the bootloader itself — *"Forbidden to erase boot/preloader partition."*, *"download for partition '%s' is not allowed"*, *"flash preloader is not permitted."* — but the protection you must count on is your own hands, not the denylist (whose full membership is not publicly knowable from the binary: `lk`, `misc` and `boot_para` do not appear explicitly in it).
+
+**Why T2b exists** (FMEA-26, the main gap this revision closes): a partial boot can reach userspace, fail a health check and leave slot `_b` marked unbootable — and the LK would then fall back to the **other** slot, which on this device is old firmware. Check the slot state *before* the first normal boot, and if `_b` looks unhealthy: stay in fastboot, photograph `getvar all`, and stop for the day.
+
+**T3 warning, in full.** Writing `boot_b` is the first and only step that changes flash. If the written image does not boot, the LK may mark `boot_b` unbootable and **automatically fall back to the other slot**, which on the audited device contains **OS3.0.20.0 over data created by OS3.0.306.0** — that path risks "data corrupted"/anti-rollback prompts, and it is the one route to data loss that does not require a human mistake. Before T3 you must have: **Z0 passed**, the firmware comparison below, the R3/T2b slot readouts saved, `boot_b` + `init_boot_b` + `vbmeta*_b` backups verified on a second disk, USB cable and `Vol− + Power` at hand for the fastboot rollback (`fastboot flash boot_b <backup>`), and the owner's explicit "yes". If the device does fall back to slot A, do **not** fight it with slot commands: power off and re-read the slot state in fastboot.
 
 ## Preconditions
 
@@ -36,19 +97,7 @@ fastboot() {
 }
 ```
 
-## Steps
-
-| Step | Action | Writes to flash? | Pass criteria |
-|---|---|---|---|
-| R3 | in fastboot: `fastboot getvar current-slot`, `unlocked`, `is-userspace`, `slot-count`, `max-download-size`, and the per-slot `slot-successful:*`, `slot-retry-count:*`, `slot-unbootable:*` when the bootloader exposes them | no | `current-slot=b` (**abort if ≠ b**), `is-userspace=no` (**proves it is the real LK, not fastbootd**), `unlocked=yes`, `max-download-size ≥ 67108864` |
-| T0 | `fastboot boot` of the **stock-equivalent** repack (kernel bytes identical to stock) | no | either boots exactly like stock, or *any* `FAILED` → step T0.2 + STOP |
-| T2 | `fastboot boot` of the **new kernel** (cert build) — only if T0 boots and looks like stock | no | see acceptance below |
-| T2b | still in fastboot after T2: `fastboot getvar all` and re-read `slot-successful:*`, `slot-retry-count:*`, `slot-unbootable:*` for **both** slots, then compare with the R3 values | no | slot `_b` not marked `unbootable`, retry count not exhausted — **only then let the device boot normally** |
-| T3 | only if T2 is fully green **and the owner agrees**: write `boot_b`, with the verified backup as immediate rollback | yes | same acceptance, then 30 min stress |
-
-**Why T2b exists** (FMEA-26, the main gap this revision closes): a partial boot of the RAM kernel can reach userspace, fail a health check and leave slot `_b` marked unbootable — and the LK would then fall back to the **other** slot, which on this device is old firmware. Check the slot state *before* the first normal boot, and if `_b` looks unhealthy: stay in fastboot, photograph `getvar all`, and stop for the day (the flash copy of `boot_b` is intact — it is the RAM test that must not be repeated).
-
-**T3 warning, in full.** Writing `boot_b` is the first and only step that changes flash. If the written image does not boot, the LK may mark `boot_b` unbootable and **automatically fall back to the other slot**, which on the audited device contains **OS3.0.20.0 over data created by OS3.0.306.0** — that path risks "data corrupted"/anti-rollback prompts, and it is the one route to data loss that does not require a human mistake. Before T3 you must have: the firmware comparison above, the R3/T2b slot readouts saved, `boot_b` + `init_boot_b` + `vbmeta*_b` backups verified on a second disk, USB cable and `Vol− + Power` at hand for the fastboot rollback (`fastboot flash boot_b <backup>`), and the owner's explicit "yes". If the device does fall back to slot A, do **not** fight it with slot commands: power off and re-read the slot state in fastboot.
+The guard stays active for T0/T2/R3/Z0; for the single T3 command, run it with `command fastboot flash boot_b boot_b_new.img` after re-reading the pre-flight checks out loud. The LK's own denylist strings (`docs/SAFETY.md`) are a second layer, not a substitute.
 
 ## Acceptance (all required)
 

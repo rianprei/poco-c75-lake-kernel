@@ -29,6 +29,10 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B11 | 2026-10-06 | Six "X does not exist / is UNKNOWN" claims in SAFETY.md and the test protocol rested on a single observation, with no second independent source on the line (found by V5). | V5 |
 | B12 | 2026-10-06 | `tools/verify_modsig.sh` used `grep -i "serial\|issuer"` — BRE alternation that is unnecessary and is the same confusing construct as B2 (found by V2, shell-scripts scope). | V2 |
 | B13 | 2026-10-06 | `docs/KMI-GATES.md` asserted that nine imported symbols are *protected exports of Google-signed GKI modules* with no source for that set (found by V7). | V7 |
+| B14 | 2026-10-06 | Claims about this device's bootloader (order of size/allowlist checks before a write) were supported by LK **source of a different device** (dguidipc/gemini-lk, MT6797) — behaviour the real `lk_b.img` never evidenced. | V14 |
+| B15 | 2026-10-06 | The legacy (v2-header) RAM-boot was offered as a safe test path although the image carries no `androidboot.*`/`slot_suffix` and nothing proves the LK injects them — Android could come up slot-less and mount the old slot-A system over current data. | V15 |
+| B16 | 2026-10-06 | The protocol demanded a STOP unless `fastboot getvar is-userspace` answers `no`, but that variable may not exist in the real LK (its runtime behaviour is unverified) — a guaranteed false STOP. | V16 |
+| B17 | 2026-10-06 | A review report marked the bootloader's check order as "PROVED" from `strings` output alone — strings prove a message exists, not the order in which code reaches it. | V17 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -43,6 +47,9 @@ Per the fable rule, each bug was searched for again everywhere:
 - TWINS: searched `claim about kernel behaviour without a source` — found 8 sites (`README.md:24,25`, `docs/KMI-GATES.md:9,11,13,75`, `docs/SAFETY.md:16,18`); the one without a citation was `KMI-GATES.md:75` (fixed, B13), and V7 now enforces a citation on all of them.
 - TWINS: searched `fact row without a proof column` — found 0 of 67 rows in `docs/PLAN-AND-FINDINGS.pt-BR.md`; the 199 `FACT` mentions inside `docs/research/` are raw notes covered by the warning asserted in V8.
 - TWINS: searched `ci.android.com/builds/submitted` — found 3 other sites (`docs/research/CODEX2_kleaf_repro.md:14,27,137`, raw notes) plus the script itself (`tools/fetch_official_artifacts.sh:12`); V9 tests the script's own URL, not a copy of it.
+- TWINS: searched `bootloader-behaviour claims sourced from another device` — found 2 sites: `docs/research/OPENCODE2e_lk_repack_review.md` (raw note, carries the "contain errors" warning) and the now-labelled INFERRED row in the `docs/SAFETY.md` LK table; V14/V17 enforce the label.
+- TWINS: searched `RAM-boot presented as a safe path` — found 3 sites, all now negative or discarded: `README.md` ("tested **in RAM (`fastboot boot`)** before anything is written" — reworded to point at the protocol), `docs/SAFETY.md` rule 4 and `docs/DEVICE-TEST-PROTOCOL.md` rule 1; V15 forbids an executable RAM-boot step in the protocol.
+- TWINS: searched `getvar checks that assume a variable exists` — found 1 site: the protocol's `is-userspace` check (fixed, accepts `Variable not found`); the other getvars in R3/Z0 are already phrased as "when the bootloader exposes them"; V16 keeps the tolerated-answer list in the doc.
 
 ## §V — invariants (each one testable, with the file that protects it)
 
@@ -59,6 +66,11 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V7 | ∀ claim about kernel behaviour (keywords: `same_magic`, `MODULE_SIG_PROTECT`, `sig_ok`, `protected export`, `MODVERSIONS`, `partition_wiped`, `first_stage_mount`) in `README.md`/`docs/KMI-GATES.md`/`docs/SAFETY.md`: `!` the line cites a source file (`.c`/`.h`/`.cpp`) or the `CONFIG_` symbol; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V8 | ∀ fact row in `docs/PLAN-AND-FINDINGS.pt-BR.md`: `!` its `Prova` column is non-empty; ∧ `docs/research/README.md` carries the "contain errors" warning and the UNVERIFIED link table; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V9 | ∀ file F requested from the artifact viewer by `tools/fetch_official_artifacts.sh`: `--dry-run F` prints exactly `https://ci.android.com/builds/submitted/13771415/kernel_aarch64/latest/<viewer path of F>` and writes nothing; else `⊥`. | `tools/selftest_fetch.sh` |
+| V10–V13 | *Aliases.* The FIX6 round spent ids B10–B13 on four doc/tooling defects (missing runnable dmesg command, single-source absence claims, BRE `\|` in `verify_modsig.sh`, unsourced protected-exports claim); the invariants that protect them are V2, V5, V2 and V7 respectively. V10–V13 are reported as aliases of those in `tools/run_all_checks.sh` so the id space stays contiguous. | `tools/run_all_checks.sh` (alias rows) |
+| V14 | ∀ claim C about **this** device's bootloader in `README.md`/`docs/SAFETY.md`/`docs/DEVICE-TEST-PROTOCOL.md`: `!` C cites the real-`lk_b.img` evidence (exact string quoted in the `docs/SAFETY.md` LK table) **or** C is explicitly labelled `INFERRED (other device)`/`UNKNOWN`; `∄` claim presented as fact with neither; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V15 | ∀ alternative boot path P (`fastboot boot`, legacy v2 RAM-boot, …) mentioned in `docs/DEVICE-TEST-PROTOCOL.md`: `!` P is not an executable step of the protocol, and the doc states why the legacy RAM-boot was discarded (slot-selection risk); `∃` evidence of slot selection for any path that *is* offered; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V16 | ∀ `getvar` check in `docs/DEVICE-TEST-PROTOCOL.md`: `!` the doc declares the accepted values **including `Variable not found`** for variables the real LK may not implement, and the pre-flight write gate exists (`partition-size:boot_b` = `0x4000000` AND file = 67108864 B AND sha256 recorded); else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V17 | ∀ claim marked PROVED/MEASURED about the bootloader: `!` the evidence is of the right kind — existence claims may cite strings, but **order/behaviour claims require disassembly or an on-device experiment**; a strings-only order claim is `⊥`. Enforced structurally: the SAFETY LK table must carry the `INFERRED (other device)` row and the protocol must derive the oversize protection from its own pre-flight check, not from the bootloader's assumed check order. | `tools/check_protocol_invariants.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):
@@ -80,6 +92,10 @@ script that cannot automate it):
 - **Acceptance of an unsigned repacked `boot` by the chained-partition verifier** — analogous to the measured `init_boot_b` tolerance, but unproven.
 - **30-minute thermal/GPU stress with the new kernel** — not run.
 - **Reading `pstore` after a panic caused by *this* kernel** — the observability path is measured on stock, not validated for the new build.
+- **`fastboot getvar is-userspace` runtime value on this LK** — the string exists in `lk_b.img`, but the value it returns (or `Variable not found`) was never read on the device; the protocol tolerates both non-fastbootd answers.
+- **The exact order of the LK's size/allowlist checks before a write** — INFERRED (other device) only; proving it here requires disassembly of `lk_b.img` or a deliberate (unsafe) experiment, so the protocol never relies on it.
+- **Denylist completeness** — `lk`, `misc`, `boot_para` do not appear explicitly in the protected-name lists inside the binary; whether a `flash`/`erase` on them would be refused is unknown and must stay untested.
+- **The Z0 rehearsal itself** — mandatory before any write, still unlogged: reaching fastboot by keys with a *healthy* device is proven only by the general key-combo lore, and with a *bad* `boot_b` it is UNVERIFIED until Z0 runs.
 
 ## Critério de convergência (adversarial review)
 
