@@ -24,7 +24,7 @@ run_case() { # <label> <expected_exit> <grep -E pattern> <symvers>
   local label="$1" want="$2" pat="$3" file="$4" out rc
   out="$("$GATE" "$file" 2>&1)" && rc=0 || rc=$?
   printf '%s\n' "$out" | sed 's/^/    /'
-  if [ "$rc" -eq "$want" ] && printf '%s\n' "$out" | grep -qE "$pat"; then
+  if [ "$rc" -eq "$want" ] && grep -qE "$pat" <<<"$out"; then
     echo "  => OK   [$label] exit=$rc, casou /$pat/"
   else
     echo "  => FALHA [$label] exit=$rc (esperado $want), padrão /$pat/ ausente"

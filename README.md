@@ -35,7 +35,7 @@ Xiaomi has not published kernel source for the `lake` device, and community kern
 | Per-symbol CRC gate against **all 557 vendor `.ko` (370 unique modules)**: 4138 symbols required, 2309 provided by the kernel | ✅ 0 mismatches, 0 missing — `tools/gate_kmi_crc.sh` |
 | Google-signed module verifies against the new image; fails against the build without the cert | ✅ `tools/verify_modsig.sh --selftest` |
 | Gate self-test: 1 positive + 3 sabotage cases (corrupted CRC, dropped export, empty symvers) | ✅ `tools/selftest_gates.sh` |
-| Documentation invariants V1–V9 + V14–V17 (numbers match the gate, documented regexes have controls, no slot-switch or unsupported-bootloader instruction, absence claims cite twice, destructive ops under `mktemp`, kernel claims cite sources, every fact has a proof, fetch URL is the tested URL, bootloader claims cite the real `lk_b.img` evidence or say INFERRED (other device), no RAM-boot step, getvar checks tolerate `Variable not found`, order claims are not "proved" from strings) | ✅ `tools/run_all_checks.sh` — 14 sabotage cases flip FAIL→PASS in `tools/selftest_backprop.sh` |
+| Documentation invariants (§V, one executable check per row) — every sabotage case flips FAIL→PASS in `tools/selftest_backprop.sh` | ✅ `tools/run_all_checks.sh` |
 | Boot-image repack tool refuses truncated input, non-gzip kernel, `ramdisk_size != 0`, existing output, oversize image, and drops the GKI signature block only with `--drop-signature` | ✅ checks in `tools/repack_boot_v2.py` (the author's 32-case harness is **not** published) |
 | **Image boots on a real `lake` device** | ❌ **not yet tested** |
 | Wi-Fi / Bluetooth / modem / camera working with the new kernel | ❌ not yet tested |
@@ -45,12 +45,12 @@ The rebuilt `Image` is **not** byte-identical to Google's (the ephemeral signing
 ## Repository layout
 
 ```
-SPEC.md      bug registry (§B), testable invariants V1–V9 (§V), what is still unproven (§T)
+SPEC.md      bug registry (§B), testable invariants (§V), what is still unproven (§T)
 docs/        BUILD, KMI gates, SAFETY, device test protocol, measured-facts plan, research notes
 tests/       fixtures for the control tests (dmesg_bad/clean, sha256sums_bad/clean)
 tools/       gate_kmi_crc.sh, selftest_gates.sh, dump_modcrcs.py, verify_modsig.sh, repack_boot_v2.py, fetch_official_artifacts.sh,
              run_all_checks.sh + check_docs_numbers.sh, check_regex_controls.sh, check_protocol_invariants.sh, check_destructive_ops.sh,
-             selftest_fetch.sh, selftest_backprop.sh
+             check_sigpipe.sh, selftest_fetch.sh, selftest_backprop.sh
 patches/     Kleaf + common patches that embed the Google module-signing certificate
 certs/       Google GKI module-signing certificate (public)
 manifests/   official CI manifest + pinned variant used here
@@ -67,7 +67,7 @@ tools/verify_modsig.sh --selftest                # → SELFTEST PASS
 
 # 2. self-test the KMI gate itself (1 positive + 3 sabotage cases) and the doc invariants
 tools/selftest_gates.sh                          # → SELFTEST PASS
-tools/run_all_checks.sh                          # → V1..V9 PASS + gate self-test (see SPEC.md)
+tools/run_all_checks.sh                          # → PASS (all §V invariants + gate self-test; see SPEC.md)
 tools/selftest_backprop.sh                       # → proves each check catches its own defect
 
 # 3. get the pinned source (≈12 GB) and build — see docs/BUILD.md for every flag

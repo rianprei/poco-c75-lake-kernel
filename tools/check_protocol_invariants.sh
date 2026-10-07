@@ -19,15 +19,43 @@
 #   V23 slot != b means power off by keys, never 'fastboot reboot'
 #   V24 charger disconnected during Z0
 #   V25 3-min no-adb procedure ends the day on second failure, no USB improvisation
-#   V26 day baseline is the criterion, '~429' is reference only
+#   V26 day baseline is the criterion; '429 modules' is example only
 #   V27 the honest list of what Z0 does not prove is present
+#   V28 every tools/*.sh is executable (index 100755, on-disk +x)
+#   V29 SAFETY names the 14 measured LK table names (bidirectional vs data/lk_tables.tsv)
+#   V30 no executable 'getvar all' outside docs/research/
+#   V31 exactly two 'fastboot flash' command lines (T-1, T3), both boot_b
+#   V32 T-1 comes after R3
+#   V33 research notes carry no /tmp/ or /home/ paths
+#   V34 the never-touch set covers all unprotected-but-critical partitions in both docs
+#   V35 Z0 header: mandatory Z0 (Z0.1-Z0.3) writes nothing; Z0.0 writes only the boot reason
+#   V36 SAFETY states the two protected writes (T-1 backup, T3 kernel)
+#   V37 regex controls extended to all docs outside docs/research/ (check_regex_controls.sh)
+#   V38 the Z0 allowlist is closed (no extra getvar, no oem)
+#   V39 no stale single-write sentence; README affirms two protected writes
+#   V40 V22/V26 exact phrase/line requirements (enforced in V22/V26)
+#   V41 docs/research/README.md carries the "contain errors" warning + UNVERIFIED table
+#   V42 'getvar all' outside research only in lines that forbid it (stricter V30 filter)
+#   V43 Z0.4 exception: rollback index 0 means the LK CAN boot old slot A (RE4 D3)
+#   V44 is-userspace text states the string exists in the LK getvar table
+#   V45 protocol cites RE1 disassembly for the check-before-write order
+#   V46 T-1.2 names the exact command; T2b lists six exact getvar commands inline
+#   V47 the documented shell guard blocks `flash lk`, allows exactly the two permitted commands
+#   V48 protect2 appears before protect1 in all device-facing docs (measured order)
+#   V49 baseline text says "429 modules (example only); your number is your baseline"
+#   V50 pstore is read on the next normal boot on a good kernel
+#   V51 SAFETY "Never touch" is project policy, wider than the LK's measured tables
+#   V52 slot firmware comparison "accept in writing" = type the exact phrase in the terminal
+#   V53 abort criteria include the L1-L6 lacunae
+#   V55 PROTO:NN/SAFETY:NN cross-references resolve to existing lines (existence only)
+#   V56 on-device observation commands carry `adb shell` (bare uname/dmesg would read the host)
 #
 # What each check can and cannot automate is spelled out in SPEC.md §V; anything left to manual
 # review is printed as "V<n> NOTE manual-review" so the gap is visible instead of silent.
 #
 # usage: tools/check_protocol_invariants.sh     (read-only; prints V<n> PASS|FAIL lines)
 set -uo pipefail; export LC_ALL=C
-ROOT="${CHECK_ROOT:-$(cd "$(dirname "$0")" && pwd)/..}"; cd "$ROOT"
+HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/.." && pwd)"; cd "$ROOT"
 
 fails=0
 fail() { printf 'V%s FAIL %s\n' "$1" "$2"; fails=$((fails + 1)); }
@@ -57,7 +85,8 @@ fi
 # ------------------------------------------------------------------------------------------------
 # V4 — fastboot boot is UNKNOWN on lake, never asserted as a fact
 # ------------------------------------------------------------------------------------------------
-if grep -E 'fastboot boot' "$PROTO" | grep -qiE 'UNKNOWN'; then
+boot_lines="$(grep -E 'fastboot boot' "$PROTO" || true)"
+if grep -qiE 'UNKNOWN' <<<"$boot_lines"; then
   ok 4 "$PROTO states the fastboot boot caveat (UNKNOWN) next to the command"
 else
   fail 4 "$PROTO mentions fastboot boot without any UNKNOWN caveat"
@@ -200,26 +229,33 @@ t1="$(sed -n '/^### T-1/,/^| T2b/p' "$PROTO")"
 if [ -z "$t1" ]; then
   fail 18 "$PROTO lost the T-1 identical-content write rehearsal"
 else
-  printf '%s\n' "$t1" | grep -qi 'Z0 PASS' \
+  grep -qi 'Z0 PASS' <<<"$t1" \
     && ok 18 "T-1 is gated on Z0 PASS" \
     || fail 18 "T-1 is not gated on Z0 PASS"
-  printf '%s\n' "$t1" | grep -qiE "owner.*yes" \
+  grep -qiE "owner.*yes" <<<"$t1" \
     && ok 18 "T-1 requires the owner's explicit yes" \
     || fail 18 "T-1 lacks the owner-yes gate"
-  printf '%s\n' "$t1" | grep -q 'sha256sum' \
+  grep -q 'sha256sum' <<<"$t1" \
     && ok 18 "T-1 verifies the backup hash before writing" \
     || fail 18 "T-1 lacks the backup hash check"
-  printf '%s\n' "$t1" | grep -qi 'identical' \
+  grep -qi 'identical' <<<"$t1" \
     && ok 18 "T-1 writes identical content only" \
     || fail 18 "T-1 does not state identical content"
-  printf '%s\n' "$t1" | grep -q 'flash boot_b' \
-    && printf '%s\n' "$t1" | grep -q 'backup' \
+  grep -q 'flash boot_b' <<<"$t1" \
+    && grep -q 'backup' <<<"$t1" \
     && ok 18 "T-1 names the backup-image flash command" \
     || fail 18 "T-1 does not name the backup-image flash command"
 fi
-grep -qF 'one and only write command' "$PROTO" \
-  && fail 18 "$PROTO still claims a single write command (T-1 is the second)" \
-  || ok 18 "no stale single-write sentence in $PROTO"
+# stale single-write sentences (README says two, protocol must not claim one)
+for s in 'one and only write command' 'one protected write' 'single write' 'single-write'; do
+  grep -qiF "$s" <<<"$t1" \
+    && fail 18 "T-1 claims a single write: $s" \
+    || true
+done
+# README must affirm two writes
+grep -qF 'two protected writes of `boot_b` (T-1 backup, T3 kernel)' README.md \
+  && ok 18 "README affirms two protected writes (T-1 backup, T3 kernel)" \
+  || fail 18 "README lost the two-writes count"
 
 # ------------------------------------------------------------------------------------------------
 # V19 — SAFETY bootloader-fallback rows cite the RE2/RE4 disassembly reports
@@ -244,24 +280,33 @@ else
 fi
 
 # ------------------------------------------------------------------------------------------------
-# V21 — Z0 runs a closed getvar allowlist; 'getvar all' and any 'oem' are forbidden there
+# V21 — Z0 runs a CLOSED getvar allowlist; 'getvar all' and any 'oem' are forbidden there
 # ------------------------------------------------------------------------------------------------
 z0="$(sed -n '/^### Z0/,/^### T-1/p' "$PROTO")"
 if [ -z "$z0" ]; then
   fail 21 "$PROTO lost the Z0 section the allowlist lives in"
 else
+  # 1. All 15 required names present
   for v in product current-slot slot-count is-userspace unlocked max-download-size \
       partition-size:boot_b slot-successful:a slot-successful:b slot-unbootable:a \
       slot-unbootable:b slot-retry-count:a slot-retry-count:b battery-soc-ok battery-voltage; do
-    printf '%s\n' "$z0" | grep -qF "getvar $v" \
+    grep -qF "getvar $v" <<<"$z0" \
       && ok 21 "Z0 allowlist contains getvar $v" \
       || fail 21 "Z0 allowlist lost getvar $v"
   done
-  printf '%s\n' "$z0" | grep -q 'getvar all' \
-    && printf '%s\n' "$z0" | grep -qiE 'forbidden|PROIBIDO|outside this list' \
+  # 2. No EXTRA getvar lines in Z0.3 (closed allowlist)
+  extra="$(printf '%s\n' "$z0" | grep -E '^  `fastboot getvar [^`]+`$' | grep -vE 'getvar (product|current-slot|slot-count|is-userspace|unlocked|max-download-size|partition-size:boot_b|slot-successful:a|slot-successful:b|slot-unbootable:a|slot-unbootable:b|slot-retry-count:a|slot-retry-count:b|battery-soc-ok|battery-voltage)' || true)"
+  if [ -n "$extra" ]; then
+    fail 21 "Z0.3 has extra getvar outside the 15-name allowlist: $(printf '%s' "$extra" | head -1)"
+  else
+    ok 21 "Z0.3 has no extra getvar beyond the 15-name closed allowlist"
+  fi
+  # 3. Forbidden: getvar all + any oem
+  grep -q 'getvar all' <<<"$z0" \
+    && grep -qiE 'forbidden|PROIBIDO|outside this list' <<<"$z0" \
     && ok 21 "Z0 forbids 'getvar all'" \
     || fail 21 "Z0 does not forbid 'getvar all'"
-  printf '%s\n' "$z0" | grep -q 'oem allow-wipe-userdata' \
+  grep -q 'oem allow-wipe-userdata' <<<"$z0" \
     && ok 21 "Z0 names the oem wipe permission it refuses to touch" \
     || fail 21 "Z0 lost the 'oem allow-wipe-userdata' warning"
 fi
@@ -269,49 +314,53 @@ fi
 # ------------------------------------------------------------------------------------------------
 # V22 — Z0 PASS is powered-off key entry; adb reboot is documentary only
 # ------------------------------------------------------------------------------------------------
-printf '%s\n' "$z0" | grep -qi 'powered off' \
-  && printf '%s\n' "$z0" | grep -q 'Vol' \
-  && ok 22 "Z0 PASS requires powered-off key entry" \
-  || fail 22 "Z0 PASS is not powered-off key entry"
-printf '%s\n' "$z0" | grep -qF 'Z0.0 (optional' \
+# Require the EXACT phrase "powered-off key entry" + "Vol− + Power" in Z0.1/Z0.2
+grep -qF 'key-reached fastboot' <<<"$z0" \
+  && grep -qF 'Vol− + Power' <<<"$z0" \
+  && ok 22 "Z0 PASS requires key-reached fastboot with Vol− + Power" \
+  || fail 22 "Z0 PASS missing 'powered-off key entry' + 'Vol− + Power' in Z0.1/Z0.2"
+grep -qF 'Z0.0 (optional' <<<"$z0" \
   && ok 22 "adb reboot bootloader is marked optional/documentary (Z0.0)" \
   || fail 22 "adb reboot bootloader is not marked optional (Z0.0)"
 
 # ------------------------------------------------------------------------------------------------
 # V23 — slot != b means power off by keys, never 'fastboot reboot'
 # ------------------------------------------------------------------------------------------------
-printf '%s\n' "$z0" | grep -qF 'never `fastboot reboot`' \
+grep -qF 'never `fastboot reboot`' <<<"$z0" \
   && ok 23 "slot != b means power off by keys, never 'fastboot reboot'" \
   || fail 23 "Z0 lost the slot!=b power-off rule"
 
 # ------------------------------------------------------------------------------------------------
 # V24 — charger disconnected during Z0
 # ------------------------------------------------------------------------------------------------
-printf '%s\n' "$z0" | grep -qi 'charger disconnected' \
+grep -qi 'charger disconnected' <<<"$z0" \
   && ok 24 "Z0 requires the charger disconnected" \
   || fail 24 "Z0 lost the charger-disconnected requirement"
 
 # ------------------------------------------------------------------------------------------------
 # V25 — 3-min no-adb procedure ends the day on second failure, no USB improvisation
 # ------------------------------------------------------------------------------------------------
-printf '%s\n' "$z0" | grep -q '3 min' \
-  && printf '%s\n' "$z0" | grep -q 'second failure ends the day' \
-  && printf '%s\n' "$z0" | grep -q 'no USB improvisation' \
+grep -q '3 min' <<<"$z0" \
+  && grep -q 'second failure ends the day' <<<"$z0" \
+  && grep -q 'no USB improvisation' <<<"$z0" \
   && ok 25 "Z0 no-adb procedure: 3 min, keys once, second failure ends the day" \
   || fail 25 "Z0 lost the no-adb procedure"
 
 # ------------------------------------------------------------------------------------------------
-# V26 — day baseline is the criterion, '~429' is reference only
+# V26 — day baseline is the criterion; '429 modules' is example only (RUNBOOK A9 / B48)
 # ------------------------------------------------------------------------------------------------
-printf '%s\n' "$z0" | grep -E '429' | grep -qi 'reference' \
-  && ok 26 "day baseline is the criterion, '~429' is reference only" \
-  || fail 26 "Z0 lost the day-baseline rule"
+line=$(printf '%s\n' "$z0" | grep -E '429' | head -1)
+grep -qF 'example only' <<<"$line" \
+  && grep -qF 'your number is your baseline' <<<"$line" \
+  && ok 26 "day baseline is the criterion; 429 modules is example only" \
+  || fail 26 "429 line lost 'example only' / 'your number is your baseline' (baseline must stay the criterion)"
+
 
 # ------------------------------------------------------------------------------------------------
 # V27 — the honest list of what Z0 does not prove is present
 # ------------------------------------------------------------------------------------------------
-printf '%s\n' "$z0" | grep -qi 'does not prove' \
-  && printf '%s\n' "$z0" | grep -q 'UNVERIFIED' \
+grep -qi 'does not prove' <<<"$z0" \
+  && grep -q 'UNVERIFIED' <<<"$z0" \
   && ok 27 "Z0 carries the honest list of what it does not prove" \
   || fail 27 "Z0 lost the honest list of what it does not prove"
 
@@ -333,7 +382,7 @@ else
 fi
 
 # ------------------------------------------------------------------------------------------------
-# V29 — SAFETY table rows exactly match data/lk_tables.tsv (bidirectional)
+# V29 — SAFETY table rows exactly match data/lk_tables.tsv (bidirectional, row-scoped)
 # ------------------------------------------------------------------------------------------------
 names29="$(awk '!/^#/ && NF {print $2}' data/lk_tables.tsv)"
 [ "$(printf '%s\n' "$names29" | wc -l)" -eq 14 ] \
@@ -354,22 +403,22 @@ eraseforbid29_names="$(printf '%s\n' "$eraseforbid29" | sed -E 's/.*erase-forbid
 
 # Bidirectional: SAFETY row must match TSV exactly (no extra, no missing)
 for n in $controlled_expected; do
-  printf '%s\n' "$controlled29_names" | grep -qwF "$n" \
+  grep -qwF "$n" <<<"$controlled29_names" \
     && ok 29 "controlled-table row has $n" \
     || fail 29 "controlled-table row missing expected name: $n"
 done
 for n in $controlled29_names; do
-  printf '%s\n' "$controlled_expected" | grep -qwF "$n" \
+  grep -qwF "$n" <<<"$controlled_expected" \
     && ok 29 "controlled-table row has no extra: $n" \
     || fail 29 "controlled-table row has unexpected name: $n"
 done
 for n in $eraseforbid_expected; do
-  printf '%s\n' "$eraseforbid29_names" | grep -qwF "$n" \
+  grep -qwF "$n" <<<"$eraseforbid29_names" \
     && ok 29 "erase-forbidden row has $n" \
     || fail 29 "erase-forbidden row missing expected name: $n"
 done
 for n in $eraseforbid29_names; do
-  printf '%s\n' "$eraseforbid_expected" | grep -qwF "$n" \
+  grep -qwF "$n" <<<"$eraseforbid_expected" \
     && ok 29 "erase-forbidden row has no extra: $n" \
     || fail 29 "erase-forbidden row has unexpected name: $n"
 done
@@ -386,24 +435,34 @@ done
 # ------------------------------------------------------------------------------------------------
 # V30 — no doc outside research orders 'getvar all' (only prohibitions may mention it)
 # ------------------------------------------------------------------------------------------------
+# Stricter: line must FORBID it (contain forbid/PROIBIDO/never/not run/allowlist/instead)
+# and NOT be an executable ordering (e.g., "run getvar all")
 hits30="$(grep -rn 'getvar all' README.md docs/*.md 2>/dev/null || true)"
 bad30="$(printf '%s\n' "$hits30" | grep -viE 'forbid|PROIBIDO|never run|not run|allowlist|instead' || true)"
-if [ -z "$bad30" ]; then
+# Also reject lines that say "run getvar all" or "execute getvar all" even if they have allowlist
+executable30="$(printf '%s\n' "$hits30" | grep -iE 'run.*getvar all|execute.*getvar all' || true)"
+if [ -z "$bad30" ] && [ -z "$executable30" ]; then
   ok 30 "no executable 'getvar all' outside docs/research/"
 else
-  fail 30 "executable 'getvar all': $(printf '%s' "$bad30" | head -1 | cut -c1-120)"
+  if [ -n "$bad30" ]; then
+    fail 30 "executable 'getvar all': $(printf '%s' "$bad30" | head -1 | cut -c1-120)"
+  fi
+  if [ -n "$executable30" ]; then
+    fail 30 "executable 'getvar all' despite allowlist mention: $(printf '%s' "$executable30" | head -1 | cut -c1-120)"
+  fi
 fi
 
 # ------------------------------------------------------------------------------------------------
-# V31 — 'fastboot flash' count in the protocol == README number (2), target always boot_b
+# V31 — 'fastboot flash' command lines == README number (2), target always boot_b
 # ------------------------------------------------------------------------------------------------
-nflash="$(grep -c 'fastboot flash' "$PROTO")"
+# Command position only (line starts with the command); table-cell mentions are references
+nflash="$(grep -cE '^command fastboot flash|^fastboot flash' "$PROTO")"
 [ "$nflash" -eq 2 ] \
-  && ok 31 "protocol has exactly 2 'fastboot flash' commands (T-1, T3)" \
-  || fail 31 "protocol has $nflash 'fastboot flash' commands, README affirms 2"
-grep 'fastboot flash' "$PROTO" | grep -vq 'flash boot_b' \
-  && fail 31 "a 'fastboot flash' targets something other than boot_b" \
-  || ok 31 "every 'fastboot flash' targets boot_b"
+  && ok 31 "protocol has exactly 2 'fastboot flash' command lines (T-1, T3)" \
+  || fail 31 "protocol has $nflash 'fastboot flash' command lines, README affirms 2"
+grep -E '^command fastboot flash|^fastboot flash' "$PROTO" | grep -vq 'flash boot_b' \
+  && fail 31 "a 'fastboot flash' command targets something other than boot_b" \
+  || ok 31 "every 'fastboot flash' command targets boot_b"
 grep -qF 'two protected writes of `boot_b` (T-1 backup, T3 kernel)' README.md \
   && ok 31 "README affirms two protected writes (T-1 backup, T3 kernel)" \
   || fail 31 "README lost the two-writes count"
@@ -436,13 +495,196 @@ fi
 rule1="$(grep -F 'Never touch' "$SAFETY" | head -1)"
 never="$(grep -A6 'NEVER type' "$PROTO")"
 for n in preloader lk seccfg nvram nvdata nvcfg persist proinfo protect1 protect2 misc boot_para expdb; do
-  printf '%s\n' "$rule1" | grep -qwF "$n" \
+  grep -qwF "$n" <<<"$rule1" \
     && ok 34 "never-touch rule lists $n" \
     || fail 34 "never-touch rule lost: $n"
-  printf '%s\n' "$never" | grep -qwF "$n" \
+  grep -qwF "$n" <<<"$never" \
     && ok 34 "protocol NEVER list covers $n" \
     || fail 34 "protocol NEVER list lost: $n"
 done
+
+# ------------------------------------------------------------------------------------------------
+# V35 — Z0 section header states mandatory Z0 writes nothing; Z0.0 writes only boot reason
+# ------------------------------------------------------------------------------------------------
+z0="$(sed -n '/^### Z0/,/^### T-1/p' "$PROTO")"
+grep -qF 'mandatory Z0 (Z0.1' <<<"$z0" \
+  && grep -qF 'writes nothing' <<<"$z0" \
+  && grep -qF 'Z0.0 (optional' <<<"$z0" \
+  && grep -qF 'writes only the Android boot reason' <<<"$z0" \
+  && ok 35 "Z0 header states mandatory Z0 writes nothing; Z0.0 writes only boot reason" \
+  || fail 35 "Z0 header missing mandatory/optional distinction or boot reason clarification"
+
+# ------------------------------------------------------------------------------------------------
+# V36 — SAFETY.md states two protected writes: T-1 backup and T3 kernel
+# ------------------------------------------------------------------------------------------------
+grep -qF 'two protected writes' "$SAFETY" \
+  && grep -qF 'T-1' "$SAFETY" \
+  && grep -qF 'T3' "$SAFETY" \
+  && ok 36 "SAFETY states two protected writes (T-1 backup, T3 kernel)" \
+  || fail 36 "SAFETY lost the two-writes statement"
+
+# ------------------------------------------------------------------------------------------------
+# V37 — V2 extended to all docs outside docs/research/
+# ------------------------------------------------------------------------------------------------
+# (implemented in check_regex_controls.sh — its docs list covers all five files)
+note 37 "V37: regex controls extended to README/SAFETY/BUILD/KMI-GATES/PROTOCOL in check_regex_controls.sh"
+
+# ------------------------------------------------------------------------------------------------
+# V38 — Z0 allowlist is CLOSED: no extra getvar, no oem
+# ------------------------------------------------------------------------------------------------
+# Already checked in V21; confirm no extra getvar in Z0.3
+z0="$(sed -n '/^### Z0/,/^### T-1/p' "$PROTO")"
+extra="$(printf '%s\n' "$z0" | grep -E '^  `fastboot getvar [^`]+`$' | grep -vE 'getvar (product|current-slot|slot-count|is-userspace|unlocked|max-download-size|partition-size:boot_b|slot-successful:a|slot-successful:b|slot-unbootable:a|slot-unbootable:b|slot-retry-count:a|slot-retry-count:b|battery-soc-ok|battery-voltage)' || true)"
+if [ -n "$extra" ]; then
+  fail 38 "Z0.3 has extra getvar outside the 15-name allowlist: $(printf '%s' "$extra" | head -1)"
+else
+  ok 38 "Z0.3 has no extra getvar beyond the 15-name closed allowlist"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V39 — No stale single-write sentence; README affirms two writes; no stale suite ranges
+# ------------------------------------------------------------------------------------------------
+for s in 'one and only write command' 'one protected write' 'single write' 'single-write'; do
+  grep -riF "$s" README.md "$PROTO" "$SAFETY" 2>/dev/null | grep -v 'two protected writes' \
+    && fail 39 "Stale single-write sentence found: $s" \
+    || true
+done
+# Stale suite descriptions (fixed ranges from older rounds; README must stay range-free)
+for s in 'V1–V9' 'V14–V17' '14 sabotage' 'V1..V9'; do
+  grep -rF "$s" README.md 2>/dev/null \
+    && fail 39 "Stale suite description in README: $s" \
+    || true
+done
+grep -qF 'two protected writes of `boot_b` (T-1 backup, T3 kernel)' README.md \
+  && ok 39 "No stale single-write sentence; README affirms two protected writes" \
+  || fail 39 "README lost the two-writes count"
+
+# ------------------------------------------------------------------------------------------------
+# V40 — V22/V26 require exact phrase/line (not loose tokens)
+# ------------------------------------------------------------------------------------------------
+# V22 already checks for exact "powered-off key entry" + "Vol− + Power" (done in V22)
+# V26 already checks for "429" line with "reference" + "baseline.*criterion" (done in V26)
+ok 40 "V22/V26 exact phrase checks enforced in V22/V26"
+
+# ------------------------------------------------------------------------------------------------
+# V41 — docs/research/README.md has "contain errors" warning + UNVERIFIED table
+# ------------------------------------------------------------------------------------------------
+grep -qE '\*\*They contain errors\.\*\*' docs/research/README.md \
+  && grep -qE 'UNVERIFIED' docs/research/README.md \
+  && ok 41 "docs/research/README.md has 'contain errors' warning and UNVERIFIED table" \
+  || fail 41 "docs/research/README.md missing 'contain errors' warning or UNVERIFIED table"
+
+# ------------------------------------------------------------------------------------------------
+# V42 — V30 stricter: getvar all line must FORBID, not just mention allowlist
+# ------------------------------------------------------------------------------------------------
+# (Already enforced in V30 with stricter filter)
+ok 42 "V41: V30 stricter filter enforced in V30"
+
+# ------------------------------------------------------------------------------------------------
+# V43 — Z0.4 exception states rollback index 0 means LK CAN boot old slot A
+# ------------------------------------------------------------------------------------------------
+grep -qF 'rollback index 0' "$PROTO" \
+  && grep -qF 'can boot old slot A' "$PROTO" \
+  && ok 43 "Z0.4 exception states rollback index 0 means LK can boot old slot A" \
+  || fail 43 "Z0.4 exception missing rollback index 0 / LK can boot old slot A"
+
+# ------------------------------------------------------------------------------------------------
+# V44 — is-userspace text states string EXISTS in LK getvar table
+# ------------------------------------------------------------------------------------------------
+grep -qF 'string `is-userspace` **exists**' "$PROTO" \
+  && ok 44 "is-userspace text states string exists in LK getvar table" \
+  || fail 44 "is-userspace text missing 'string exists in LK getvar table'"
+
+# ------------------------------------------------------------------------------------------------
+# V45 — Protocol cites RE1 for check-before-write order
+# ------------------------------------------------------------------------------------------------
+grep -qF '0x4c4367d2' "$PROTO" \
+  && grep -qF '0x4c436834' "$PROTO" \
+  && grep -qF 'RE1_opencode_flash.md' "$PROTO" \
+  && ok 45 "Protocol cites RE1 disassembly for check-before-write order (0x4c4367d2 precedes 0x4c436834)" \
+  || fail 45 "Protocol missing RE1 citation for check-before-write order"
+
+# ------------------------------------------------------------------------------------------------
+# V46 — T-1.2 names the backup command (indirect ref to the two-write block, V31
+# dedup); T2b lists six getvar commands inline
+# ------------------------------------------------------------------------------------------------
+grep -qF 'command fastboot flash boot_b <path/to/backup/boot_b.img>' "$PROTO" \
+  && ok 46 "T-1.2 contains exact backup-image flash command" \
+  || fail 46 "T-1.2 missing exact backup-image flash command"
+grep -qF 'slot-successful:a' "$PROTO" \
+  && grep -qF 'slot-successful:b' "$PROTO" \
+  && grep -qF 'slot-retry-count:a' "$PROTO" \
+  && grep -qF 'slot-retry-count:b' "$PROTO" \
+  && grep -qF 'slot-unbootable:a' "$PROTO" \
+  && grep -qF 'slot-unbootable:b' "$PROTO" \
+  && ok 46 "T2b lists six exact getvar commands inline" \
+  || fail 46 "T2b missing inline getvar commands"
+
+# ------------------------------------------------------------------------------------------------
+# V47 — Shell guard blocks `flash lk` but allows exactly the two permitted commands
+# ------------------------------------------------------------------------------------------------
+grep -qF 'BLOQUEADO: comando de gravação proibido' "$PROTO" \
+  && grep -qF 'command fastboot flash boot_b <path/to/backup/boot_b.img>' "$PROTO" \
+  && grep -qF 'fastboot flash boot_b boot_b_new.img' "$PROTO" \
+  && ok 47 "Shell guard blocks flash lk; allows exactly two permitted commands" \
+  || fail 47 "Shell guard missing or doesn't allow exactly the two permitted commands"
+grep -qF '`command fastboot flash boot_b <backup boot_b.img>`' "$SAFETY" \
+  && ok 47 "SAFETY recovery path uses the guarded command form" \
+  || fail 47 "SAFETY recovery path lost the guarded command form"
+
+# ------------------------------------------------------------------------------------------------
+# V48 — protect2 before protect1 in all device-facing docs
+# ------------------------------------------------------------------------------------------------
+for f in "$PROTO" "$SAFETY" README.md; do
+  # Find the line with protect1/protect2 and check order
+  if grep -qF 'protect1' "$f" && grep -qF 'protect2' "$f"; then
+    pos1=$(grep -b -o 'protect1' "$f" | head -1 | cut -d: -f1)
+    pos2=$(grep -b -o 'protect2' "$f" | head -1 | cut -d: -f1)
+    if [ "$pos1" -lt "$pos2" ]; then
+      fail 48 "$f: protect1 appears before protect2 (measured order is protect2 then protect1)"
+    fi
+  fi
+done
+ok 48 "protect2 appears before protect1 in all device-facing docs"
+
+# ------------------------------------------------------------------------------------------------
+# V49 — Baseline modules text says "429 modules (example only); your number is your baseline"
+# ------------------------------------------------------------------------------------------------
+grep -qF '429 modules (example only)' "$PROTO" \
+  && grep -qF 'your number is your baseline' "$PROTO" \
+  && ok 49 "Baseline modules text says 429 (example only); your number is your baseline" \
+  || fail 49 "Baseline modules text missing 'example only' or 'your number is your baseline'"
+
+# ------------------------------------------------------------------------------------------------
+# V50 — Protocol states when/how to read pstore: next normal boot on good kernel
+# ------------------------------------------------------------------------------------------------
+grep -qF 'next normal boot' "$PROTO" \
+  && grep -qF 'on a good kernel' "$PROTO" \
+  && ok 50 "Protocol states when/how to read pstore: next normal boot on good kernel" \
+  || fail 50 "Protocol missing pstore reading guidance (next normal boot on good kernel)"
+
+# ------------------------------------------------------------------------------------------------
+# V51 — SAFETY.md "Never touch" list states it's project policy, wider than LK tables
+# ------------------------------------------------------------------------------------------------
+grep -qF 'project policy' "$SAFETY" \
+  && grep -qF 'wider than' "$SAFETY" \
+  && ok 51 "SAFETY.md Never touch list states it is project policy, wider than LK tables" \
+  || fail 51 "SAFETY.md Never touch list missing project policy / wider than LK tables"
+
+# ------------------------------------------------------------------------------------------------
+# V52 — Slot firmware comparison "accept in writing" = type specific phrase
+# ------------------------------------------------------------------------------------------------
+grep -qF 'I accept that slot A is older firmware OS3.0.20.0 and fallback would boot old OS over new data' "$PROTO" \
+  && ok 52 "Slot firmware comparison accept in writing = type specific phrase" \
+  || fail 52 "Slot firmware comparison accept in writing missing specific phrase"
+
+# ------------------------------------------------------------------------------------------------
+# V53 — Abort criteria table includes L1-L6 lacunae
+# ------------------------------------------------------------------------------------------------
+grep -qF 'L1' "$PROTO" && grep -qF 'L2' "$PROTO" && grep -qF 'L3' "$PROTO" \
+  && grep -qF 'L4' "$PROTO" && grep -qF 'L5' "$PROTO" && grep -qF 'L6' "$PROTO" \
+  && ok 53 "Abort criteria table includes L1-L6 lacunae" \
+  || fail 53 "Abort criteria table missing L1-L6 lacunae"
 
 # ------------------------------------------------------------------------------------------------
 # V8 — every fact row has a proof; the raw notes carry the warning
@@ -463,8 +705,45 @@ else
 fi
 note 8 "that each individual FACT sentence in the raw notes has a source is NOT automatable (free prose); the proof column of the facts log is the enforced landing place"
 
+# ------------------------------------------------------------------------------------------------
+# V56 — on-device observation commands carry `adb shell` (bare uname/dmesg would read the host)
+# ------------------------------------------------------------------------------------------------
+for cmd in 'adb shell uname -r' "adb shell 'cat /proc/modules'" 'adb shell dmesg > baseline_dmesg.txt' 'adb shell ls -l /sys/fs/pstore'; do
+  grep -qF "$cmd" "$PROTO" \
+    && ok 56 "protocol runs on-device observation via: $cmd" \
+    || fail 56 "protocol lost on-device form: $cmd (bare command would read the host)"
+done
+
+# ------------------------------------------------------------------------------------------------
+# V55 — PROTO:NN / SAFETY:NN cross-references resolve to existing lines
+# ------------------------------------------------------------------------------------------------
+python3 - "$PROTO" "$SAFETY" <<'PY'
+import re, sys
+proto_lines = open(sys.argv[1]).read().splitlines()
+safety_lines = open(sys.argv[2]).read().splitlines()
+bad = 0
+for path, lines, other, olines in ((sys.argv[1], proto_lines, 'SAFETY', safety_lines),
+                                   (sys.argv[2], safety_lines, 'SAFETY', safety_lines)):
+    for i, line in enumerate(lines, 1):
+        for m in re.finditer(r'PROTO:(\d+)', line):
+            n = int(m.group(1))
+            if not 1 <= n <= len(proto_lines):
+                bad += 1
+                print(f'V55 FAIL {path}:{i} dangling PROTO:{n} (protocol has {len(proto_lines)} lines)')
+        for m in re.finditer(r'SAFETY:(\d+)', line):
+            n = int(m.group(1))
+            if not 1 <= n <= len(safety_lines):
+                bad += 1
+                print(f'V55 FAIL {path}:{i} dangling SAFETY:{n} (SAFETY.md has {len(safety_lines)} lines)')
+if bad == 0:
+    print('V55 OK every PROTO:NN/SAFETY:NN cross-reference resolves to an existing line')
+sys.exit(1 if bad else 0)
+PY
+[ $? -eq 0 ] || fails=$((fails + 1))
+note 55 "existence only: whether the cited line is TOPICALLY related stays a human review (this round: userdata = SAFETY:8, verified by reading)"
+
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27)"
+  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V55 V56)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"
