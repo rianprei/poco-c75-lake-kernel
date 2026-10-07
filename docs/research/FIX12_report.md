@@ -68,15 +68,15 @@ desta sessão). Numeração final §V: FIX11 V34, FIX12 V35–V53, SIGPIPE V54.
 
 | Item | Destino | Sabotagem real |
 |------|---------|----------------|
-| V34 (never-touch, FIX11, preservado do main) | `tools/check_protocol_invariants.sh:491`, SPEC B35/V34 | casos 50, 51, 52 |
-| V35 (GOAL chamava V34: header Z0) | `:505`, SPEC B37/V35 | caso 31 |
-| V36 (GOAL chamava V35: SAFETY duas escritas) | `:516`, SPEC B38/V36 | caso 32 |
-| V38 (allowlist fechada) | `:531`, SPEC B40/V38 | casos 18b, 33 |
-| V39 (GOAL chamava V38: sem sentença stale) | `:543`, SPEC B41/V39 | caso 34 |
-| V42 ex-V41 (getvar-all estrito) | `:570`, SPEC B44/V42 | casos 27b, 47 |
-| V50 ex-V49 (pstore) | `:575`, SPEC B52/V50 | caso 43 |
-| V51 ex-V50 (project policy) | `:583`, SPEC B53/V51 | caso 44 |
-| V52 ex-V51 (accept in writing) | `:591`, SPEC B54/V52 | caso 45 |
+| V34 (never-touch, FIX11, preservado do main) | `tools/check_protocol_invariants.sh:493`, SPEC B35/V34 | casos 50, 51, 52 |
+| V35 (GOAL chamava V34: header Z0) | `:507`, SPEC B37/V35 | caso 31 |
+| V36 (GOAL chamava V35: SAFETY duas escritas) | `:518`, SPEC B38/V36 | caso 32 |
+| V38 (allowlist fechada) | `:533`, SPEC B40/V38 | casos 18b, 33 |
+| V39 (GOAL chamava V38: sem sentença stale) | `:545`, SPEC B41/V39 | caso 34 |
+| V42 ex-V41 (getvar-all estrito) | `:578`, SPEC B44/V42 | casos 27b, 47 |
+| V50 ex-V49 (pstore) | `:659`, SPEC B52/V50 | caso 43 |
+| V51 ex-V50 (project policy) | `:667`, SPEC B53/V51 | caso 44 |
+| V52 ex-V51 (accept in writing) | `:675`, SPEC B54/V52 | caso 45 |
 
 ## Decisões de merge (preservando os dois lados)
 
