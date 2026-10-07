@@ -16,7 +16,7 @@ STATUS: DONE
 
 O main já usava B34–B36/V34 (FIX11) e continha as linhas do FIX12 sem renumerar
 (B34–B36 e V43 duplicados, V41 ausente). O bloco FIX12 foi para depois do maior ID
-do main: §B B37–B56, §V V35–V54. Resultado: **B1–B56 sequencial, V1–V54 (V10–V13
+do main: §B B37–B60, §V V35–V56. Resultado: **B1–B60 sequencial, V1–V56 (V10–V13
 aliases), zero duplicados** — verificado por contagem (SPEC.md).
 
 ## MAPA — cada item das fontes → arquivo:linha
@@ -33,7 +33,7 @@ aliases), zero duplicados** — verificado por contagem (SPEC.md).
 | F6 | REVIEW9 §5.1 | `tools/check_regex_controls.sh:22-27` (5 docs) | B39/V37 | caso 53 |
 | F7 | REVIEW9 §8/V21 | `tools/check_protocol_invariants.sh:533` (V38, closed, sem extras) | B40/V38 | casos 18b, 33 |
 | F8 | REVIEW9 §8/V18 | `tools/check_protocol_invariants.sh:545` (V39, sem sentença stale + README duas escritas) | B41/V39 | caso 34 |
-| F9 | REVIEW9 §8/V22+V26 | `tools/check_protocol_invariants.sh:315` (V22 frase exata), `:349` (V26 linha exata) | B42/V40 | casos 19b, 23b |
+| F9 | REVIEW9 §8/V22+V26 | `tools/check_protocol_invariants.sh:315` (V22 frase exata), `:350` (V26 linha exata) | B42/V40 | casos 19b, 23b |
 | F10 | REVIEW9 §9/F10 | `docs/research/README.md` (warning + tabela UNVERIFIED) | B43/V41 | caso 35 |
 
 ### REVIEW10 F4 (F1/F2/F5/F6 = F5/F4/F9/F10 acima; F3 = V29, feito pelo FIX11)
@@ -61,8 +61,9 @@ aliases), zero duplicados** — verificado por contagem (SPEC.md).
 | A13 | RUNBOOK §A13 | `docs/DEVICE-TEST-PROTOCOL.md:121` (digitar a frase exata no terminal) | B54/V52 | caso 45 |
 | L1–L6 | RUNBOOK §L | `docs/DEVICE-TEST-PROTOCOL.md:201-206` (tabela de lacunas) | B55/V53 | caso 46 |
 
-Numeração final §B: FIX11 B34–B36, FIX12 B37–B55, SIGPIPE B56 (achado extra
-desta sessão). Numeração final §V: FIX11 V34, FIX12 V35–V53, SIGPIPE V54.
+Numeração final §B: FIX11 B34–B36, FIX12 B37–B55, extras B56–B60 (SIGPIPE B56,
+refs B57, README B58, SAFETY-form B59, adb-shell B60). Numeração final §V: FIX11
+V34, FIX12 V35–V53, extras V54–V56.
 
 ### Ajustes exigidos pelo GOAL (V34/V35/V38 + sabotagens V41/V50/V51/V52)
 
@@ -104,20 +105,19 @@ desta sessão). Numeração final §V: FIX11 V34, FIX12 V35–V53, SIGPIPE V54.
 | E3 | Homoglyph cirílico U+0430 em "não bootа" (tabela L2, herdado do 0fc9cdf). Varredura: único no repo. | corrigido em `docs/DEVICE-TEST-PROTOCOL.md:202` |
 | E4 | Nota V37 dizia "V36:" (número stale pós-renumeração). | corrigido |
 | E5 | Caso 41 invocava `sed` no README sem o par `protect1/protect2` (no-op desonesto). | removido do caso; TWINS documenta perna vacuosa |
+| E6 | Symptom-table citava SAFETY:11 para o fato userdata-backup (vive em SAFETY:8). | B57/V55, refs corrigidas para SAFETY:8 |
+| E7 | SAFETY recovery path sem o prefixo `command` (guard bloquearia o rollback). | B59/V47, forma corrigida + V47 estendido |
+| E8 | README com ranges stale da suite + falta de `check_sigpipe.sh` na lista. | B58/V39, texto range-free + V39 estendido |
+| E9 | T-1.3/baseline/Z0-precond sem `adb shell` (leria o host). | B60/V56, prefixos + V56 novo |
+| E10 | SPEC §T dizia ordem check→write INFERRED (twin do B44 passado batido; RE1 §3.3 mediu). | §T corrigido + TWINS do B44 |
 
 ## Verificação (observada, não inferida)
 
-- `./tools/run_all_checks.sh` → `run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V54 + gate self-test)` (55 verificações), exit 0.
-- `./tools/selftest_backprop.sh` → `SABOTAGENS: 58 detectada(s) FAIL->PASS, 0 falha(s)`, estável em 3+ rodadas (o flake E1 foi eliminado na causa-raiz, não com retry).
+- `./tools/run_all_checks.sh` → `run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V56 + gate self-test)` (57 verificações), exit 0.
+- `./tools/selftest_backprop.sh` → `SABOTAGENS: 62 detectada(s) FAIL->PASS, 0 falha(s)`, estável em 3+ rodadas (o flake E1 foi eliminado na causa-raiz, não com retry).
 - `git status` limpo; worktree de integração e branch `fix12` removidos após o merge.
-- Nenhum ID §B/§V duplicado: B1–B56, V1–V54 (V10–V13 aliases).
+- Nenhum ID §B/§V duplicado: B1–B60, V1–V56 (V10–V13 aliases).
 
 ## ABERTO
 
 Nenhum — exceto §T do SPEC.md (itens sabidamente não-provados, por desenho).
-
-| E6 | Symptom-table citava SAFETY:11 para o fato userdata-backup (vive em SAFETY:8). | B57/V55, refs corrigidas para SAFETY:8 |
-
-| E7 | SAFETY recovery path sem o prefixo `command` (guard bloquearia o rollback). | B59/V47, forma corrigida + V47 estendido |
-| E8 | README com ranges stale da suite + falta de `check_sigpipe.sh` na lista. | B58/V39, texto range-free + V39 estendido |
-| E9 | T-1.3/baseline sem `adb shell` (leria o host). | B60/V56, prefixos + V56 novo |
