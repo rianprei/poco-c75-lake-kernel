@@ -28,7 +28,11 @@ docs = [
 ]
 fix = root / 'tests/fixtures'
 fails = []
+fails37 = []
 def fail(m): fails.append(m); print(f'V2 FAIL {m}')
+def fail37(m):
+    # V37 (V2 extended to all five docs): every doc-pattern failure is also a V37 failure.
+    fails.append(m); fails37.append(m); print(f'V2 FAIL {m}'); print(f'V37 FAIL {m}')
 
 CMD = re.compile(r'grep\s+((?:-[A-Za-z]+)\s+)*?["\'](.*?)["\']')
 QUOTED = re.compile(r'grep\s+(-[A-Za-z]+(?:\s+-[A-Za-z]+)*)\s+(["\'])(.*?)\2')
@@ -44,7 +48,7 @@ for doc in docs:
             if 'E' not in flags:
                 continue
             if r'\|' in pat:
-                fail(f'{doc.relative_to(root)}:{i} padrão -E com pipe escapado (nunca casa): {pat!r}')
+                fail37(f'{doc.relative_to(root)}:{i} padrão -E com pipe escapado (nunca casa): {pat!r}')
                 continue
             if 'dmesg' in line:
                 pair = ('dmesg_bad.txt', 'dmesg_clean.txt')
@@ -54,26 +58,26 @@ for doc in docs:
                 pair = None
             patterns.append((doc.name, i, flags, pat, pair))
             if pair is None:
-                fail(f'{doc.relative_to(root)}:{i} grep {flags} sem fixture de controle: {pat!r}')
+                fail37(f'{doc.relative_to(root)}:{i} grep {flags} sem fixture de controle: {pat!r}')
                 continue
             try:
                 rx = re.compile(pat, re.IGNORECASE if 'i' in flags else 0)
             except re.error as e:
-                fail(f'{doc.relative_to(root)}:{i} padrão inválido ({e}): {pat!r}')
+                fail37(f'{doc.relative_to(root)}:{i} padrão inválido ({e}): {pat!r}')
                 continue
             bad_hits = [l for l in (fix / pair[0]).read_text().splitlines() if rx.search(l)]
             clean_hits = [l for l in (fix / pair[1]).read_text().splitlines() if rx.search(l)]
             if not bad_hits:
-                fail(f'{doc.relative_to(root)}:{i} controle POSITIVO falhou ({pair[0]}): {pat!r}')
+                fail37(f'{doc.relative_to(root)}:{i} controle POSITIVO falhou ({pair[0]}): {pat!r}')
             if clean_hits:
-                fail(f'{doc.relative_to(root)}:{i} controle NEGATIVO falhou ({pair[1]} casou {len(clean_hits)} linha(s)): {pat!r}')
+                fail37(f'{doc.relative_to(root)}:{i} controle NEGATIVO falhou ({pair[1]} casou {len(clean_hits)} linha(s)): {pat!r}')
             if bad_hits and not clean_hits:
                 print(f"V2 OK   {doc.relative_to(root)}:{i} controle positivo+negativo ({pair[0]}: {len(bad_hits)} linhas)")
 
 # every reader-runnable dmesg check must exist at all
 dmesg_runnable = [p for p in patterns if p[4] and p[4][0] == 'dmesg_bad.txt']
 if not dmesg_runnable:
-    fail('Nenhum dos docs contém comando grep -E executável sobre o dmesg (o critério de aceitação "dmesg has no Unknown symbol…" não é verificável pelo leitor)')
+    fail37('Nenhum dos docs contém comando grep -E executável sobre o dmesg (o critério de aceitação "dmesg has no Unknown symbol…" não é verificável pelo leitor)')
 
 # ---- 2. every planted error class must be covered ----------------------------------------------
 if dmesg_runnable:
@@ -82,7 +86,7 @@ if dmesg_runnable:
         if 'Booting Linux' in line:
             continue
         if not any(r.search(line) for r in rxs):
-            fail(f'tests/fixtures/dmesg_bad.txt classe de erro não coberta pelos padrões dos docs: {line.strip()[:80]}')
+            fail37(f'tests/fixtures/dmesg_bad.txt classe de erro não coberta pelos padrões dos docs: {line.strip()[:80]}')
 
 # ---- 3. same `\|`-in--E ban across the shell tooling -------------------------------------------
 for sh in sorted(list((root / 'tools').rglob('*.sh')) + list((root / 'scripts').rglob('*.sh'))):
@@ -94,6 +98,11 @@ for sh in sorted(list((root / 'tools').rglob('*.sh')) + list((root / 'scripts').
 
 if fails:
     print(f'V2 FAIL {len(fails)} controle(s) ausente(s)/invertido(s)')
+if fails37:
+    print(f'V37 FAIL {len(fails37)} controle(s) ausente(s)/invertido(s) nos 5 docs')
+    sys.exit(1)
+if fails:
     sys.exit(1)
 print(f'V2 PASS {len(patterns)} padrão(ões) -E com controles positivo+negativo; 0 pipe escapado')
+print(f'V37 OK todos os padrões -E dos 5 docs têm controles positivo+negativo; 0 pipe escapado')
 PY

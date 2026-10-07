@@ -75,7 +75,7 @@ sha256sum boot_b_new.img                       # EXPECT: the hash you recorded w
 
 **Any divergence between (a), (b) and the recorded hash = PARAR.** The oversize protection must come
 from *this* check, run by you — not from assuming the order of the bootloader's internal tests
-(that order is **MEASURED** by disassembly of the real binary: check `bl 0x4c4367d2` precedes write `bl 0x4c436834`, fail branch returns first; see `research/RE1_opencode_flash.md` §3.3). The LK string
+(that order is **MEASURED** by disassembly of the real binary: check `bl 0x4c4367d2` precedes write `bl 0x4c436834`, fail branch returns first; see `research/RE1_opencode_flash.md` §3.3; reproduce host-side with `r2 -a arm -b 16 -m 0x4c3ffe00 -q -c 's 0x4c4367c8; pd 12; s 0x4c43688a; pd 6' lk_b.img`). The LK string
 `size too large, space small. image length[0x%llx], partition max size[0x%llx]` exists in the real
 binary, but you must not *rely* on reaching it.
 
@@ -204,3 +204,12 @@ Any hang > 3 minutes without UI, any panic, any missing baseline module, any `FA
 | L4 | **Bypass do host-side guard** (ex: função não carregada, alias, subshell) | Regra humana: não rodar comandos fora do protocolo |
 | L5 | **Bootloader travado / AVB** (dispositivo locked) | Não se aplica a desbloqueado; não travar o bootloader |
 | L6 | **`pstore` vazio** após crash | Usar `dmesg`/`adb bugreport` como fallback |
+
+### Residual risks (consolidated — what can still go wrong when every gate passes)
+
+| # | Risk | Mitigation in this protocol | Status |
+|---|---|---|---|
+| R1 | Physical failure mid-write (power loss, eMMC fault, cable/port failure) | Battery ≥ 60 % + data cable verified before Z0 (PROTO:119); hands off cable/device during T-1.2/T3; Z0 PASS proves the key-reached recovery path on a healthy device (PROTO:58) | Accepted risk; a damaged preloader leaves only an authorized Xiaomi service (SAFETY:7) |
+| R2 | LK rejects the new image at runtime (unsigned repack refused or boot failure) | T-1 demonstrates the flash path with identical bytes first (PROTO:96); immediate rollback with the T-1 command + verified backup; T2b slot readout before the first normal boot (PROTO:100) | UNVERIFIED for `boot` (plausible by analogy with the measured `init_boot_b` tolerance — see SAFETY "Why a modified boot image is plausibly accepted"); on-device behaviour still unproven (SPEC §T) |
+| R3 | Automatic fallback to slot A (old OS3.0.20.0 over new data) | T2b before letting the device boot (PROTO:100); never `set_active` (PROTO:13); slot firmware compared or accepted in writing before anything else (PROTO:121) | Mechanism MEASURED by disassembly (RE4 D1, SAFETY:42); on-device fallback still unproven (SPEC §T) |
+| R4 | A/B retry counter mechanics (decrement, initial value) | The protocol never relies on a specific count (PROTO:56); re-read the Z0.3/T2b slot state after any boot attempt and stop the day when exhausted (PROTO:100) | UNVERIFIED (3-bit field read, no decrement isolated — RE4 D1, SAFETY:44) |

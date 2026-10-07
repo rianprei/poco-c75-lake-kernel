@@ -11,7 +11,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/.." && pwd)"
 
 BASE="$(mktemp -d)"; trap 'rm -rf "$BASE"' EXIT
 PRISTINE="$BASE/pristine"; mkdir -p "$PRISTINE"
-cp -a "$ROOT/tools" "$ROOT/tests" "$ROOT/docs" "$ROOT/data" "$ROOT/scripts" "$ROOT/README.md" "$PRISTINE/"
+cp -a "$ROOT/tools" "$ROOT/tests" "$ROOT/docs" "$ROOT/data" "$ROOT/scripts" "$ROOT/README.md" "$ROOT/SPEC.md" "$PRISTINE/"
 
 pass=0; fail=0
 case_run() { # <n> <label> <check script> <expected FAIL pattern> <mutation (bash, runs inside the copy)>
@@ -297,6 +297,34 @@ case_run 58 "V56 bare on-device command in protocol" check_protocol_invariants.s
   "sed -i 's/adb shell uname -r/uname -r/' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V40: V22/V26 loose tokens (already covered by V22b/26b)
+
+# V37: uncontrolled grep -E in a non-protocol doc (V37 FAIL signal, not just V2)
+case_run 59 "V37 uncontrolled grep in README (non-protocol doc)" check_regex_controls.sh '^V37 FAIL' \
+  "printf '\nRun: grep -E \"foobar\" something\n' >> README.md"
+
+# V40: SPEC V40 row loses the enforced phrase (V40 FAIL signal, not just V22)
+case_run 60 "V40 SPEC V40 row loses enforced phrase" check_protocol_invariants.sh '^V40 FAIL' \
+  "sed -i '180s/key-reached fastboot/ZZZ-phrase/' SPEC.md"
+
+# V14: SAFETY string recipe loses an offset (reproducibility broken)
+case_run 61 "V14 recipe offset removed from SAFETY" check_protocol_invariants.sh '^V14 FAIL' \
+  "sed -i 's/@659832/@000000/' docs/SAFETY.md"
+
+# V45: inline r2 reproducer removed from protocol (pointer-only again)
+case_run 62 "V45 inline r2 reproducer removed" check_protocol_invariants.sh '^V45 FAIL' \
+  "sed -i '/r2 -a arm -b 16 -m 0x4c3ffe00/d' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V57: residual risks table loses a row
+case_run 63 "V57 residual risks row removed" check_protocol_invariants.sh '^V57 FAIL' \
+  "sed -i '/| R3 |/d' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V28: scripts/build.sh loses its executable bit
+case_run 64 "V28 scripts/build.sh non-executable" check_protocol_invariants.sh '^V28 FAIL' \
+  "chmod 644 scripts/build.sh"
+
+# V8: fact 21 proof loses its verification boundary
+case_run 65 "V8 fact 21 proof loses boundary marking" check_protocol_invariants.sh '^V8 FAIL' \
+  "sed -i 's/ (retained dump, not published)//' docs/PLAN-AND-FINDINGS.pt-BR.md"
 
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

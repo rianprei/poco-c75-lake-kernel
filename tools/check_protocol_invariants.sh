@@ -21,7 +21,7 @@
 #   V25 3-min no-adb procedure ends the day on second failure, no USB improvisation
 #   V26 day baseline is the criterion; '429 modules' is example only
 #   V27 the honest list of what Z0 does not prove is present
-#   V28 every tools/*.sh is executable (index 100755, on-disk +x)
+#   V28 every tools/*.sh and scripts/*.sh is executable (index 100755, on-disk +x)
 #   V29 SAFETY names the 14 measured LK table names (bidirectional vs data/lk_tables.tsv)
 #   V30 no executable 'getvar all' outside docs/research/
 #   V31 exactly two 'fastboot flash' command lines (T-1, T3), both boot_b
@@ -161,12 +161,20 @@ fi
 for s in 'size too large, space small' 'Forbidden to erase boot/preloader partition.' "download for partition '%s' is not allowed" 'flash preloader is not permitted.'; do
   grep -qF "$s" "$SAFETY" || fail 14 "$SAFETY não cita mais a string do lk_b real: $s"
 done
+# the string verification recipe must stay complete: image hash + file offset per key string
+grep -qF '017da2dac658cbce05081974590ad86ab2f75b6f07b28b0dbe06fb7386e92635' "$SAFETY" \
+  || fail 14 "$SAFETY lost the audited lk_b.img sha256 of the string verification recipe"
+for o in '@659832' '@659396' '@657924' '@650996'; do
+  grep -qF "$o" "$SAFETY" \
+    || fail 14 "$SAFETY lost the string verification recipe offset $o"
+done
+ok 14 "SAFETY string verification recipe complete (image sha256 + 4 file offsets)"
 if grep -qF 'INFERRED (other device)' "$PROTO" || grep -qF 'RE1_opencode_flash.md' "$PROTO"; then
   ok 14 "protocol labels LK check order (INFERRED other-device, or cites RE1 disassembly)"
 else
   fail 14 "$PROTO states LK check order with neither INFERRED (other device) nor RE1 evidence"
 fi
-note 14 "that each quoted string really is in lk_b.img is NOT automatable here (the binary is retained, not published); the quoted strings were grepped against /tmp/lk_b_strings.txt during the FIX7 review"
+note 14 "the semantic truth (string really in lk_b.img) still needs the retained binary, but the recipe (image sha256 + 4 file offsets, greppable with grep -boa -F) is checked above; the quoted strings were grepped against /tmp/lk_b_strings.txt during the FIX7 review"
 
 # ------------------------------------------------------------------------------------------------
 # V15 — no alternative boot path is an executable step; legacy RAM-boot explicitly discarded
@@ -314,11 +322,11 @@ fi
 # ------------------------------------------------------------------------------------------------
 # V22 — Z0 PASS is powered-off key entry; adb reboot is documentary only
 # ------------------------------------------------------------------------------------------------
-# Require the EXACT phrase "powered-off key entry" + "Vol− + Power" in Z0.1/Z0.2
+# Require the EXACT phrase "key-reached fastboot" + "Vol− + Power" in Z0.1/Z0.2
 grep -qF 'key-reached fastboot' <<<"$z0" \
   && grep -qF 'Vol− + Power' <<<"$z0" \
   && ok 22 "Z0 PASS requires key-reached fastboot with Vol− + Power" \
-  || fail 22 "Z0 PASS missing 'powered-off key entry' + 'Vol− + Power' in Z0.1/Z0.2"
+  || fail 22 "Z0 PASS missing 'key-reached fastboot' + 'Vol− + Power' in Z0.1/Z0.2"
 grep -qF 'Z0.0 (optional' <<<"$z0" \
   && ok 22 "adb reboot bootloader is marked optional/documentary (Z0.0)" \
   || fail 22 "adb reboot bootloader is not marked optional (Z0.0)"
@@ -365,20 +373,20 @@ grep -qi 'does not prove' <<<"$z0" \
   || fail 27 "Z0 lost the honest list of what it does not prove"
 
 # ------------------------------------------------------------------------------------------------
-# V28 — every tools/*.sh is executable (index 100755 and on-disk +x)
+# V28 — every tools/*.sh and scripts/*.sh is executable (index 100755 and on-disk +x)
 # ------------------------------------------------------------------------------------------------
 bad28=""
-for f in tools/*.sh; do
+for f in tools/*.sh scripts/*.sh; do
   [ -x "$f" ] || bad28="$bad28 $f"
 done
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  idxbad="$(git ls-files -s tools/*.sh | awk '$1 != "100755" {print $4}')"
+  idxbad="$(git ls-files -s tools/*.sh scripts/*.sh | awk '$1 != "100755" {print $4}')"
   [ -z "$idxbad" ] || bad28="$bad28(index:$idxbad)"
 fi
 if [ -z "$bad28" ]; then
-  ok 28 "every tools/*.sh is executable (index 100755, on-disk +x)"
+  ok 28 "every tools/*.sh and scripts/*.sh is executable (index 100755, on-disk +x)"
 else
-  fail 28 "non-executable tools/*.sh:$bad28"
+  fail 28 "non-executable tools/*.sh or scripts/*.sh:$bad28"
 fi
 
 # ------------------------------------------------------------------------------------------------
@@ -526,8 +534,9 @@ grep -qF 'two protected writes' "$SAFETY" \
 # ------------------------------------------------------------------------------------------------
 # V37 — V2 extended to all docs outside docs/research/
 # ------------------------------------------------------------------------------------------------
-# (implemented in check_regex_controls.sh — its docs list covers all five files)
-note 37 "V37: regex controls extended to README/SAFETY/BUILD/KMI-GATES/PROTOCOL in check_regex_controls.sh"
+# (enforced in check_regex_controls.sh, which emits V37 FAIL/OK; run_all_checks.sh reads
+# RC[V37] from that script's output — this note only documents the split)
+note 37 "V37: regex controls extended to README/SAFETY/BUILD/KMI-GATES/PROTOCOL in check_regex_controls.sh (V37 FAIL/OK signal there)"
 
 # ------------------------------------------------------------------------------------------------
 # V38 — Z0 allowlist is CLOSED: no extra getvar, no oem
@@ -562,9 +571,12 @@ grep -qF 'two protected writes of `boot_b` (T-1 backup, T3 kernel)' README.md \
 # ------------------------------------------------------------------------------------------------
 # V40 — V22/V26 require exact phrase/line (not loose tokens)
 # ------------------------------------------------------------------------------------------------
-# V22 already checks for exact "powered-off key entry" + "Vol− + Power" (done in V22)
+# V22 already checks for exact "key-reached fastboot" + "Vol− + Power" (done in V22)
 # V26 already checks for "429" line with "reference" + "baseline.*criterion" (done in V26)
-ok 40 "V22/V26 exact phrase checks enforced in V22/V26"
+# V40's own signal: SPEC.md's V40 row must name the same exact phrase V22 enforces.
+awk 'NR==180' SPEC.md >/tmp/v40_check.txt && grep -qF 'key-reached fastboot' /tmp/v40_check.txt \
+  && ok 40 "SPEC V40 names the exact phrase V22 enforces (key-reached fastboot)" \
+  || fail 40 "SPEC V40 does not name the exact phrase V22 enforces (key-reached fastboot)"
 
 # ------------------------------------------------------------------------------------------------
 # V41 — docs/research/README.md has "contain errors" warning + UNVERIFIED table
@@ -596,13 +608,14 @@ grep -qF 'string `is-userspace` **exists**' "$PROTO" \
   || fail 44 "is-userspace text missing 'string exists in LK getvar table'"
 
 # ------------------------------------------------------------------------------------------------
-# V45 — Protocol cites RE1 for check-before-write order
+# V45 — Protocol cites RE1 for check-before-write order + inline r2 reproducer
 # ------------------------------------------------------------------------------------------------
 grep -qF '0x4c4367d2' "$PROTO" \
   && grep -qF '0x4c436834' "$PROTO" \
   && grep -qF 'RE1_opencode_flash.md' "$PROTO" \
-  && ok 45 "Protocol cites RE1 disassembly for check-before-write order (0x4c4367d2 precedes 0x4c436834)" \
-  || fail 45 "Protocol missing RE1 citation for check-before-write order"
+  && grep -qF 'r2 -a arm -b 16 -m 0x4c3ffe00' "$PROTO" \
+  && ok 45 "Protocol cites RE1 disassembly for check-before-write order (0x4c4367d2 precedes 0x4c436834) with inline r2 reproducer" \
+  || fail 45 "Protocol missing RE1 citation or inline r2 reproducer for check-before-write order"
 
 # ------------------------------------------------------------------------------------------------
 # V46 — T-1.2 names the backup command (indirect ref to the two-write block, V31
@@ -703,6 +716,27 @@ if grep -qE '\*\*They contain errors\.\*\*' docs/research/README.md && grep -qE 
 else
   fail 8 "docs/research/README.md lost the 'contain errors' warning or the UNVERIFIED link table"
 fi
+# device-dump citations must carry their verification boundary: a proof cell naming
+# audit/<...> or backup-2026-10-05/<...> (retained dumps, not in this repo) is ⊥ unless the
+# same cell says "retained" or "not published".
+python3 - <<'PY'
+import re, sys
+bad = 0
+for i, line in enumerate(open('docs/PLAN-AND-FINDINGS.pt-BR.md'), 1):
+    if not re.match(r'^\| *[0-9]+ *\|', line):
+        continue
+    cells = line.split('|')
+    if len(cells) < 6:
+        continue
+    proof = cells[4]
+    if re.search(r'(?:audit/|backup-2026-10-05/)', proof) and not re.search(r'retained|not published', proof):
+        bad += 1
+        print(f'V8 FAIL docs/PLAN-AND-FINDINGS.pt-BR.md:{i} prova cita dump retido sem fronteira de verificação: {proof.strip()[:100]}')
+if bad == 0:
+    print('V8 OK every device-dump proof citation carries its verification boundary (retained/not published)')
+sys.exit(1 if bad else 0)
+PY
+[ $? -eq 0 ] || fail 8 "proof column cites a retained dump without its verification boundary"
 note 8 "that each individual FACT sentence in the raw notes has a source is NOT automatable (free prose); the proof column of the facts log is the enforced landing place"
 
 # ------------------------------------------------------------------------------------------------
@@ -742,8 +776,19 @@ PY
 [ $? -eq 0 ] || fails=$((fails + 1))
 note 55 "existence only: whether the cited line is TOPICALLY related stays a human review (this round: userdata = SAFETY:8, verified by reading)"
 
+# ------------------------------------------------------------------------------------------------
+# V57 — Residual risks table R1-R4 with mitigation + status is present
+# ------------------------------------------------------------------------------------------------
+for r in R1 R2 R3 R4; do
+  grep -qF "| $r |" "$PROTO" \
+    || fail 57 "protocol lost the residual risks table row $r (mitigation + status)"
+done
+grep -qF '### Residual risks' "$PROTO" \
+  && ok 57 "protocol carries the consolidated residual risks table (R1-R4 with mitigation + status)" \
+  || fail 57 "protocol lost the consolidated residual risks table"
+
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V55 V56)"
+  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V55 V56 V57)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"
