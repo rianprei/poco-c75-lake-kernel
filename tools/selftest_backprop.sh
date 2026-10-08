@@ -11,7 +11,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/.." && pwd)"
 
 BASE="$(mktemp -d)"; trap 'rm -rf "$BASE"' EXIT
 PRISTINE="$BASE/pristine"; mkdir -p "$PRISTINE"
-cp -a "$ROOT/tools" "$ROOT/tests" "$ROOT/docs" "$ROOT/data" "$ROOT/scripts" "$ROOT/README.md" "$ROOT/SPEC.md" "$PRISTINE/"
+cp -a "$ROOT/tools" "$ROOT/tests" "$ROOT/docs" "$ROOT/data" "$ROOT/scripts" "$ROOT/README.md" "$ROOT/SPEC.md" "$ROOT/certs" "$ROOT/manifests" "$ROOT/patches" "$ROOT/CHANGELOG.md" "$ROOT/CONTRIBUTING.md" "$PRISTINE/"
 
 pass=0; fail=0
 case_run() { # <n> <label> <check script> <expected FAIL pattern> <mutation (bash, runs inside the copy)> [extra args]

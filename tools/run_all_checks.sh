@@ -53,10 +53,14 @@ set -uo pipefail; export LC_ALL=C
 HERE="$(cd "$(dirname "$0")" && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 
-run() { # <label> <script>
+run() { # <label> <script> [extra-arg]
   local label="$1" script="$2" rc=0
   echo "--- $label"
-  bash "$script" >"$T/$label.out" 2>&1 || rc=$?
+  if [ $# -ge 3 ]; then
+    bash "$script" "$3" >"$T/$label.out" 2>&1 || rc=$?
+  else
+    bash "$script" >"$T/$label.out" 2>&1 || rc=$?
+  fi
   sed 's/^/    /' "$T/$label.out"
   echo
   printf '%s' "$rc" > "$T/$label.rc"
@@ -101,7 +105,7 @@ run "PY unit tests"              "$HERE/selftest_python.sh"
 script_ok "PY unit tests" '^V65 FAIL' && RC[V65]=0 || RC[V65]=1
 run "GUARD fastboot stub"          "$HERE/selftest_fastboot_guard.sh"
 script_ok "GUARD fastboot stub" '^V66 FAIL' && RC[V66]=0 || RC[V66]=1
-run "MODSIG matrix"                    "$HERE/verify_modsig.sh --selftest-full"
+run "MODSIG matrix"                    "$HERE/verify_modsig.sh" --selftest-full
 script_ok "MODSIG matrix" '^V67 FAIL' && RC[V67]=0 || RC[V67]=1
 
 echo "=== resumo dos invariantes ==="
