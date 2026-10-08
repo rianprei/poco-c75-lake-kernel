@@ -1,0 +1,20 @@
+# Host checks only. The full kernel build is not a default job: it fetches a
+# multi-gigabyte tree and stays a manual step outside this workflow (item 80).
+name: host-checks
+on:
+  push:
+  pull_request:
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: syntax
+        run: |
+          set -euo pipefail
+          for f in tools/*.sh scripts/*.sh; do bash -n "$f"; done
+          git diff --check
+      - name: invariants and unit tests
+        run: ./tools/run_all_checks.sh
+      - name: sabotage
+        run: ./tools/selftest_backprop.sh
