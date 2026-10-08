@@ -1,6 +1,6 @@
 # Verification gates
 
-A custom kernel is only worth flashing if the closed vendor modules can still load. These gates prove, offline, that the exported CRCs, the config and the trusted certificate match the stock contract. They do not prove that the modules load on a device. Scope: the GKI rebuild is rebuild-reproducible from the pinned manifest; everything below is host-verified, hardware-unverified, boot-unproven. Each gate is a command you can re-run; the CRC gate additionally ships an automated self-test (positive + 3 sabotage cases) in `tools/selftest_gates.sh`.
+A custom kernel is only worth flashing if the closed vendor modules can still load. These gates prove, offline, that the exported CRCs, the config and the trusted certificate match the stock contract. They do not prove that the modules load on a device. Scope: the GKI rebuild is rebuild-reproducible from the pinned manifest; everything below is host-verified, hardware-unverified, boot-unproven. Each gate is a command you can re-run; the CRC gate additionally ships an automated self-test (positive + 4 sabotage cases and 1 exact-key case) in `tools/selftest_gates.sh`.
 
 ## Why the vendor modules are the constraint
 

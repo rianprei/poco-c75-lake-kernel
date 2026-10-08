@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1 (2026-10-07)
+
+- Fetch publish gate (V76, B90): a requested artifact name is one basename;
+  the body is staged privately and moved into `official/` only after the
+  type/size check and any pinned sha256. A rejected body is not a candidate.
+  Status words are `DOWNLOADED` plus `HASH-VERIFIED` or `UNVERIFIED`.
+  Sabotage cases 96–98. The KMI self-test also plants an `export_type` mismatch.
+- Suite at this point: invariants V1–V76 (V10–V13 aliases), sabotage 102/102.
+- Config-table fonte URLs: a trailing `:line` made six googlesource links 404.
+  The line number now sits beside the file URL. `gates_status` stays UNVERIFIED;
+  `tree_check` stays NEEDS-TREE-CHECK.
+
 ## 0.2.0 (2026-10-07) — maintainer round (FIX8–FIX13 + MISSION)
 
 Host-side only; still not boot-tested on hardware. Backprop registry now B1–B89 (§B),

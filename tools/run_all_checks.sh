@@ -11,6 +11,7 @@
 #   V7  kernel-behaviour claims cite a source ...... tools/check_protocol_invariants.sh
 #   V8  every fact row has a proof ................. tools/check_protocol_invariants.sh
 #   V9  fetch URL == documented viewer URL ......... tools/selftest_fetch.sh
+#   V76 fetch name/type/hash publish gate .......... tools/selftest_fetch_publish.sh
 #   V14-V17  bootloader evidence, no RAM-boot step, getvar tolerance, evidence kinds
 #                                            ....... tools/check_protocol_invariants.sh
 #   V18  first write is identical-content rehearsal  tools/check_protocol_invariants.sh
@@ -100,6 +101,8 @@ run "V54 sigpipe hygiene"      "$HERE/check_sigpipe.sh"
 script_ok "V54 sigpipe hygiene" '^V54 FAIL' && RC[V54]=0 || RC[V54]=1
 run "V9 fetch url"             "$HERE/selftest_fetch.sh"
 script_ok "V9 fetch url" '^V9 FAIL' && RC[V9]=0 || RC[V9]=1
+run "V76 fetch publish"        "$HERE/selftest_fetch_publish.sh"
+script_ok "V76 fetch publish" '^V76 FAIL' && RC[V76]=0 || RC[V76]=1
 run "GATE crc self-test"       "$HERE/selftest_gates.sh"
 # GATE (item 19): needs the explicit SELFTEST PASS string AND exit 0.
 if [ "$(cat "$T/GATE crc self-test.rc")" -eq 0 ] && grep -q 'SELFTEST PASS' "$T/GATE crc self-test.out"; then RC[GATE]=0; else RC[GATE]=1; fi
@@ -114,12 +117,12 @@ script_ok "MODSIG matrix" '^V67 FAIL' && RC[V67]=0 || RC[V67]=1
 
 echo "=== resumo dos invariantes ==="
 bad=0
-for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V54 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64 V65 V66 V67 V68 V69 V70 V71 V72 V73 V74 V75 GATE; do
+for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V54 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64 V65 V66 V67 V68 V69 V70 V71 V72 V73 V74 V75 V76 GATE; do
   if [ "${RC[$v]:-1}" -eq 0 ]; then printf '%-5s PASS\n' "$v"; else printf '%-5s FAIL\n' "$v"; bad=$((bad + 1)); fi
 done
 if [ "$bad" -eq 0 ]; then
-  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V33 + V34-V75 + gate self-test)"
+  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V33 + V34-V76 + gate self-test)"
   exit 0
 fi
-echo "run_all_checks: FAIL ($bad de 76 verificações falharam)"
+echo "run_all_checks: FAIL ($bad de 77 verificações falharam)"
 exit 1

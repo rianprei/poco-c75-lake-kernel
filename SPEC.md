@@ -5,7 +5,7 @@ while building this project is written down in §B, turned into an invariant in 
 command that fails when the error reappears. Run all of it with:
 
 ```bash
-tools/run_all_checks.sh          # prints PASS/FAIL for each §V row (V1–V9 and V14–V75; V10–V13 are aliases), exit != 0 on any FAIL
+tools/run_all_checks.sh          # prints PASS/FAIL for each §V row (V1–V9 and V14–V76; V10–V13 are aliases), exit != 0 on any FAIL
 tools/selftest_backprop.sh       # proves each check catches its own defect (FAIL -> PASS)
 ```
 
@@ -106,6 +106,7 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B87 | 2026-10-07 | PROTO/SAFETY line citations existed and described a different line. | V75 |
 | B88 | 2026-10-07 | SPEC still required `command fastboot` (V46/V47) and said the protocol stops when `fastboot boot` is absent. | V46/V47/§T |
 | B89 | 2026-10-07 | The measurement log and the config table still published `/tmp/` and `~/` paths after V33 had been limited to research notes. | V33 |
+| B90 | 2026-10-07 | `fetch_official_artifacts.sh` wrote `$OUT/$name` directly: a `../` name escaped the destination, a failed body stayed as a candidate, and an unknown hash was worded as a check. | V76 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -244,6 +245,7 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V73 | Table order is T2b-pre, then T3, then T2b-post. T3 pass is `OKAY` and "do not reboot"; reboot of the new image is only after T2b-post. | `tools/check_protocol_invariants.sh` |
 | V74 | L2 names a wrapper rollback (no "ação exata"); L3 says stop and do not repeat the flash; L4 rolls back a flash that bypassed `tools/fastboot_guard.sh`. | `tools/check_protocol_invariants.sh` |
 | V75 | Every `PROTO:N#token` / `SAFETY:N#token` citation has that token on line N. A bare `PROTO:N` without `#token` fails. | `tools/check_protocol_invariants.sh` |
+| V76 | `tools/fetch_official_artifacts.sh` refuses an empty, dotted, absolute, slashed, or `..` name before any write; a body is moved into the destination only after the type/size check and, when a sha256 is pinned, an exact match. Status words are `DOWNLOADED` plus exactly one of `HASH-VERIFIED` or `UNVERIFIED`. A rejected body is not left as a candidate. | `tools/selftest_fetch_publish.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):

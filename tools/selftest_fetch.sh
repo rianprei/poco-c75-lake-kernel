@@ -7,6 +7,8 @@
 # Confirmed pattern: https://ci.android.com/builds/submitted/13771415/kernel_aarch64/latest/<file>
 #
 # usage: tools/selftest_fetch.sh      (no network; prints V9 PASS|FAIL lines)
+# Structural URL check only (item 41). This is not a network smoke test, and the
+# default suite does not download artifacts.
 set -uo pipefail; export LC_ALL=C
 HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/.." && pwd)"
 FETCH="$ROOT/tools/fetch_official_artifacts.sh"

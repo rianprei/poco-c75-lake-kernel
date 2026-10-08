@@ -34,7 +34,7 @@ Xiaomi has not published kernel source for the `lake` device, and community kern
 | Cert build: only difference vs stock config is `CONFIG_SYSTEM_TRUSTED_KEYS` | ✅ |
 | Per-symbol CRC gate against **all 557 vendor `.ko` (370 unique modules)**: 4138 symbols required, 2309 provided by the kernel | ✅ 0 mismatches, 0 missing — `tools/gate_kmi_crc.sh` |
 | Google-signed module verifies against the new image; fails against the build without the cert | ✅ `tools/verify_modsig.sh --selftest` |
-| Gate self-test: 1 positive + 3 sabotage cases (corrupted CRC, dropped export, empty symvers) | ✅ `tools/selftest_gates.sh` |
+| Gate self-test: 1 positive + 4 sabotage cases (corrupted CRC, dropped export, empty symvers, export_type mismatch) and 1 exact-key case | ✅ `tools/selftest_gates.sh` |
 | Documentation invariants (§V, one executable check per row) — every sabotage case flips FAIL→PASS in `tools/selftest_backprop.sh` | ✅ `tools/run_all_checks.sh` |
 | Boot-image repack tool refuses truncated input, non-gzip kernel, `ramdisk_size != 0`, existing output, oversize image, and drops the GKI signature block only with `--drop-signature` | ✅ checks in `tools/repack_boot_v2.py` (the author's 32-case harness is **not** published) |
 | **Image boots on a real `lake` device** | ❌ **not yet tested** |
@@ -66,7 +66,7 @@ scripts/     build.sh (exact commands used)
 tools/fetch_official_artifacts.sh Image can.ko   # → official/{Image,can.ko}, hashes verified
 tools/verify_modsig.sh --selftest                # → SELFTEST PASS
 
-# 2. self-test the KMI gate itself (1 positive + 3 sabotage cases) and the doc invariants
+# 2. self-test the KMI gate itself (1 positive + 4 sabotage cases + 1 exact-key case) and the doc invariants
 tools/selftest_gates.sh                          # → SELFTEST PASS
 tools/run_all_checks.sh                          # → PASS (all §V invariants + gate self-test; see SPEC.md)
 tools/selftest_backprop.sh                       # → proves each check catches its own defect
@@ -103,7 +103,7 @@ You can change anything that does not alter the exported kernel interface. Every
 
 ## Resumo em português
 
-Kernel GKI 6.6.89 do POCO C75 4G (`lake`): o aparelho roda o GKI oficial do Google sem modificações, e este repositório reproduz esse kernel a partir do fonte público, embute o certificado do Google para que os módulos assinados continuem carregando, e traz os "gates" que provam a compatibilidade com os 557 arquivos `.ko` fechados (370 módulos únicos; 4138 símbolos exigidos, 2309 fornecidos pelo kernel, 0 divergências). **Ainda não foi testado no aparelho** — nenhuma imagem é publicada.
+Kernel GKI 6.6.89 do POCO C75 4G (`lake`): o aparelho roda o GKI oficial do Google sem modificações, e este repositório reproduz esse kernel a partir do fonte público, embute o certificado público do Google no contrato de assinatura verificado no host, e traz os gates que comparam CRCs, config e certificado com o stock (557 arquivos `.ko` fechados, 370 módulos únicos; 4138 símbolos exigidos, 2309 fornecidos pelo kernel, 0 divergências no host). Isso não prova que os módulos carregam no aparelho. **Ainda não foi testado no aparelho** — nenhuma imagem é publicada.
 
 ## License
 

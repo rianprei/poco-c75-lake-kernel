@@ -442,5 +442,17 @@ case_run 94 "V75 citation token misses its line" check_protocol_invariants.sh '^
 case_run 95 "V33 machine path in the plan fails" check_protocol_invariants.sh '^V33 FAIL' \
   "printf '\nscratch /tmp/plant\n' >> docs/PLAN-AND-FINDINGS.pt-BR.md"
 
+# V76: a traversed fetch name is no longer refused
+case_run 96 "V76 fetch name gate accepts traversal" selftest_fetch_publish.sh '^V76 FAIL' \
+  "sed -i '/V76-NAME-GATE/,/^}/ s/return 1/return 0/' tools/fetch_official_artifacts.sh"
+
+# V76: type check reports success for a body it should refuse
+case_run 97 "V76 fetch type gate accepts garbage" selftest_fetch_publish.sh '^V76 FAIL' \
+  "sed -i '/V76-TYPE-GATE/,/^}/ s/return 1/return 0/' tools/fetch_official_artifacts.sh"
+
+# V76: pinned hash mismatch is published
+case_run 98 "V76 fetch hash gate accepts a mismatch" selftest_fetch_publish.sh '^V76 FAIL' \
+  "sed -i '/V76-HASH-GATE/,/^}/ s/return 1/return 0/' tools/fetch_official_artifacts.sh"
+
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }
