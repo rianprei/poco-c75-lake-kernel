@@ -112,11 +112,11 @@ case_run 17 "V20 is-userspace described as absent" check_protocol_invariants.sh 
 
 # V21: one allowlist getvar deleted from Z0.3
 case_run 18 "V21 Z0 allowlist getvar deleted" check_protocol_invariants.sh '^V21 FAIL' \
-  "sed -i '/^  \`fastboot getvar battery-soc-ok\`$/d' docs/DEVICE-TEST-PROTOCOL.md"
+  "sed -i '/^  \`tools\/fastboot_guard.sh getvar battery-soc-ok\`$/d' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V21b: extra getvar added INSIDE the Z0.3 list (closed allowlist violation)
 case_run 18b "V21 extra getvar added to Z0.3" check_protocol_invariants.sh '^V21 FAIL' \
-  "sed -i '/^  \`fastboot getvar battery-voltage\`$/a\\  \`fastboot getvar cpuid\`' docs/DEVICE-TEST-PROTOCOL.md"
+  "sed -i '/^  \`tools\/fastboot_guard.sh getvar battery-voltage\`$/a\\  \`tools\/fastboot_guard.sh getvar cpuid\`' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V22: adb reboot promoted from optional/documentary to required
 case_run 19 "V22 adb reboot no longer marked optional" check_protocol_invariants.sh '^V22 FAIL' \
@@ -169,8 +169,8 @@ case_run 27b "V42 getvar all with allowlist mention but executable" check_protoc
   "printf '\ncheck the allowlist then run fastboot getvar all\n' >> docs/DEVICE-TEST-PROTOCOL.md"
 
 # V31: a third 'fastboot flash' command appears in the protocol
-case_run 28 "V31 third fastboot flash in protocol" check_protocol_invariants.sh '^V31 FAIL' \
-  "printf '\nfastboot flash super super.img\n' >> docs/DEVICE-TEST-PROTOCOL.md"
+case_run 28 "V31 third wrapper flash in protocol" check_protocol_invariants.sh '^V31 FAIL' \
+  "printf '\ntools/fastboot_guard.sh flash super super.img\n' >> docs/DEVICE-TEST-PROTOCOL.md"
 
 # V32: T-1 moved back before R3
 case_run 29 "V32 T-1 before R3 again" check_protocol_invariants.sh '^V32 FAIL' \
@@ -192,7 +192,7 @@ case_run 32 "V36 SAFETY missing two-writes" check_protocol_invariants.sh '^V36 F
 
 # V38: extra getvar in Z0.3 (closed allowlist)
 case_run 33 "V38 extra getvar in Z0.3" check_protocol_invariants.sh '^V38 FAIL' \
-  "sed -i '/^  \`fastboot getvar battery-voltage\`$/a\\  \`fastboot getvar cpuid\`' docs/DEVICE-TEST-PROTOCOL.md"
+  "sed -i '/^  \`tools\/fastboot_guard.sh getvar battery-voltage\`$/a\\  \`tools\/fastboot_guard.sh getvar cpuid\`' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V38: stale single-write sentence
 case_run 34 "V39 stale single-write sentence" check_protocol_invariants.sh '^V39 FAIL' \
@@ -215,12 +215,12 @@ case_run 38 "V45 missing RE1 citation for check-before-write" check_protocol_inv
   "sed -i 's/check \`bl 0x4c4367d2\` precedes write \`bl 0x4c436834\`/check order is INFERRED (other device)/' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V45: T-1.2 missing exact command; T2b missing inline getvars
-case_run 39 "V46 T-1.2 missing exact command" check_protocol_invariants.sh '^V46 FAIL' \
-  "sed -i 's/command fastboot flash boot_b <path\\/to\\/backup\\/boot_b.img>/run the T-1 command from *The two write commands* below/' docs/DEVICE-TEST-PROTOCOL.md"
+case_run 39 "V46 T-1.2 missing wrapper command" check_protocol_invariants.sh '^V46 FAIL' \
+  "sed -i 's|run \`tools/fastboot_guard.sh flash boot_b <path/to/backup/boot_b.img>\` (the T-1 line|run the T-1 command from *The two write commands* below (the T-1 line|' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V46: shell guard missing or doesn't allow exactly two commands
-case_run 40 "V47 shell guard missing or wrong" check_protocol_invariants.sh '^V47 FAIL' \
-  "sed -i 's/BLOQUEADO: comando de gravação proibido/COMMAND BLOCKED/' docs/DEVICE-TEST-PROTOCOL.md"
+case_run 40 "V47 bare command-fastboot back in protocol" check_protocol_invariants.sh '^V47 FAIL' \
+  "printf '\nrun \`command fastboot flash boot_b x.img\`\n' >> docs/DEVICE-TEST-PROTOCOL.md"
 
 # V47: protect1 before protect2
 case_run 41 "V48 protect1 before protect2" check_protocol_invariants.sh '^V48 FAIL' \
@@ -288,9 +288,9 @@ case_run 55 "V55 dangling PROTO ref in protocol" check_protocol_invariants.sh '^
 case_run 56 "V39 stale suite range in README" check_protocol_invariants.sh '^V39 FAIL' \
   "printf '\nInvariants V1–V9 + V14–V17 are checked.\n' >> README.md"
 
-# V47: SAFETY recovery path loses the guarded command form
+# V47: SAFETY recovery path loses the wrapper form
 case_run 57 "V47 SAFETY recovery bare flash form" check_protocol_invariants.sh '^V47 FAIL' \
-  "sed -i 's/\`command fastboot flash boot_b <backup boot_b.img>\`/fastboot flash boot_b <backup boot_b.img>/' docs/SAFETY.md"
+  "sed -i 's/\`tools\/fastboot_guard.sh flash boot_b <backup boot_b.img>\`/fastboot flash boot_b <backup boot_b.img>/' docs/SAFETY.md"
 
 # V56: T-1.3/baseline lose the adb shell prefix (would read the host)
 case_run 58 "V56 bare on-device command in protocol" check_protocol_invariants.sh '^V56 FAIL' \
@@ -304,7 +304,7 @@ case_run 59 "V37 uncontrolled grep in README (non-protocol doc)" check_regex_con
 
 # V40: SPEC V40 row loses the enforced phrase (V40 FAIL signal, not just V22)
 case_run 60 "V40 SPEC V40 row loses enforced phrase" check_protocol_invariants.sh '^V40 FAIL' \
-  "sed -i '180s/key-reached fastboot/ZZZ-phrase/' SPEC.md"
+  "sed -i 's/key-reached fastboot/ZZZ-phrase/' SPEC.md"
 
 # V14: SAFETY string recipe loses an offset (reproducibility broken)
 case_run 61 "V14 recipe offset removed from SAFETY" check_protocol_invariants.sh '^V14 FAIL' \
@@ -325,6 +325,36 @@ case_run 64 "V28 scripts/build.sh non-executable" check_protocol_invariants.sh '
 # V8: fact 21 proof loses its verification boundary
 case_run 65 "V8 fact 21 proof loses boundary marking" check_protocol_invariants.sh '^V8 FAIL' \
   "sed -i 's/ (retained dump, not published)//' docs/PLAN-AND-FINDINGS.pt-BR.md"
+
+# MISSION (FIX14): wrapper allowlist + wrapper-only protocol + stderr + retry + policy + T-1.3 + RAM-generic
+
+# V58: guard allowlist loses a getvar name
+case_run 66 "V58 guard allowlist loses battery-voltage" check_protocol_invariants.sh '^V58 FAIL' \
+  "sed -i 's/slot-retry-count:a|slot-retry-count:b|battery-soc-ok|battery-voltage/slot-retry-count:a|slot-retry-count:b|battery-soc-ok/' tools/fastboot_guard.sh"
+
+# V59: bare fastboot invocation back in protocol
+case_run 67 "V59 bare fastboot in protocol" check_protocol_invariants.sh '^V59 FAIL' \
+  "printf '\nrun \`fastboot getvar product\` to check\n' >> docs/DEVICE-TEST-PROTOCOL.md"
+
+# V60: stderr capture dropped from Z0.5
+case_run 68 "V60 Z0.5 loses stderr capture" check_protocol_invariants.sh '^V60 FAIL' \
+  "sed -i 's/} 2>&1 | tee z0_fastboot_before.txt/} | tee z0_fastboot_before.txt/' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V61: retry-count back as a hard gate
+case_run 69 "V61 retry-count back as gate" check_protocol_invariants.sh '^V61 FAIL' \
+  "sed -i 's/Record \`slot-retry-count:b\` as informational only/Require \`slot-retry-count:b\` above \`0\` aka gate/' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V62: getvar policy loses accepted-absent
+case_run 70 "V62 policy loses accepted-absent" check_protocol_invariants.sh '^V62 FAIL' \
+  "sed -i '/accepted-absent/d' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V63: T-1.3 loses slot-state re-check
+case_run 71 "V63 T-1.3 loses slot re-check" check_protocol_invariants.sh '^V63 FAIL' \
+  "sed -i 's/, \`slot-unbootable:b\`, \`slot-retry-count:b\`, \`current-slot\`//' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V64: generic RAM sentence back in protocol
+case_run 72 "V64 generic RAM sentence returns" check_protocol_invariants.sh '^V64 FAIL' \
+  "sed -i 's/hold power to reboot (do not touch the screen)/hold power to reboot (RAM boots leave flash untouched; do not touch the screen)/' docs/DEVICE-TEST-PROTOCOL.md"
 
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

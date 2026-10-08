@@ -39,8 +39,8 @@
 #   V43 Z0.4 exception: rollback index 0 means the LK CAN boot old slot A (RE4 D3)
 #   V44 is-userspace text states the string exists in the LK getvar table
 #   V45 protocol cites RE1 disassembly for the check-before-write order
-#   V46 T-1.2 names the exact command; T2b lists six exact getvar commands inline
-#   V47 the documented shell guard blocks `flash lk`, allows exactly the two permitted commands
+#   V46 T-1.2 names the wrapper backup command; T2b lists six exact getvar commands inline
+#   V47 all fastboot goes through the exact-allowlist wrapper (no bare/command forms)
 #   V48 protect2 appears before protect1 in all device-facing docs (measured order)
 #   V49 baseline text says "429 modules (example only); your number is your baseline"
 #   V50 pstore is read on the next normal boot on a good kernel
@@ -49,6 +49,14 @@
 #   V53 abort criteria include the L1-L6 lacunae
 #   V55 PROTO:NN/SAFETY:NN cross-references resolve to existing lines (existence only)
 #   V56 on-device observation commands carry `adb shell` (bare uname/dmesg would read the host)
+#   V57 residual risks table R1-R4 with mitigation + status is present
+#   V58 fastboot_guard.sh carries the exact allowlist + write gates
+#   V59 protocol invokes fastboot ONLY through the guard (no bare/command forms)
+#   V60 fastboot captures merge stderr (fastboot answers on stderr)
+#   V61 slot-retry-count is recorded, never a gate
+#   V62 getvar answer policy (required / optional / accepted-absent) is present
+#   V63 T-1.3 detects unexpected change (slot state, build, release)
+#   V64 no generic RAM-boots-leave-flash-untouched sentence
 #
 # What each check can and cannot automate is spelled out in SPEC.md §V; anything left to manual
 # review is printed as "V<n> NOTE manual-review" so the gap is visible instead of silent.
@@ -303,7 +311,7 @@ else
       || fail 21 "Z0 allowlist lost getvar $v"
   done
   # 2. No EXTRA getvar lines in Z0.3 (closed allowlist)
-  extra="$(printf '%s\n' "$z0" | grep -E '^  `fastboot getvar [^`]+`$' | grep -vE 'getvar (product|current-slot|slot-count|is-userspace|unlocked|max-download-size|partition-size:boot_b|slot-successful:a|slot-successful:b|slot-unbootable:a|slot-unbootable:b|slot-retry-count:a|slot-retry-count:b|battery-soc-ok|battery-voltage)' || true)"
+  extra="$(printf '%s\n' "$z0" | grep -E '^  `tools/fastboot_guard.sh getvar [^`]+`$' | grep -vE 'getvar (product|current-slot|slot-count|is-userspace|unlocked|max-download-size|partition-size:boot_b|slot-successful:a|slot-successful:b|slot-unbootable:a|slot-unbootable:b|slot-retry-count:a|slot-retry-count:b|battery-soc-ok|battery-voltage)' || true)"
   if [ -n "$extra" ]; then
     fail 21 "Z0.3 has extra getvar outside the 15-name allowlist: $(printf '%s' "$extra" | head -1)"
   else
@@ -461,22 +469,24 @@ else
 fi
 
 # ------------------------------------------------------------------------------------------------
-# V31 — 'fastboot flash' command lines == README number (2), target always boot_b
+# V31 — wrapper flash lines == README number (2), target always boot_b
 # ------------------------------------------------------------------------------------------------
-# Command position only (line starts with the command); table-cell mentions are references
-nflash="$(grep -cE '^command fastboot flash|^fastboot flash' "$PROTO")"
+# Command position only (block lines start with the wrapper); table-cell mentions are references.
+# (No pipe into grep -q: SIGPIPE race under pipefail — see V54.)
+flines31="$(grep -E '^tools/fastboot_guard.sh flash' "$PROTO" || true)"
+nflash="$(printf '%s\n' "$flines31" | grep -c . || true)"
 [ "$nflash" -eq 2 ] \
-  && ok 31 "protocol has exactly 2 'fastboot flash' command lines (T-1, T3)" \
-  || fail 31 "protocol has $nflash 'fastboot flash' command lines, README affirms 2"
-grep -E '^command fastboot flash|^fastboot flash' "$PROTO" | grep -vq 'flash boot_b' \
-  && fail 31 "a 'fastboot flash' command targets something other than boot_b" \
-  || ok 31 "every 'fastboot flash' command targets boot_b"
+  && ok 31 "protocol has exactly 2 wrapper flash lines (T-1, T3)" \
+  || fail 31 "protocol has $nflash wrapper flash lines, README affirms 2"
+grep -qv 'flash boot_b' <<<"$flines31" \
+  && fail 31 "a wrapper flash targets something other than boot_b" \
+  || ok 31 "every wrapper flash targets boot_b"
 grep -qF 'two protected writes of `boot_b` (T-1 backup, T3 kernel)' README.md \
   && ok 31 "README affirms two protected writes (T-1 backup, T3 kernel)" \
   || fail 31 "README lost the two-writes count"
-grep -q 'command fastboot flash boot_b <path/to/backup/boot_b.img>' "$PROTO" \
-  && ok 31 "T-1 block line keeps the guarded bypass form" \
-  || fail 31 "T-1 block line lost the guarded bypass form"
+grep -qF 'tools/fastboot_guard.sh flash boot_b <path/to/backup/boot_b.img>' "$PROTO" \
+  && ok 31 "T-1 block line keeps the wrapper form" \
+  || fail 31 "T-1 block line lost the wrapper form"
 
 # ------------------------------------------------------------------------------------------------
 # V32 — T-1 comes after R3 (it depends on R3)
@@ -543,7 +553,7 @@ note 37 "V37: regex controls extended to README/SAFETY/BUILD/KMI-GATES/PROTOCOL 
 # ------------------------------------------------------------------------------------------------
 # Already checked in V21; confirm no extra getvar in Z0.3
 z0="$(sed -n '/^### Z0/,/^### T-1/p' "$PROTO")"
-extra="$(printf '%s\n' "$z0" | grep -E '^  `fastboot getvar [^`]+`$' | grep -vE 'getvar (product|current-slot|slot-count|is-userspace|unlocked|max-download-size|partition-size:boot_b|slot-successful:a|slot-successful:b|slot-unbootable:a|slot-unbootable:b|slot-retry-count:a|slot-retry-count:b|battery-soc-ok|battery-voltage)' || true)"
+extra="$(printf '%s\n' "$z0" | grep -E '^  `tools/fastboot_guard.sh getvar [^`]+`$' | grep -vE 'getvar (product|current-slot|slot-count|is-userspace|unlocked|max-download-size|partition-size:boot_b|slot-successful:a|slot-successful:b|slot-unbootable:a|slot-unbootable:b|slot-retry-count:a|slot-retry-count:b|battery-soc-ok|battery-voltage)' || true)"
 if [ -n "$extra" ]; then
   fail 38 "Z0.3 has extra getvar outside the 15-name allowlist: $(printf '%s' "$extra" | head -1)"
 else
@@ -574,7 +584,9 @@ grep -qF 'two protected writes of `boot_b` (T-1 backup, T3 kernel)' README.md \
 # V22 already checks for exact "key-reached fastboot" + "Vol− + Power" (done in V22)
 # V26 already checks for "429" line with "reference" + "baseline.*criterion" (done in V26)
 # V40's own signal: SPEC.md's V40 row must name the same exact phrase V22 enforces.
-awk 'NR==180' SPEC.md >/tmp/v40_check.txt && grep -qF 'key-reached fastboot' /tmp/v40_check.txt \
+# (Row matched by id, never by hard-coded line number — line numbers shift on every edit.
+#  Single awk, no grep -E pipe: the V2 `\|` ban and the V54 pipe-into-grep -q ban both apply.)
+awk '/^\| V40 \|/ && /key-reached fastboot/ {found=1} END {exit !found}' SPEC.md \
   && ok 40 "SPEC V40 names the exact phrase V22 enforces (key-reached fastboot)" \
   || fail 40 "SPEC V40 does not name the exact phrase V22 enforces (key-reached fastboot)"
 
@@ -597,6 +609,7 @@ ok 42 "V41: V30 stricter filter enforced in V30"
 # ------------------------------------------------------------------------------------------------
 grep -qF 'rollback index 0' "$PROTO" \
   && grep -qF 'can boot old slot A' "$PROTO" \
+  && grep -qF 'do not boot' "$PROTO" \
   && ok 43 "Z0.4 exception states rollback index 0 means LK can boot old slot A" \
   || fail 43 "Z0.4 exception missing rollback index 0 / LK can boot old slot A"
 
@@ -621,9 +634,10 @@ grep -qF '0x4c4367d2' "$PROTO" \
 # V46 — T-1.2 names the backup command (indirect ref to the two-write block, V31
 # dedup); T2b lists six getvar commands inline
 # ------------------------------------------------------------------------------------------------
-grep -qF 'command fastboot flash boot_b <path/to/backup/boot_b.img>' "$PROTO" \
-  && ok 46 "T-1.2 contains exact backup-image flash command" \
-  || fail 46 "T-1.2 missing exact backup-image flash command"
+t12="$(grep '^| T-1.2 |' "$PROTO" || true)"
+grep -qF 'tools/fastboot_guard.sh flash boot_b <path/to/backup/boot_b.img>' <<<"$t12" \
+  && ok 46 "T-1.2 names the wrapper backup-image flash command" \
+  || fail 46 "T-1.2 missing the wrapper backup-image flash command"
 grep -qF 'slot-successful:a' "$PROTO" \
   && grep -qF 'slot-successful:b' "$PROTO" \
   && grep -qF 'slot-retry-count:a' "$PROTO" \
@@ -634,16 +648,22 @@ grep -qF 'slot-successful:a' "$PROTO" \
   || fail 46 "T2b missing inline getvar commands"
 
 # ------------------------------------------------------------------------------------------------
-# V47 — Shell guard blocks `flash lk` but allows exactly the two permitted commands
+# V47 — all fastboot goes through the exact-allowlist wrapper; no `command fastboot`
 # ------------------------------------------------------------------------------------------------
-grep -qF 'BLOQUEADO: comando de gravação proibido' "$PROTO" \
-  && grep -qF 'command fastboot flash boot_b <path/to/backup/boot_b.img>' "$PROTO" \
-  && grep -qF 'fastboot flash boot_b boot_b_new.img' "$PROTO" \
-  && ok 47 "Shell guard blocks flash lk; allows exactly two permitted commands" \
-  || fail 47 "Shell guard missing or doesn't allow exactly the two permitted commands"
-grep -qF '`command fastboot flash boot_b <backup boot_b.img>`' "$SAFETY" \
-  && ok 47 "SAFETY recovery path uses the guarded command form" \
-  || fail 47 "SAFETY recovery path lost the guarded command form"
+bad47="$(grep -rnF 'command fastboot' README.md "$PROTO" "$SAFETY" docs/BUILD.md docs/KMI-GATES.md 2>/dev/null || true)"
+if [ -z "$bad47" ]; then
+  ok 47 "no 'command fastboot' instruction in device-facing docs (wrapper-only)"
+else
+  fail 47 "bare 'command fastboot' instruction: $(printf '%s' "$bad47" | head -1 | cut -c1-120)"
+fi
+grep -qF 'BLOQUEADO pelo fastboot_guard' "$PROTO" \
+  && grep -qF 'tools/fastboot_guard.sh flash boot_b <path/to/backup/boot_b.img>' "$PROTO" \
+  && grep -qF 'tools/fastboot_guard.sh flash boot_b boot_b_new.img' "$PROTO" \
+  && ok 47 "protocol documents the wrapper refusal + exactly the two gated flashes" \
+  || fail 47 "protocol lost the wrapper refusal or the two gated flashes"
+grep -qF '`tools/fastboot_guard.sh flash boot_b <backup boot_b.img>`' "$SAFETY" \
+  && ok 47 "SAFETY recovery path uses the wrapper form" \
+  || fail 47 "SAFETY recovery path lost the wrapper form"
 
 # ------------------------------------------------------------------------------------------------
 # V48 — protect2 before protect1 in all device-facing docs
@@ -787,8 +807,95 @@ grep -qF '### Residual risks' "$PROTO" \
   && ok 57 "protocol carries the consolidated residual risks table (R1-R4 with mitigation + status)" \
   || fail 57 "protocol lost the consolidated residual risks table"
 
+# ------------------------------------------------------------------------------------------------
+# V58 — fastboot_guard.sh carries the exact allowlist + write gates
+# ------------------------------------------------------------------------------------------------
+GUARD="tools/fastboot_guard.sh"
+[ -f "$GUARD" ] || fail 58 "tools/fastboot_guard.sh missing"
+grep -qF 'devices|reboot)' "$GUARD" \
+  && ok 58 "guard allowlist keeps devices + reboot" \
+  || fail 58 "guard allowlist lost devices/reboot"
+for v in product current-slot slot-count is-userspace unlocked max-download-size \
+    partition-size:boot_b slot-successful:a slot-successful:b slot-unbootable:a \
+    slot-unbootable:b slot-retry-count:a slot-retry-count:b battery-soc-ok battery-voltage; do
+  grep -qF "$v" "$GUARD" \
+    && ok 58 "guard allowlist keeps getvar $v" \
+    || fail 58 "guard allowlist lost getvar $v"
+done
+for g in '67108864' 'ANDROID!' 'FASTBOOT_GUARD_HASHES' 'flash boot_b'; do
+  grep -qF "$g" "$GUARD" \
+    && ok 58 "guard write gate keeps: $g" \
+    || fail 58 "guard lost write gate: $g"
+done
+
+# ------------------------------------------------------------------------------------------------
+# V59 — protocol orders fastboot ONLY through the guard (no bare/command instruction)
+# ------------------------------------------------------------------------------------------------
+# Instruction shapes: a fenced command at line start, or `run`/`rode` + command.
+# Prose mentions (symptom labels, LK table, rollback notes) are not instructions.
+bad59="$(grep -nE '^\s*`(command )?fastboot (devices|reboot|getvar|flash|erase|format|oem|flashing|set_active)|run `fastboot (devices|reboot|getvar|flash|erase|format|oem)|rode `fastboot (devices|reboot|getvar|flash|erase|format|oem)' "$PROTO" "$SAFETY" 2>/dev/null || true)"
+if [ -z "$bad59" ]; then
+  ok 59 "no bare/command fastboot instruction in protocol/SAFETY (wrapper-only)"
+else
+  fail 59 "bare/command fastboot instruction: $(printf '%s' "$bad59" | head -1 | cut -c1-120)"
+fi
+grep -qF 'tools/fastboot_guard.sh' "$PROTO" \
+  && ok 59 "protocol routes fastboot through tools/fastboot_guard.sh" \
+  || fail 59 "protocol lost the wrapper route"
+
+# ------------------------------------------------------------------------------------------------
+# V60 — fastboot captures merge stderr (fastboot answers on stderr)
+# ------------------------------------------------------------------------------------------------
+for anchor in '2>&1 | tee z0_fastboot_before.txt' '2>&1 | tee t2b_readout.txt' 'fastboot answers on stderr'; do
+  grep -qF "$anchor" "$PROTO" \
+    && ok 60 "protocol captures stderr via: $anchor" \
+    || fail 60 "protocol lost stderr capture: $anchor"
+done
+
+# ------------------------------------------------------------------------------------------------
+# V61 — slot-retry-count is recorded, never a gate
+# ------------------------------------------------------------------------------------------------
+grep -qiF 'informational only' "$PROTO" \
+  && grep -qiF 'retry-count:b' "$PROTO" \
+  && ok 61 "retry-count:b is informational only (0 legitimate)" \
+  || fail 61 "retry-count:b informational wording lost"
+grep -qF 'slot-successful:b` shows `yes' "$PROTO" \
+  && grep -qF 'slot-unbootable:b` shows `no' "$PROTO" \
+  && ok 61 "gate is successful:b=yes AND unbootable:b=no" \
+  || fail 61 "successful/unbootable gate wording lost"
+
+# ------------------------------------------------------------------------------------------------
+# V62 — getvar answer policy (required / optional / accepted-absent) is present
+# ------------------------------------------------------------------------------------------------
+grep -qF 'Getvar answer policy' "$PROTO" \
+  && grep -qF 'accepted-absent' "$PROTO" \
+  && grep -qF 'required' "$PROTO" \
+  && ok 62 "protocol carries the required/optional/accepted-absent getvar policy" \
+  || fail 62 "protocol lost the getvar answer policy"
+
+# ------------------------------------------------------------------------------------------------
+# V63 — T-1.3 detects unexpected change (slot state, build, release)
+# ------------------------------------------------------------------------------------------------
+t13="$(sed -n '/^| T-1.3/,/ |$/p' "$PROTO")"
+grep -qF 'slot-successful:b' <<<"$t13" \
+  && grep -qF 'slot-unbootable:b' <<<"$t13" \
+  && grep -qF 'adb shell uname -r' <<<"$t13" \
+  && grep -qF 'adb shell getprop ro.build.version.incremental' <<<"$t13" \
+  && ok 63 "T-1.3 re-checks slot state, build line and kernel release" \
+  || fail 63 "T-1.3 lost the change-detection criteria"
+
+# ------------------------------------------------------------------------------------------------
+# V64 — no generic RAM-boots-leave-flash-untouched sentence
+# ------------------------------------------------------------------------------------------------
+if grep -qiF 'RAM boots leave flash untouched' "$PROTO" \
+  || grep -qiF 'RAM boots não tocam flash' "$PROTO"; then
+  fail 64 "generic RAM-boots-leave-flash sentence back in protocol"
+else
+  ok 64 "no generic RAM sentence in protocol"
+fi
+
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V55 V56 V57)"
+  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"

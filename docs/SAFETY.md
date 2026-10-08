@@ -55,7 +55,7 @@ On the audited device (bootloader unlocked, `verifiedbootstate=orange`) the Magi
 
 | Path | Needs |
 |---|---|
-| `Vol− + Power` → fastboot → `command fastboot flash boot_b <backup boot_b.img>` | unlocked bootloader, hash-verified backup |
+| `Vol− + Power` → fastboot → `tools/fastboot_guard.sh flash boot_b <backup boot_b.img>` | unlocked bootloader, hash-verified backup |
 | `Vol+ + Power` → stock recovery → `adb sideload` full OTA | OTA of the same region |
 | `fastbootd` / Mi Flash with a fastboot ROM | matching fastboot ROM |
 

@@ -26,31 +26,42 @@ This protocol is written for the **audited device** (POCO C75 4G `lake`, slot `_
 
 Purpose: prove, with the device **powered off** and using read-only fastboot commands only, that you can reach fastboot **by keys** and get back out — the exact motions you would need if a written `boot_b` ever failed. The mandatory Z0 (Z0.1–Z0.3) writes nothing; Z0.0 (optional, documentary) runs `adb reboot bootloader` which writes only the Android boot reason, nothing in boot/lk.
 
-Preconditions (host): data cable to the PC, **charger disconnected** (a connected charger can park the LK in off-mode-charge instead of booting); `adb` already authorized with exactly one device; hash-verified backup present; day baseline captured (`adb shell 'cat /proc/modules' | awk '{print $1}' | sort > baseline_modules.txt`); shell guard from *Host-side guard* active.
+Preconditions (host): data cable to the PC, **charger disconnected** (advisory: a connected charger can park the LK in off-mode-charge instead of booting, which looks like a dead device; disconnect to remove the ambiguity — a connected charger alone never fails a gate); `adb` already authorized with exactly one device; hash-verified backup present; day baseline captured (`adb shell 'cat /proc/modules' | awk '{print $1}' | sort > baseline_modules.txt`); shell guard from *Host-side guard* active.
 
 - **Z0.0 (optional, documentary):** `adb -s <serial> reboot bootloader` warms the path only; it is NOT the criterion (it writes a boot reason and follows a warm path, while T-1/T3 need the cold key path). The PASS criterion is Z0.1/Z0.2.
 - **Z0.1:** device **powered off** (long Power until dark) → hold `Vol− + Power` until the fastboot screen. PASS = fastboot screen visible. Anything else = STOP (without key-reached fastboot there is no recovery path for T-1/T3).
-- **Z0.2:** `fastboot devices` → exactly one device, else STOP.
-- **Z0.3 (closed allowlist — run only these, nothing else):**
-  `fastboot getvar product`
-  `fastboot getvar current-slot`
-  `fastboot getvar slot-count`
-  `fastboot getvar is-userspace`
-  `fastboot getvar unlocked`
-  `fastboot getvar max-download-size`
-  `fastboot getvar partition-size:boot_b`
-  `fastboot getvar slot-successful:a`
-  `fastboot getvar slot-successful:b`
-  `fastboot getvar slot-unbootable:a`
-  `fastboot getvar slot-unbootable:b`
-  `fastboot getvar slot-retry-count:a`
-  `fastboot getvar slot-retry-count:b`
-  `fastboot getvar battery-soc-ok`
-  `fastboot getvar battery-voltage`
+- **Z0.2:** `tools/fastboot_guard.sh devices` → exactly one device, else STOP.
+- **Z0.3 (closed allowlist — run only these, nothing else, always through the guard):**
+  `tools/fastboot_guard.sh getvar product`
+  `tools/fastboot_guard.sh getvar current-slot`
+  `tools/fastboot_guard.sh getvar slot-count`
+  `tools/fastboot_guard.sh getvar is-userspace`
+  `tools/fastboot_guard.sh getvar unlocked`
+  `tools/fastboot_guard.sh getvar max-download-size`
+  `tools/fastboot_guard.sh getvar partition-size:boot_b`
+  `tools/fastboot_guard.sh getvar slot-successful:a`
+  `tools/fastboot_guard.sh getvar slot-successful:b`
+  `tools/fastboot_guard.sh getvar slot-unbootable:a`
+  `tools/fastboot_guard.sh getvar slot-unbootable:b`
+  `tools/fastboot_guard.sh getvar slot-retry-count:a`
+  `tools/fastboot_guard.sh getvar slot-retry-count:b`
+  `tools/fastboot_guard.sh getvar battery-soc-ok`
+  `tools/fastboot_guard.sh getvar battery-voltage`
   **Forbidden**: `getvar all`, any `oem` (the real LK carries `oem allow-wipe-userdata`), anything outside this list.
-- **Z0.4 (stop Opinions):** PASS when `product=lake`; `current-slot=b`; `is-userspace` is `no` or `Variable not found` (`yes` = fastbootd → STOP); `unlocked=yes`; `slot-unbootable:b` shows `no`; `slot-retry-count:b` above `0`; `partition-size:boot_b = 0x4000000`. Any other answer: record it, do not advance to T-1/T3 that day. Exception: `current-slot` other than `b` → **power off by keys** (long Power), never `fastboot reboot` (rollback index 0 means the LK can boot old slot A — RE4 D3; rolling back to it would boot OS3.0.20.0 over newer data).
-- **Z0.5 (record twice):** save the full allowlist output as `z0_fastboot_before.txt` (+ photograph the screen). Reference state for later slot readouts.
-- **Z0.6 (exit):** `fastboot reboot` → wait for Android (3 min). Confirm: `adb devices` lists it again; `ro.boot.slot_suffix=_b`; `ro.product.device=lake`; `ro.build.version.incremental` the OS3.0.306.0 line; modules ⊇ day baseline (429 modules (example only); your number is your baseline). If adb is not back in 3 min: long Power 10–15 s → re-enter by keys → repeat Z0.3 + `fastboot reboot` **once**; a second failure ends the day (no USB improvisation). If it boots a different slot/OS line: power off, do not unlock the screen, report.
+
+  **Getvar answer policy** (absence is never false safety nor a false STOP):
+  `required` (a missing/empty answer = STOP, do not advance): `product`,
+  `current-slot`, `unlocked`, `slot-successful:*`, `slot-unbootable:*`,
+  `partition-size:boot_b` (the write gate needs it).
+  `optional` (record if answered, skip silently if the bootloader does not
+  expose them): `slot-count`, `max-download-size`, `slot-retry-count:*`,
+  `battery-soc-ok`, `battery-voltage`.
+  `accepted-absent` (`Variable not found` is a valid answer, never a STOP):
+  `is-userspace` (`yes` = fastbootd → STOP), and any per-slot `slot-*` variable
+  on bootloaders that do not expose it.
+- **Z0.4 (stop Opinions):** PASS when `product=lake`; `current-slot=b`; `is-userspace` is `no` or `Variable not found` (`yes` = fastbootd → STOP); `unlocked=yes`; `slot-successful:b` shows `yes`; `slot-unbootable:b` shows `no`; `partition-size:boot_b = 0x4000000`. Record `slot-retry-count:b` as informational only — `0` is legitimate after a successful mark and never fails Z0. Any other answer: record it, do not advance to T-1/T3 that day. Exception: `current-slot` other than `b` → do not boot at all: **power off by keys** (long Power) and STOP for the day, never `fastboot reboot` — with `current-slot=a`, the *next boot* (a reboot **or** a power-off/power-on cycle) goes to the old slot A (rollback index 0 means the LK can boot old slot A — RE4 D3; that would boot OS3.0.20.0 over newer data).
+- **Z0.5 (record twice):** save the full allowlist output as `z0_fastboot_before.txt` (+ photograph the screen). Capture both streams — fastboot answers on stderr: `{ for v in product current-slot slot-count is-userspace unlocked max-download-size partition-size:boot_b slot-successful:a slot-successful:b slot-unbootable:a slot-unbootable:b slot-retry-count:a slot-retry-count:b battery-soc-ok battery-voltage; do tools/fastboot_guard.sh getvar "$v"; done; } 2>&1 | tee z0_fastboot_before.txt`. Reference state for later slot readouts.
+- **Z0.6 (exit):** `tools/fastboot_guard.sh reboot` → wait for Android (3 min). Confirm: `adb devices` lists it again; `ro.boot.slot_suffix=_b`; `ro.product.device=lake`; `ro.build.version.incremental` the OS3.0.306.0 line; modules ⊇ day baseline (429 modules (example only); your number is your baseline). If adb is not back in 3 min: long Power 10–15 s → re-enter by keys → repeat Z0.3 + `tools/fastboot_guard.sh reboot` **once**; a second failure ends the day (no USB improvisation). If it boots a different slot/OS line: power off, do not unlock the screen, report.
 - **Z0.7 (close):** log Z0.6 + keep `z0_fastboot_before.txt` as the reference for the pre-T-1 readout. **Z0 PASS** = Z0.1–Z0.4 green + Z0.6 on slot `_b`/OS3.0.306.0/modules ⊇ baseline.
 
 **What Z0 does not prove (read before claiming confidence):** key-reached fastboot with a *bad* `boot_b`; acceptance of a v4 image; retry decrement/exhaustion and its initial value; the exact Vol−↔code mapping; expected getvar *values* (the binary proves a handler exists; Z0 measures the values). All still UNVERIFIED after Z0.
@@ -61,13 +72,13 @@ Preconditions (host): data cable to the PC, **charger disconnected** (a connecte
 
 | Step | Action | Writes to flash? | Pass criteria |
 |---|---|---|---|
-| R3 | in fastboot: `fastboot getvar current-slot`, `unlocked`, `is-userspace`, `slot-count`, `max-download-size`, and the per-slot `slot-successful:*`, `slot-retry-count:*`, `slot-unbootable:*` when the bootloader exposes them | no | `current-slot=b` (**abort if ≠ b**), `is-userspace` accepts `no` **or `Variable not found`** (the string `is-userspace` **exists** in the LK getvar table; runtime value on this device was never read — `docs/SAFETY.md` LK table), `is-userspace=yes` = **STOP** (you are talking to fastbootd, not the LK), `unlocked=yes`, `max-download-size ≥ 67108864` |
+| R3 | in fastboot: `tools/fastboot_guard.sh getvar current-slot`, `unlocked`, `is-userspace`, `slot-count`, `max-download-size`, and the per-slot `slot-successful:*`, `slot-retry-count:*`, `slot-unbootable:*` when the bootloader exposes them | no | `current-slot=b` (**abort if ≠ b**), `is-userspace` accepts `no` **or `Variable not found`** (the string `is-userspace` **exists** in the LK getvar table; runtime value on this device was never read — `docs/SAFETY.md` LK table), `is-userspace=yes` = **STOP** (you are talking to fastbootd, not the LK), `unlocked=yes`, `max-download-size ≥ 67108864` |
 
 ### Pre-flight for the write (T3 gate) — all three must agree
 
 ```bash
 # a) what the device says the partition is
-fastboot getvar partition-size:boot_b          # EXPECT: 0x4000000  (= 67108864 bytes)
+tools/fastboot_guard.sh getvar partition-size:boot_b          # EXPECT: 0x4000000  (= 67108864 bytes)
 # b) what the file is
 stat -c%s boot_b_new.img                       # EXPECT: 67108864  (exactly; not one byte more or less)
 sha256sum boot_b_new.img                       # EXPECT: the hash you recorded when building it
@@ -90,21 +101,21 @@ Only after **Z0 PASS**, and only with the owner's explicit "yes" on the day:
 | T-1 | Action | Pass criteria |
 |---|---|---|
 | T-1.1 | On the host, confirm the backup file: `stat -c%s <path/to/backup/boot_b.img>` (= 67108864) and `sha256sum <path/to/backup/boot_b.img>` (= the hash YOU recorded when you made the backup; for the audited device that is `3890fb96…829fc7` in `SHA256SUMS.log`, a file that lives with your backup, not in this repo) | size exact, hash matches the recorded backup hash |
-| T-1.2 | In fastboot (after R3): run the T-1 command from *The two write commands* below (`flash boot_b` with the backup image, `command` bypass prefix exactly as listed). T-1 uses the **backup**; `boot_b_new.img` is only for T3. Interruption carries the same risk class as any flash (it rewrites the ACTIVE slot); Z0 PASS plus the battery/cable gates are what minimize it | `OKAY`, no `FAILED (...)` |
-| T-1.3 | `fastboot reboot`; confirm the normal system: `adb shell getprop ro.build.version.incremental` still the OS3.0.306.0 line, `adb shell uname -r` the stock kernel | device boots exactly as before (the content written was identical, so behaviour must be identical) |
+| T-1.2 | In fastboot (after R3): run `tools/fastboot_guard.sh flash boot_b <path/to/backup/boot_b.img>` (the T-1 line of *The two write commands* below, backup image, hash-gated). T-1 uses the **backup**; `boot_b_new.img` is only for T3. Interruption carries the same risk class as any flash (it rewrites the ACTIVE slot); Z0 PASS plus the battery/cable gates are what minimize it | `OKAY`, no `FAILED (...)` |
+| T-1.3 | `tools/fastboot_guard.sh reboot`; confirm the normal system is **unchanged**: `adb shell getprop ro.build.version.incremental` still the OS3.0.306.0 line, `adb shell uname -r` the stock kernel release, slot readouts identical to the pre-T-1 values (`tools/fastboot_guard.sh getvar slot-successful:b`, `slot-unbootable:b`, `slot-retry-count:b`, `current-slot`), no new `unbootable` mark, no boot-metadata surprise | device boots exactly as before AND slot/boot state is byte-comparable to before (the content written was identical, so any state change is a STOP) |
 
 **T-1 PASS** = all three rows green. If T-1.2 returns `FAILED (...)`: STOP (rule 4) — the write path itself is not demonstrated on this device, and T3 is off the table. No rollback flash is needed after T-1: the bytes written are the backup bytes.
 
 | Step | Action | Writes to flash? | Pass criteria |
 |---|---|---|---|
-| T2b | in fastboot before the first normal boot: re-read the Z0.3 allowlist — run these exact commands and compare with R3/Z0.5 values:<br>`fastboot getvar slot-successful:a`<br>`fastboot getvar slot-successful:b`<br>`fastboot getvar slot-retry-count:a`<br>`fastboot getvar slot-retry-count:b`<br>`fastboot getvar slot-unbootable:a`<br>`fastboot getvar slot-unbootable:b` | no | slot `_b` not marked `unbootable`, retry count not exhausted — **only then let the device boot normally** |
+| T2b | in fastboot before the first normal boot: re-read the Z0.3 allowlist — run these exact commands and compare with R3/Z0.5 values (capture both streams, fastboot answers on stderr: append `2>&1 | tee t2b_readout.txt` to each command or wrap the six in `{ ...; } 2>&1`):<br>`tools/fastboot_guard.sh getvar slot-successful:a`<br>`tools/fastboot_guard.sh getvar slot-successful:b`<br>`tools/fastboot_guard.sh getvar slot-retry-count:a`<br>`tools/fastboot_guard.sh getvar slot-retry-count:b`<br>`tools/fastboot_guard.sh getvar slot-unbootable:a`<br>`tools/fastboot_guard.sh getvar slot-unbootable:b` | no | slot `_b` not marked `unbootable`, retry count not exhausted — **only then let the device boot normally** |
 | T3 | only if everything above is green **and the owner agrees**: the write command for the new kernel, below, with the verified backup as immediate rollback | **yes** | same acceptance, then 30 min stress |
 
 **The two write commands of this protocol** (paste them; never retype):
 
 ```bash
-command fastboot flash boot_b <path/to/backup/boot_b.img>   # T-1: identical content (gates: Z0 PASS, owner yes, T-1.1 hash/size)
-command fastboot flash boot_b boot_b_new.img                 # T3: new kernel (gates: T-1 PASS, pre-flight, owner yes)
+tools/fastboot_guard.sh flash boot_b <path/to/backup/boot_b.img>   # T-1: identical content (gates: Z0 PASS, owner yes, T-1.1 hash/size, guard hash+size+magic)
+tools/fastboot_guard.sh flash boot_b boot_b_new.img                 # T3: new kernel (gates: T-1 PASS, pre-flight, owner yes, guard hash+size+magic)
 ```
 
 **NEVER type** (not in this protocol, not "just to fix" anything):
@@ -112,7 +123,7 @@ command fastboot flash boot_b boot_b_new.img                 # T3: new kernel (g
 
 **Why T2b exists** (FMEA-26, the main gap this revision closes): a partial boot can reach userspace, fail a health check and leave slot `_b` marked unbootable — and the LK would then fall back to the **other** slot, which on this device is old firmware. Check the slot state *before* the first normal boot, and if `_b` looks unhealthy: stay in fastboot, photograph the fastboot screen and the allowlist output, and stop for the day.
 
-**T3 warning, in full.** Writing `boot_b` is the step that changes flash content for the first time (T-1 only rewrites identical bytes, and only after T-1 PASS does T3 become eligible). If the written image does not boot, the LK may mark `boot_b` unbootable and **automatically fall back to the other slot**, which on the audited device contains **OS3.0.20.0 over data created by OS3.0.306.0** — that path risks "data corrupted"/anti-rollback prompts, and it is the one route to data loss that does not require a human mistake. Before T3 you must have: **Z0 passed**, **T-1 passed**, the firmware comparison below, the R3/T2b slot readouts saved, `boot_b` + `init_boot_b` + `vbmeta*_b` backups verified on a second disk, USB cable and `Vol− + Power` at hand for the fastboot rollback (the T-1 command above, backup image), and the owner's explicit "yes". If the device does fall back to slot A, do **not** fight it with slot commands: power off and re-read the slot state in fastboot (run the Z0.3 allowlist again: `fastboot getvar slot-successful:a`, `fastboot getvar slot-successful:b`, `fastboot getvar slot-retry-count:a`, `fastboot getvar slot-retry-count:b`, `fastboot getvar slot-unbootable:a`, `fastboot getvar slot-unbootable:b`).
+**T3 warning, in full.** Writing `boot_b` is the step that changes flash content for the first time (T-1 only rewrites identical bytes, and only after T-1 PASS does T3 become eligible). If the written image does not boot, the LK may mark `boot_b` unbootable and **automatically fall back to the other slot**, which on the audited device contains **OS3.0.20.0 over data created by OS3.0.306.0** — that path risks "data corrupted"/anti-rollback prompts, and it is the one route to data loss that does not require a human mistake. Before T3 you must have: **Z0 passed**, **T-1 passed**, the firmware comparison below, the R3/T2b slot readouts saved, `boot_b` + `init_boot_b` + `vbmeta*_b` backups verified on a second disk, USB cable and `Vol− + Power` at hand for the fastboot rollback (the T-1 command above, backup image), and the owner's explicit "yes". If the device does fall back to slot A, do **not** fight it with slot commands: power off and re-read the slot state in fastboot (run the Z0.3 allowlist again: `tools/fastboot_guard.sh getvar slot-successful:a`, `tools/fastboot_guard.sh getvar slot-successful:b`, `tools/fastboot_guard.sh getvar slot-retry-count:a`, `tools/fastboot_guard.sh getvar slot-retry-count:b`, `tools/fastboot_guard.sh getvar slot-unbootable:a`, `tools/fastboot_guard.sh getvar slot-unbootable:b`).
 
 ## Preconditions
 
@@ -124,19 +135,29 @@ command fastboot flash boot_b boot_b_new.img                 # T3: new kernel (g
 
 ## Host-side guard (do this before plugging the cable)
 
-Paste the commands, never retype them, and put this function in the shell from which you will call fastboot (FMEA-28):
+READONLY vs WRITE split: every fastboot command in this protocol is read-only
+(`devices`, `reboot`, `getvar` on the closed allowlist) **except** the two write
+commands in *The two write commands* above — and those run **only** through the
+exact-allowlist wrapper below, never bare, never via a shell function. A shell
+`fastboot()` denylist is weak (a `command` bypass prefix, an absolute path, or a fresh
+shell bypasses it silently), so this protocol does not use one.
 
 ```bash
-fastboot() {
-  case "$*" in
-    *flash*|*erase*|*format*|*oem*|*flashing*|*set_active*|*--set-active*|*update*|*flashall*)
-      echo "BLOQUEADO: comando de gravação proibido neste protocolo" >&2; return 1;;
-    *) command fastboot "$@";;
-  esac
-}
+# 1. hashes file: one sha256 per line — the backup hash you recorded when you
+#    made the backup, plus the T3 image hash from its SHA256SUMS. The guard
+#    refuses any flash whose file hash is not listed here.
+sha256sum <path/to/backup/boot_b.img> | cut -d' ' -f1 > guard_hashes.txt
+sha256sum boot_b_new.img | cut -d' ' -f1 >> guard_hashes.txt
+export FASTBOOT_GUARD_HASHES="$PWD/guard_hashes.txt"
+# 2. prefix EVERY fastboot invocation below with: tools/fastboot_guard.sh
+#    (forbidden by the closed allowlist — e.g. `tools/fastboot_guard.sh getvar all` prints
+#    "BLOQUEADO pelo fastboot_guard: getvar 'all' fora da allowlist" and runs nothing)
 ```
 
-The guard stays active for T0/T2/R3/Z0; for the T-1/T3 commands, run them with `command fastboot ...` after re-reading the pre-flight checks out loud. The LK's own denylist strings (`docs/SAFETY.md`) are a second layer, not a substitute.
+The guard stays active for R3/Z0/T2b; the T-1/T3 commands run through it after
+re-reading the pre-flight checks out loud (the wrapper re-verifies hash, exact
+size 67108864 and the `ANDROID!` magic on every flash). The LK's own denylist
+strings (`docs/SAFETY.md`) are a second layer, not a substitute.
 
 ## Acceptance (all required)
 
@@ -170,23 +191,23 @@ acceptance once passed on nothing).
 
 ## Abort criteria
 
-Any hang > 3 minutes without UI, any panic, any missing baseline module, any `FAILED` from fastboot, any failed acceptance item, **any screen mentioning corrupted data** → hold power to reboot (RAM boots leave flash untouched; do not touch the screen), capture `pstore`/bugreport from the next normal boot on a good kernel, and stop. One anomaly = the day ends: no second attempt, no "different cable", no improvised command.
+Any hang > 3 minutes without UI, any panic, any missing baseline module, any `FAILED` from fastboot, any failed acceptance item, **any screen mentioning corrupted data** → hold power to reboot (do not touch the screen), capture `pstore`/bugreport from the next normal boot on a good kernel, and stop. One anomaly = the day ends: no second attempt, no "different cable", no improvised command.
 
 ### If something goes wrong (symptoms & exact actions)
 
 | Symptom | Exact action (protocol/SAFETY line) |
 |---------|--------------------------------------|
 | **Tela preta / não liga** | Power 10–15 s (forced off). Tente Z0.1 de novo (Vol−+Power). Se fastboot não aparece → **PARAR**, dia acaba (PROTO:32, 173). |
-| **Logo em loop (bootloop)** | Power 10–15 s → off. Entre no fastboot por teclas (Vol−+Power). Se T-1/T3 já rodou: rollback `command fastboot flash boot_b <backup>`. Se não rodou T-1/T3: Z0.1 de novo. Se não resolve → PARAR (PROTO:115, 173). |
+| **Logo em loop (bootloop)** | Power 10–15 s → off. Entre no fastboot por teclas (Vol−+Power). Se T-1/T3 já rodou: rollback `tools/fastboot_guard.sh flash boot_b <backup>`. Se não rodou T-1/T3: Z0.1 de novo. Se não resolve → PARAR (PROTO:115, 173). |
 | **Entra no recovery (stock / "Android com triângulo")** | **NUNCA** escolha "Factory data reset". Escolha **Try again**. Fotografe antes de tocar. Backup **não tem userdata** (SAFETY:8) — wipe = perda permanente (PROTO:12, SAFETY:11). |
 | **Cai no sistema antigo (OS3.0.20.0 / slot A)** | **Power off** (Power longo). **Não desbloqueie a tela**. Não use `set_active`. Releia estado no fastboot (Z0.1 + Z0.3). Relate (PROTO:115, 148, SAFETY:9). |
 | **Fastboot não aparece no PC (`fastboot devices` vazio)** | Cabo USB de dados? Outro cabo/porta. Aparelho realmente no fastboot? Se sim e vazio → driver/udev no PC. Não improvise. Se Z0.2 falha → PARAR (PROTO:33). |
-| **`fastboot getvar current-slot` ≠ `b`** | **Exceção Z0.4**: desligue por teclas (Power longo). **NUNCA** `fastboot reboot` (slot antigo não é barrado por rollback) (PROTO:51). |
+| **`fastboot getvar current-slot` ≠ `b`** | **Exceção Z0.4** (desligue por teclas, nunca dê boot — o próximo boot iria ao slot A antigo) (PROTO:62). |
 | **`is-userspace=yes` (fastbootd)** | **PARAR** — você está falando com fastbootd, não com o LK (PROTO:64, SAFETY:38). |
 | **Qualquer `FAILED (...)` do fastboot** | **PARAR imediato** (regra 4). Não reforce, não troque cabo, não mude para flash. Anote a mensagem (PROTO:14, 173). |
 | **Tela "Can't load Android... corrupt" + Try again / Factory data reset** | Escolha **Try again**. Fotografe antes de tocar. Backup **não tem userdata** (SAFETY:8) — wipe = perda permanente (PROTO:12, SAFETY:11). |
 | **`fastboot boot` → `unknown command`** | **PARAR** — nada transferido, nada mudou. Legado RAM-boot descartado (PROTO:11). |
-| **Tela "corrupted data" / "data may be corrupt"** | Power hold para reiniciar (RAM boots não tocam flash; não toque na tela). Capture `pstore`/bugreport no próximo boot normal. **Pare** — uma anomalia = dia acaba (PROTO:173). |
+| **Tela "corrupted data" / "data may be corrupt"** | Power hold para reiniciar (não toque na tela). Capture `pstore`/bugreport no próximo boot normal. **Pare** — uma anomalia = dia acaba (PROTO:173). |
 | **`slot-unbootable:b` = `yes` OU `slot-retry-count:b` = `0` (em T2b)** | **Não deixe bootar**. Fique no fastboot, fotografe tela + allowlist, **pare o dia** (PROTO:100, 113). |
 | **`FAILED` em T-1.2** | **PARAR** — caminho de gravação não demonstrado, T3 fora. Não precisa rollback (bytes = backup) (PROTO:96). |
 | **Divergência no pre-flight (partição ≠ 0x4000000, arquivo ≠ 67108864, hash ≠ gravado)** | **PARAR** — proteção oversize vem deste check seu (PROTO:76). |

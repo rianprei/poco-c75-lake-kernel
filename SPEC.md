@@ -77,6 +77,13 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B58 | 2026-10-07 | README described the check suite with stale fixed ranges ("V1–V9 + V14–V17", "14 sabotage cases") and omitted `check_sigpipe.sh` from the tools list — same drift class as B31/B38. | V39 |
 | B59 | 2026-10-07 | SAFETY recovery path showed the rollback as bare `fastboot flash` (guard would block it); same inconsistent-form class as B47. | V47 |
 | B60 | 2026-10-07 | T-1.3 and the baseline row gave on-device observation commands (`uname -r`, `getprop`, `cat /proc/modules`, `dmesg`, `ls /sys/fs/pstore`) without the `adb shell` prefix — a reader at a host shell would measure the host, not the device (the acceptance block already uses `adb shell`). | V56 |
+| B61 | 2026-10-07 | `fastboot()` shell denylist is weak (`command` bypass, absolute path, fresh shell); no exact-allowlist executable wrapper exists. | V58 |
+| B62 | 2026-10-07 | Bare/command fastboot instructions bypass any guard; protocol must route everything through the wrapper. | V59 |
+| B63 | 2026-10-07 | fastboot answers on stderr; captures without `2>&1` silently lose output. | V60 |
+| B64 | 2026-10-07 | `slot-retry-count:b > 0` as a hard Z0 gate fails healthy devices (0 legitimate after successful mark). | V61 |
+| B65 | 2026-10-07 | No per-variable getvar policy; absence handled ad hoc (false safety or false STOP risk). | V62 |
+| B66 | 2026-10-07 | T-1.3 checks version/uname only; slot-state, boot-metadata, hash, build and release drift go undetected. | V63 |
+| B67 | 2026-10-07 | Generic "(RAM boots leave flash untouched...)" safety claim in abort criteria. | V64 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -194,6 +201,14 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V54 | ∀ status-checked pipeline P in `tools/*.sh`: `!` P feeds `grep -q` (SIGPIPE race under `set -o pipefail`: `grep -q` exits early, the writer dies with 141, the chain flakes); use a herestring or a file argument; else `⊥`. | `tools/check_sigpipe.sh` |
 | V55 | ∀ `PROTO:NN`/`SAFETY:NN` cross-reference R in `docs/DEVICE-TEST-PROTOCOL.md`/`docs/SAFETY.md`: `!` line NN exists in the cited file; else `⊥`. (Existence only; topical relatedness stays human review.) | `tools/check_protocol_invariants.sh` |
 | V56 | ∀ on-device observation command C in `docs/DEVICE-TEST-PROTOCOL.md` (T-1.3 `uname`/`getprop`, baseline `cat /proc/modules`, `dmesg`, `ls /sys/fs/pstore`): `!` C carries the `adb shell` prefix (bare forms would read the host); else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V57 | (FIX13) protocolo carrega a tabela consolidada de riscos residuais (R1–R4 com mitigação + status). | `tools/check_protocol_invariants.sh` |
+| V58 | `tools/fastboot_guard.sh` impõe allowlist exata (`devices`, `reboot`, 15 `getvar` do Z0.3) + gates de escrita (só `flash boot_b`, tamanho == 67108864, magic `ANDROID!`, sha256 em arquivo de hashes); resto recusado com exit ≠ 0 sem executar. | `tools/check_protocol_invariants.sh` (estrutura) + `tools/selftest_fastboot_guard.sh` (comportamento) |
+| V59 | ∀ invocação fastboot ordenada em `docs/DEVICE-TEST-PROTOCOL.md`/`docs/SAFETY.md`: `!` ela usa `tools/fastboot_guard.sh` (formas bare/`command fastboot` em posição de instrução são `⊥`). | `tools/check_protocol_invariants.sh` |
+| V60 | ∀ captura fastboot em `docs/DEVICE-TEST-PROTOCOL.md` (Z0.5, T2b): `!` ela funde stderr (`2>&1`); else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V61 | Z0.4: `slot-retry-count:b` é informativo (`0` legítimo); gate = `slot-successful:b=yes` E `slot-unbootable:b=no`. | `tools/check_protocol_invariants.sh` |
+| V62 | `docs/DEVICE-TEST-PROTOCOL.md` carrega a política getvar required/optional/accepted-absent; ausência nunca é falsa segurança nem falso STOP. | `tools/check_protocol_invariants.sh` |
+| V63 | T-1.3 re-checa slot state, build line e kernel release contra os valores pré-T-1. | `tools/check_protocol_invariants.sh` |
+| V64 | ∄ frase genérica "RAM boots leave flash untouched" no protocolo. | `tools/check_protocol_invariants.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):
