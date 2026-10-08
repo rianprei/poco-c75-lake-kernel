@@ -180,6 +180,12 @@ case_run 29 "V32 T-1 before R3 again" check_protocol_invariants.sh '^V32 FAIL' \
 case_run 30 "V33 machine path in research note" check_protocol_invariants.sh '^V33 FAIL' \
   "printf '\nsee /tmp/scratch/debug.log\n' >> docs/research/RE1_opencode_flash.md"
 
+# V33 extended (item 27): home-expansion path + token shape must FAIL
+case_run 86 "V33 home path in research note fails" check_protocol_invariants.sh '^V33 FAIL' \
+  "printf '\nsee ~/scratch/debug.log\n' >> docs/research/RE1_opencode_flash.md"
+case_run 87 "V33 token shape in research note fails" check_protocol_invariants.sh '^V33 FAIL' \
+  "printf '\nkey: ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n' >> docs/research/RE1_opencode_flash.md"
+
 # FIX12 (REVIEW9/REVIEW10/RUNBOOK findings) — new invariants V35-V53:
 
 # V34: Z0 header missing mandatory/optional distinction
@@ -367,6 +373,16 @@ case_run 80 "V67 modsig signer extraction broken" verify_modsig.sh '^V67 FAIL' \
 # V68: recorded fingerprint dropped from docs must FAIL
 case_run 81 "V68 fingerprint dropped from docs" check_docs_numbers.sh '^V68 FAIL' \
   "sed -i 's/76:FB:DF:D1:3F:6B:A6:12:75:6E:AE:36:E9:9F:88:50:8F:A3:20:2A:A3:51:17:70:4C:26:D5:5A:99:CC:72:A1/00:00/' docs/KMI-GATES.md"
+
+# V6 extended classes (item 26/82): destructive-command variants must FAIL
+case_run 82 "V6 dd literal target fails" check_destructive_ops.sh '^V6 FAIL' \
+  "printf '\ndd if=/dev/zero of=/tmp/wiped.img bs=1M count=1\n' >> tools/gate_kmi_crc.sh"
+case_run 83 "V6 truncate literal fails" check_destructive_ops.sh '^V6 FAIL' \
+  "printf '\ntruncate -s 0 /tmp/shrunk.img\n' >> tools/gate_kmi_crc.sh"
+case_run 84 "V6 set_active in script fails" check_destructive_ops.sh '^V6 FAIL' \
+  "printf '\nfastboot set_active a\n' >> tools/gate_kmi_crc.sh"
+case_run 85 "V6 fastboot flash in script fails" check_destructive_ops.sh '^V6 FAIL' \
+  "printf '\nfastboot flash boot_b /tmp/evil.img\n' >> tools/gate_kmi_crc.sh"
 
 # V64: generic RAM sentence back in protocol
 case_run 72 "V64 generic RAM sentence returns" check_protocol_invariants.sh '^V64 FAIL' \

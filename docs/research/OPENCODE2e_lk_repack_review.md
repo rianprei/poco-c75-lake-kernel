@@ -112,7 +112,7 @@ Lista derivada de `CODEX5_build_signing.md` PARTE A. Classificação `REAL / JÁ
 | H1 | pacote `repo` não existe no Arch/CachyOS | REAL | pacman -Si repo → opencode retornou `not found` no repositório oficial desta sessão | Aprovar: usar AUR (git-repo) ou script google (`repo` via pip); atualizar F0 |
 | H2 | libssl/openssl + pkg-config não listados | REAL | `certs/extract-cert` precisa `openssl` headers | Adicionar ao F0 |
 | H3 | critério `free -g ≥ 12 GB` infactível (15 GB total, 7.9 GB swap usado) | REAL | `free -h` medido | Redefinir com swap; `--jobs=4`/`LTO=thin` |
-| H4 | `~/.cache/bazel` + ccache fora da conta de disco | REAL | 60+ GB disk usage paul paul | definir `--disk_cache` externo, cap |
+| H4 | `<HOME>/.cache/bazel` + ccache fora da conta de disco | REAL | 60+ GB disk usage paul paul | definir `--disk_cache` externo, cap |
 | H5 | cópia externa pendente | REAL | ls backup fora pendrive ausente | Priorizar F1.5 antes de F2 |
 | H6 | `vbmeta_vendor_a` truncado sem recuperação | REAL | file size mismatch (RC) | re-dump de `avb/` em lacuna; ou usar mt boot sem vbmeta_vendor modificado |
 | H7 | contagens divergentes 215/217/557 | REAL | F1-3 | unificar em 23: 557 total (153 ramdisk+210 vendor_dlkm+7 6.6.30) - canonical |

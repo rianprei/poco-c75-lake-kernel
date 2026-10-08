@@ -55,7 +55,7 @@ PASS
 exit=0
 ```
 
-`compared=2309` is the number of symbols the 557 modules require **and** the stock kernel exports — these are the ones whose CRC must match. `symbols.required=4138` is everything the modules import (the remaining 1829 come from other vendor/GKI modules, see below). `conflicting_crcs=0` means no symbol is required with two different CRCs anywhere in the corpus.
+`compared=2309` is the number of symbols the 557 modules require **and** the stock kernel exports — these are the ones whose CRC must match. `symbols.required=4138` is everything the modules import (the remaining 1829 come from other vendor/GKI modules, see below). `conflicting_crcs=0` means no symbol is required with two different CRCs anywhere in the corpus. `export_type_mismatches=0` / `namespace_mismatches=0` mean no required symbol changed its `EXPORT_SYMBOL` vs `_GPL` status or its namespace between stock and rebuild (item 42: export legality and visibility are part of the identity, not just the CRC).
 
 Historical note: earlier revisions of this page said "1573 kernel symbols". 1573 was the count for the **215 `vendor_dlkm` modules only** (the subset whose CRCs had been extracted first); the full 557-file corpus requires 2309 kernel symbols. Both numbers come from the same method, different corpora.
 
@@ -69,8 +69,12 @@ python3 tools/dump_modcrcs.py "$MODS/ramdisk" "$MODS/vendor_dlkm"             > 
 python3 tools/dump_modcrcs.py --inventory "$MODS/ramdisk" "$MODS/vendor_dlkm" > tools/data/modules_inventory.tsv
 ```
 
-`modules_required_crcs.tsv` = `symbol<TAB>0xCRC<TAB>module_basename` (20187 rows, sorted and deduplicated); `modules_inventory.tsv` = `module_basename<TAB>copies<TAB>vermagic` (370 rows, `copies` sums to 557). The `vb_<slot>_r<NN>__` prefix that the audit uses for ramdisk files is stripped so the slot-A/B copies collapse into one module identity.
+`modules_required_crcs.tsv` = `symbol<TAB>0xCRC<TAB>module_basename` (20187 rows, sorted and deduplicated); `modules_inventory.tsv` = `module_basename<TAB>copies<TAB>vermagic` (370 rows, `copies` sums to 557). The `vb_<slot>_r<NN>__` prefix that the audit uses for ramdisk files is stripped so the slot-A/B copies collapse into one module identity. Both files are **derived, not regenerable without the original 557 vendor `.ko` files** (item 46): the device dump that produced them is private and unpublished; treat the TSVs as audited inputs, re-extractable only from the same module set.
 
 ## Inter-module symbols
 
 4138 distinct symbols are imported by the modules: **2309 come from the kernel** and are covered above; the remaining 1829 are exported by *other vendor modules* (e.g. `mtk_cmdq_drv_ext`, `mediatek_drm`) and are unaffected by rebuilding the kernel. Nine of them (`arc4_*`, `rfkill_*`) are *protected exports* provided by Google-signed GKI modules — the reason for the certificate in the cert build. Source for that set: the `android/abi_gki_protected_exports_aarch64` list of the pinned r12 tree, cross-checked against the module dump (`docs/PLAN-AND-FINDINGS.pt-BR.md` fact 37).
+
+Formally out of scope for the offline gates (item 45): per-symbol single-compatible-provider closure over the 1829 would require the vendor modules' own EXPORT tables, which are not published and cannot be re-derived without the original `.ko` files. Scope ends at the kernel boundary by construction: the gate enforces everything vmlinux provides (`missing_exports=0`, `mismatches=0`, export-type/namespace identity); vendor-to-vendor wiring is declared, not verified.
+
+Out of scope likewise (no stock dataset published): `__kcfi_typeid_*` VALUE comparison (item 44) — only the device-dump counts are on record (101 vendor_dlkm + 68 ramdisk carriers); BTF/stgdiff/ABI-XML diffing (item 43) — no baseline artifacts offline. The r12 KMI symbol lists (`android/abi_gki_aarch64*`) remain the textual ABI reference; anything they do not cover is declared here, not assumed.

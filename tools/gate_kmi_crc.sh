@@ -51,11 +51,29 @@ comm -23 "$T/provided" "$T/exported" > "$T/missing"
 mismatches=$(wc -l < "$T/mm")
 # required + provided by stock, but not exported by the new build
 missing=$(wc -l < "$T/missing")
+# --- export_type + namespace identity (item 42): a rebuild must not change how a
+# symbol is exported (EXPORT_SYMBOL vs _GPL gates module legality; namespace gates
+# visibility). Compare REF vs NEW for every provided symbol present in both.
+# NOTE: empty namespace is normalised to "-" FIRST: GNU join drops trailing
+# empty fields, which misaligns positional -o output (false mismatches).
+xtnorm() { awk -F'\t' '$3=="vmlinux" {ns=($5==""?"-":$5); print $2 "\t" $4 "\t" ns}' "$1" | sort -u; }
+join -t$'\t' <(xtnorm "$REF") <(xtnorm "$NEW") > "$T/xtall"
+> "$T/xtype_mm"; > "$T/xns_mm"
+while IFS=$'\t' read -r sym ref_xt ref_ns new_xt new_ns; do
+  grep -qxF "$sym" "$T/provided" || continue # only symbols the modules need from vmlinux
+  [ "$ref_xt" = "$new_xt" ] || printf 'XTYPE_MISMATCH %s ref=%s new=%s\n' "$sym" "$ref_xt" "$new_xt" >> "$T/xtype_mm"
+  [ "$ref_ns" = "$new_ns" ] || printf '%s ref=%s new=%s\n' "$sym" "$ref_ns" "$new_ns" >> "$T/xns_mm"
+done < "$T/xtall"
+xtype_mm=$(wc -l < "$T/xtype_mm"); xns_mm=$(wc -l < "$T/xns_mm")
 
 echo "modules.files=$files modules.unique=$unique"
 echo "symbols.required=$required symbols.reference_exports=$ref_exports symbols.reference_provides=$provided"
 echo "compared=$compared mismatches=$mismatches missing_exports=$missing conflicting_crcs=$conflicting"
+echo "export_type_mismatches=$xtype_mm namespace_mismatches=$xns_mm"
 head -20 "$T/mm"
 head -20 "$T/missing" | sed 's/^/MISSING_EXPORT /'
+head -20 "$T/xtype_mm"
+head -20 "$T/xns_mm" | sed 's/^/XNS_MISMATCH /'
 [ "$mismatches" -eq 0 ] && [ "$missing" -eq 0 ] && [ "$conflicting" -eq 0 ] \
+  && [ "$xtype_mm" -eq 0 ] && [ "$xns_mm" -eq 0 ] \
   && { echo PASS; exit 0; } || { echo FAIL; exit 1; }

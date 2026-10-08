@@ -507,11 +507,14 @@ r3line="$(grep -n '^### R3' "$PROTO" | head -1 | cut -d: -f1)"
   || fail 32 "T-1 is not after R3 (t1=$t1line r3=$r3line)"
 
 # ------------------------------------------------------------------------------------------------
-# V33 — research notes carry no machine paths (README documents the redaction)
-# ------------------------------------------------------------------------------------------------
-bad33="$(grep -rn '/tmp/\|/home/' docs/research/*.md 2>/dev/null | grep -v 'docs/research/README.md' || true)"
+# V33 — research notes carry no machine paths, identifiers or secret shapes
+# (README documents the redaction). Item 27: ~/ and $HOME (username leaks via
+# expansion), /var/tmp, /Users/, 15-digit runs (IMEI-shaped), secret shapes
+# (tokens, private keys). Herestring form (V54-safe); bare usernames stay manual
+# review (too fuzzy to grep without false positives).
+bad33="$(grep -rn -E '/tmp/|/home/|~/|\$HOME|/var/tmp|/Users/|[0-9]{15}|ghp_|gho_|github_pat_|glpat-|AKIA|sk_live|xox[bpas]-|BEGIN .*PRIVATE KEY' docs/research/*.md 2>/dev/null | grep -v 'docs/research/README.md' || true)"
 if [ -z "$bad33" ]; then
-  ok 33 "no /tmp/ or /home/ paths in docs/research/ notes"
+  ok 33 "no machine paths, identifiers or secret shapes in docs/research/ notes"
 else
   fail 33 "machine paths in notes: $(printf '%s' "$bad33" | head -1 | cut -c1-120)"
 fi

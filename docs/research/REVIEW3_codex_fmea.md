@@ -3,13 +3,13 @@
 > Autor: revisor FMEA (adversarial, não-autor) | Data: 2026-10-06 | Alvo auditado: `<lake-kernel>/research/DEVICE_COMMANDS_T0_T2.md`
 > Método: re-medição independente por 2 métodos onde crítico; 3 abordagens por ponto crítico (documento-fonte, medição local, fonte externa AOSP).
 > Rótulos: FACT (citação verificável) / MEASURED (saída de comando colada abaixo) / INFERRED (inferência declarada) / UNVERIFIED / UNKNOWN.
-> Regras respeitadas: nenhum comando em aparelho, nenhum flash, nenhuma escrita em `audit/`, `backup-*`, `official-*`, `~/lake-build`; trabalho em `<workdir>`.
+> Regras respeitadas: nenhum comando em aparelho, nenhum flash, nenhuma escrita em `audit/`, `backup-*`, `official-*`, `<HOME>/lake-build`; trabalho em `<workdir>`.
 
 ## 0. Re-medições próprias (base de toda a FMEA)
 
 **M1 — Hashes das imagens (método 1: sha256sum; método 2: comparação byte a byte via python):**
 ```
-$ cd <workdir>/img && sha256sum -c ~/lake-build/out/images/SHA256SUMS
+$ cd <workdir>/img && sha256sum -c <HOME>/lake-build/out/images/SHA256SUMS
 T0_boot_stock_equiv.img: SUCESSO
 T2_boot_cert.img: SUCESSO
 (stock_boot_b.img ausente em /tmp — cópia parcial minha; as 2 imagens de teste OK)
@@ -79,7 +79,7 @@ Modo: repack regenerado errado (ex.: usado script v1 sem `--drop-signature`, ou 
 **FMEA-03 [P3] `fastboot --version` ausente/antigo; `lsusb` não lista o POCO (cabo só-carga, porta USB2 com driver ruim, udev sem regra).**
 P=média (causa nº 1 de frustração em bring-up; cabo de carga vs dados) / S=S0 (nada executado). Dono veria: `fastboot devices` vazio. Recuperação: só leitura — trocar cabo/porta, `lsusb | grep -i xiaomi`, checar `adb devices`; nunca trocar cabo com comando pendente no fastboot. Desfecho: nenhum. [INFERRED, experiência geral; UNKNOWN específico do host do dono]
 
-**FMEA-04 [P-geral] Falsa identidade do host: imagens T0/T2 de OUTRO build (stale `~/lake-build/out/images/`).**
+**FMEA-04 [P-geral] Falsa identidade do host: imagens T0/T2 de OUTRO build (stale `<HOME>/lake-build/out/images/`).**
 P=baixa (SHA256SUMS pinado no doc) / S=S2. Recuperação: P1+P2 são o antídoto; checar `ls -la --time-style=full` + hashes contra o plano fato 67. [INFERRED]
 
 ### Fase A — aparelho ligado (somente leitura adb)

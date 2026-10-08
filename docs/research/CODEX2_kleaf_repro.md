@@ -102,7 +102,7 @@ O que muda sem `BUILD_NUMBER=13771415` / sem `--build_metadata ab_build_id`: **s
 - Redução (copiável):
   ```bash
   repo sync -c --no-tags -j4
-  tools/bazel build --jobs=4 --make_jobs=4 --config=fast --disk_cache=~/.bazel_cache //common:kernel_aarch64_dist
+  tools/bazel build --jobs=4 --make_jobs=4 --config=fast --disk_cache=<HOME>/.bazel_cache //common:kernel_aarch64_dist
   # legado: LTO=thin BUILD_CONFIG=common/build.config.gki.aarch64 build/build.sh -j4
   ```
   `INFERRED`: com `LTO_NONE=y` no stock, NÃO passar `--lto=thin` no build de controle (muda ABI/CFI); `LTO=thin` só para iteração KSU depois, com re-gate KMI.

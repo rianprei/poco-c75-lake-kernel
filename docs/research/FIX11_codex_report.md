@@ -1,6 +1,6 @@
 # FIX11 — V29 table-row check + V34 never-touch completeness (codex)
 
-> Commit único local, sem push. Escopo proibido intocado: aparelho, `~/lake-build`, `audit/`, `backup-*`, vault tabs-agent-os. Só `~/Documentos/mods/poco-c75-lake-kernel`.
+> Commit único local, sem push. Escopo proibido intocado: aparelho, `<HOME>/lake-build`, `audit/`, `backup-*`, vault tabs-agent-os. Só `<HOME>/Documentos/mods/poco-c75-lake-kernel`.
 
 STATUS: DONE
 

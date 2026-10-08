@@ -1,6 +1,6 @@
 # FIX8 — write-path rehearsal T-1 + disassembly findings + is-userspace guard (codex)
 
-> Commit único local, sem push. Escopo proibido intocado: aparelho, `~/lake-build`, `audit/`, `backup-*`, vault tabs-agent-os. Só `~/Documentos/mods/poco-c75-lake-kernel` (+ leituras de `~/Documentos/mods/lake-kernel/research/RE2|RE4_codex_*.md`).
+> Commit único local, sem push. Escopo proibido intocado: aparelho, `<HOME>/lake-build`, `audit/`, `backup-*`, vault tabs-agent-os. Só `<HOME>/Documentos/mods/poco-c75-lake-kernel` (+ leituras de `<HOME>/Documentos/mods/lake-kernel/research/RE2|RE4_codex_*.md`).
 
 STATUS: DONE
 
@@ -15,7 +15,7 @@ STATUS: DONE
 
 ## Item 2 — achados de desmontagem no SAFETY (B19 + V19)
 
-- `docs/research/RE2_codex_bootmode.md` + `docs/research/RE4_codex_fallback.md` copiados de `~/Documentos/mods/lake-kernel/research/` (94 + 85 linhas, byte a byte).
+- `docs/research/RE2_codex_bootmode.md` + `docs/research/RE4_codex_fallback.md` copiados de `<HOME>/Documentos/mods/lake-kernel/research/` (94 + 85 linhas, byte a byte).
 - `docs/SAFETY.md`, tabela LK: 3 linhas novas como MEDIDO (desmontagem): fallback imediato mesmo-boot (`RE4_codex_fallback.md` D1, `RE2_codex_bootmode.md` B2); ambos-inválidos → `fastboot_init` não-retornante (`fcn.4c461724`, fail-exit `0x4c42b264`; `RE4` D2, `RE2` B1c); retry com rótulo UNVERIFIED permanente.
 - `SPEC.md` §T: bullets de fallback e Z0 atualizados com as citas de desmontagem (on-device continua UNVERIFIED).
 - §B: linha B19 (tabela sem os achados RE2/RE4). §V: linha V19 (linhas da tabela citam RE2/RE4 + função/endereço; não-provado segue UNVERIFIED).

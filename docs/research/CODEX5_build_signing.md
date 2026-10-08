@@ -13,7 +13,7 @@ Formato por falha: `modo | sev | prob | detectar-antes | mitigação | evidênci
 | F0-1 | pacote `repo` não existe com esse nome no Arch/CachyOS (lista do plano é Ubuntu-centrica) | funcional | alta | `pacman -Si repo git base-devel python libelf ncurses bc openssl 2>&1` antes de instalar | usar AUR (`git-repo`?) ou script Google; documentar nomes exatos | saída do `pacman -Si` por pacote |
 | F0-2 | `libssl/openssl + pkg-config` ausentes → `certs/extract-cert` (HOSTCFLAGS libcrypto) falha no meio do build | funcional | alta | `pkg-config --libs libcrypto` | incluir `openssl pkg-config` na lista F0 | saída do pkg-config |
 | F0-3 | critério `free -g ≥ 12GB` infactível (host 15 GB total, ~2.5 livres, swap 8 GB usado — MEASURED) | funcional | alta | `free -g` (já medido) | critério realista: RAM+swap e `--jobs=4`; medir OOM em build de controle | `free -h` + build log sem OOM |
-| F0-4 | `~/.cache/bazel` + ccache fora da conta de disco (soma 10–30 GB invisíveis) | funcional | média | `du -sh ~/.cache/bazel <workdir>` | `--disk_cache` externo + teto de ccache | `df -h` antes/depois |
+| F0-4 | `<HOME>/.cache/bazel` + ccache fora da conta de disco (soma 10–30 GB invisíveis) | funcional | média | `du -sh <HOME>/.cache/bazel <workdir>` | `--disk_cache` externo + teto de ccache | `df -h` antes/depois |
 
 ### F1 backup
 | F1-1 | cópia externa pendente = ponto único de falha (disco 90%) | dado | média | `df -h` + checar pendrive | rsync + `sha256sum -c` fora do disco | `sha256sum -c` OK externo |

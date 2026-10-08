@@ -1,6 +1,6 @@
 # FIX10 — real LK partition tables + REVIEW8 findings + exec bits (codex)
 
-> Commit único local, sem push. Escopo proibido intocado: aparelho, `~/lake-build`, `audit/`, `backup-*`, vault tabs-agent-os, `lk_b.img`/dumps (só leitura). Base: HEAD b55408d.
+> Commit único local, sem push. Escopo proibido intocado: aparelho, `<HOME>/lake-build`, `audit/`, `backup-*`, vault tabs-agent-os, `lk_b.img`/dumps (só leitura). Base: HEAD b55408d.
 
 STATUS: DONE
 

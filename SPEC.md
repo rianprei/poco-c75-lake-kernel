@@ -93,7 +93,11 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B74 | 2026-10-07 | Method B only printed signer identity; validating cert could differ from the signer named in PKCS#7. | verify_modsig.sh (signer-compare) |
 | B75 | 2026-10-07 | No recorded expected-cert fingerprint; modsig selftest needs official files (fails offline). | docs (G-CERT-FP) + V68 |
 | B76 | 2026-10-07 | Selftest had 2 cases; 6-matrix (wrong signer, modified content/signature, missing cert, same-issuer-different-key) missing. | V67 |
-| B76 | 2026-10-07 | Selftest had 2 cases; 6-matrix (wrong signer, modified content/signature, missing cert, same-issuer-different-key) missing. | V67 |
+| B77 | 2026-10-07 | Gate compared CRC only; export_type/namespace drift (GPL legality, visibility) undetected — plus GNU join drops trailing empty fields (false mismatches until normalised). | gate (XTYPE/XNS) |
+| B78 | 2026-10-07 | KMI coverage claims incomplete: BTF/stgdiff/ABI-XML, kCFI values, 1829-closure and TSV regenerability unstated. | docs (formal out-of-scope) |
+| B79 | 2026-10-07 | build.sh modes share one checkout (cert contaminates control); no idempotence/state gates; 2 SHAs of 36 projects; tag pin; loose REPO_NO_VERIFY; no disk gate; no provenance record. | scripts/build.sh (28-35) |
+| B80 | 2026-10-07 | V6 covered `rm` only (`dd`, `truncate`, `mkfs`, fastboot-write, `set_active`, /dev writes, continuations invisible). | V6 |
+| B81 | 2026-10-07 | V33 covered `/tmp/`+`/home/` only (`~/`, `$HOME`, 15-digit runs, token shapes leaked through; 19 redactions applied). | V33 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -150,6 +154,7 @@ Per the fable rule, each bug was searched for again everywhere:
 - TWINS: searched status-checked `| grep -q` pipelines — found 33 sites in `check_protocol_invariants.sh` + 1 each in `selftest_backprop.sh`/`selftest_gates.sh` (all flaked under load via SIGPIPE=141 + pipefail; fixed, herestrings); V54 forbids any pipe into `grep -q` in `tools/*.sh`.
 - TWINS: searched `PROTO:NN`/`SAFETY:NN` cross-references — found 17 PROTO + 6 SAFETY refs in the device-facing docs (1 stale: userdata fact at SAFETY:8 cited as :11; fixed); V55 keeps every ref resolving to an existing line.
 - TWINS: searched hard-coded SPEC line numbers in checks — found 1 site: V40 `awk NR==180` (FIX13; broke on any §B insert); fixed to id-match + sabotage made line-independent (case 60).
+- TWINS: searched join `-o` with trailing-empty fields — found 1 site: gate XTYPE/XNS block (false mismatches on stock-vs-stock); normalised empty namespace to `-` before join (B77).
 - TWINS: searched bare on-device commands (`uname -r`, `getprop`, `cat /proc/modules`, `dmesg`, `ls /sys/fs/pstore` without `adb shell`) — found 2 rows: T-1.3, baseline-capture (fixed); acceptance block already used `adb shell` (3 sites, untouched); V56 keeps the prefix on all five forms.
 
 ## §V — invariants (each one testable, with the file that protects it)
@@ -163,7 +168,7 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V3 | ∀ instruction in the protocol that can reach a slot change: `!` the doc forbids slot switching ∧ requires `avbtool info_image` on `vbmeta_a` **and** `vbmeta_b`; ∄ un-negated `fastboot set_active`; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V4 | ∀ sentence mentioning `fastboot boot`: `!` it is never asserted as supported (no `fastboot boot is supported/works/…`), and `∃` the UNKNOWN caveat plus the STOP on `unknown command`; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V5 | ∀ absence claim A (`does not contain`, `is not in`, `has no public recovery`, `no wipe flag`, `no entry in`, `is UNKNOWN`, `never verified/observed/present`) in `docs/SAFETY.md`/`docs/DEVICE-TEST-PROTOCOL.md`: `!` A cites ≥ 2 independent sources (paths/fact numbers/measurements) on its own line; else `⊥`. | `tools/check_protocol_invariants.sh` |
-| V6 | ∀ `rm -rf` in `tools/**.sh`/`scripts/**.sh`: `!` the target is a variable assigned from `mktemp -d` in the same file and removed through a `trap`; ∄ literal path operand; else `⊥`. | `tools/check_destructive_ops.sh` |
+| V6 | ∀ destructive op in `tools/**.sh`/`scripts/**.sh` (`rm -rf/-f`, `dd of=`, `truncate`, `mkfs.*`, `fastboot flash/erase/format`, `set_active`, writes to `/dev/block|sd*|mmc*|nvme*`): `!` the target is a variable assigned from `mktemp -d` in the same file and removed through a `trap`, or the op class is absent entirely; ∄ literal destructive target; else `⊥`. Line continuations are joined before scanning; quoted pattern strings do not count. | `tools/check_destructive_ops.sh` |
 | V7 | ∀ claim about kernel behaviour (keywords: `same_magic`, `MODULE_SIG_PROTECT`, `sig_ok`, `protected export`, `MODVERSIONS`, `partition_wiped`, `first_stage_mount`) in `README.md`/`docs/KMI-GATES.md`/`docs/SAFETY.md`: `!` the line cites a source file (`.c`/`.h`/`.cpp`) or the `CONFIG_` symbol; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V8 | ∀ fact row in `docs/PLAN-AND-FINDINGS.pt-BR.md`: `!` its `Prova` column is non-empty; ∧ `docs/research/README.md` carries the "contain errors" warning and the UNVERIFIED link table; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V9 | ∀ file F requested from the artifact viewer by `tools/fetch_official_artifacts.sh`: `--dry-run F` prints exactly `https://ci.android.com/builds/submitted/13771415/kernel_aarch64/latest/<viewer path of F>` and writes nothing; else `⊥`. | `tools/selftest_fetch.sh` |
@@ -187,7 +192,7 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V30 | ∀ line mentioning `getvar all` in `README.md`/`docs/*.md` (research notes excluded): `!` the line forbids it (contains `forbid`/`PROIBIDO`/`never run`/`not run`/`allowlist`/`instead`) **and** the line does not order it (`run`/`execute` + `getvar all` is executable even with an allowlist mention); an executable `getvar all` instruction is `⊥`. | `tools/check_protocol_invariants.sh` |
 | V31 | ∀ `fastboot flash` command **line** (line starts with the command; table-cell mentions are references, not commands) in `docs/DEVICE-TEST-PROTOCOL.md`: `!` there are exactly as many as `README.md` affirms (two protected writes: T-1 backup, T3 kernel) and every one targets `boot_b`; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V32 | ∀ T-1 section in `docs/DEVICE-TEST-PROTOCOL.md`: `!` it comes after the R3 section (it depends on R3); else `⊥`. | `tools/check_protocol_invariants.sh` |
-| V33 | ∀ file in `docs/research/*.md` except `README.md` (which documents the redaction): `!` it contains `/tmp/` or `/home/` paths; else `⊥`. | `tools/check_protocol_invariants.sh` |
+| V33 | ∀ file in `docs/research/*.md` except `README.md` (which documents the redaction): `!` it contains `/tmp/`, `/home/`, `~/`, `$HOME`, `/var/tmp`, `/Users/`, 15-digit runs, or secret shapes (`ghp_*`, `AKIA*`, `sk_live*`, `xox*`, `glpat-*`, `*PRIVATE KEY*`); else `⊥`. Bare usernames stay manual review. | `tools/check_protocol_invariants.sh` |
 | V34 | ∀ never-touch rule (rule 1 of SAFETY.md) and protocol NEVER list: `!` both contain {preloader, lk, seccfg, nvram, nvdata, nvcfg, persist, proinfo, protect1, protect2, misc, boot_para, expdb}; preloader covers preloader_*, boot0/1 covered by preloader; else `⊥`. | `tools/check_protocol_invariants.sh` |
 |---|---|---|
 | V35 | The Z0 section header states that mandatory Z0 (Z0.1–Z0.3) writes nothing; Z0.0 (optional) writes only the Android boot reason. | `tools/check_protocol_invariants.sh` |

@@ -1,6 +1,6 @@
 # CODEX6_review_repack — revisão adversarial de research/repack_boot.py (OpenCode #2)
 
-> Data: 2026-10-05. Método: leitura linha a linha + fuzz de 32 casos + 2ª via por `unpack_bootimg`/`avbtool info_image`/python independente. Trabalho em `$HOME/codex-work/fuzz` (cópias; audit/backup/official intactos; stock jamais sobrescrito — o caso in-place usou cópia). Nada flashado, sem adb.
+> Data: 2026-10-05. Método: leitura linha a linha + fuzz de 32 casos + 2ª via por `unpack_bootimg`/`avbtool info_image`/python independente. Trabalho em `<HOME>/codex-work/fuzz` (cópias; audit/backup/official intactos; stock jamais sobrescrito — o caso in-place usou cópia). Nada flashado, sem adb.
 > Legenda: `FACT` (URL/saída) / `MEASURED` (saída colada) / `INFERRED` / `UNVERIFIED` / `UNKNOWN`.
 
 ## 0. O que o script faz (lido, v1 de 105 linhas) e o que o OPENCODE2e mediu
@@ -89,7 +89,7 @@ total=31 / EXIT=0
 
 ### 4.2 v2 — 32 casos, todos com comportamento projetado (log integral, código final sha256 `122936a8...`)
 ```
-SCRIPT: $HOME/codex-work/repack_boot_v2.py
+SCRIPT: <HOME>/codex-work/repack_boot_v2.py
 01-baseline: exit=0 :: Hash Algorithm: sha256   (header+kernel iguais ao stock, §4.3)
 02-tiny-gz: exit=0 :: Hash Algorithm: sha256
 03-recompressed: exit=0 :: Hash Algorithm: sha256

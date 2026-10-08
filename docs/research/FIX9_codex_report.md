@@ -1,6 +1,6 @@
 # FIX9 — Z0′ do revisor incorporado ao protocolo (codex)
 
-> Commit único local, sem push. Escopo proibido intocado: aparelho, `~/lake-build`, `audit/`, `backup-*`, vault tabs-agent-os. Só `~/Documentos/mods/poco-c75-lake-kernel` (+ leitura de `~/Documentos/mods/lake-kernel/research/Z0_review_freebuff.md` e do dump via `strings -n 5`, só leitura).
+> Commit único local, sem push. Escopo proibido intocado: aparelho, `<HOME>/lake-build`, `audit/`, `backup-*`, vault tabs-agent-os. Só `<HOME>/Documentos/mods/poco-c75-lake-kernel` (+ leitura de `<HOME>/Documentos/mods/lake-kernel/research/Z0_review_freebuff.md` e do dump via `strings -n 5`, só leitura).
 
 STATUS: DONE
 
