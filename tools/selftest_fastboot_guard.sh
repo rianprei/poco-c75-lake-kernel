@@ -13,7 +13,15 @@ STUBDIR="$BASE/stubbin"; mkdir -p "$STUBDIR"
 STUBLOG="$BASE/stub.log"
 cat > "$STUBDIR/fastboot" <<EOF
 #!/usr/bin/env bash
-printf '%s\n' "\$*" >> "$STUBLOG"
+# stub registra argv + (para o último arg, se arquivo) sha256 e modo: prova que o
+# guard entregou a cópia verificada (U1), não o original.
+last=""
+for a in "\$@"; do last="\$a"; done
+extra=""
+if [ -f "\$last" ]; then
+  extra=" sha=\$(sha256sum -- "\$last" | cut -d' ' -f1) mode=\$(stat -c%a -- "\$last")"
+fi
+printf '%s%s\n' "\$*""\$extra" >> "$STUBLOG"
 echo "FAKE-OKAY \$*"
 exit 0
 EOF
@@ -98,5 +106,30 @@ t_deny 18 "devices com arg extra recusado" devices extra
 t_deny 19 "getvar sem nome recusado" getvar
 t_deny 20 "sem args (uso) recusado"
 
+# U1 TOCTOU: o stub deve receber a CÓPIA privada (mktemp, 0400), nunca o original
+printf '### [21] flash usa cópia privada verificada (TOCTOU)\n'
+GOODSUM="$(sha256sum "$GOODIMG" | cut -d' ' -f1)"
+"$GUARD" flash boot_b "$GOODIMG" >/dev/null 2>&1
+flashed="$(tail -1 "$STUBLOG" | awk '{print $3}')"
+lastline="$(tail -1 "$STUBLOG")"
+if [ -n "$flashed" ] && [ "$flashed" != "$GOODIMG" ] \
+    && grep -qF "sha=$GOODSUM" <<<"$lastline" \
+    && grep -qF "mode=400" <<<"$lastline" \
+    && grep -q 'fastboot_guard\.' <<<"$flashed"; then
+  printf '    stub recebeu cópia 0400 com hash permitido: %s\n  => OK\n\n' "$flashed"
+  pass=$((pass + 1))
+else
+  printf '    ESPERAVA cópia privada 0400 com mesmo hash; stub recebeu: %s\n  => FALHA\n\n' "$lastline"
+  fail=$((fail + 1))
+fi
+
+# U2: nomes hostis — espaço passa (se válido); traço inicial não vira flag
+SPACEIMG="$BASE/sp ace.img"
+DASHIMG="$BASE/-dash.img"
+cp -- "$GOODIMG" "$SPACEIMG"
+cp -- "$GOODIMG" "$DASHIMG"
+t_allow 22 "arquivo com espaço passa" flash boot_b "$SPACEIMG"
+t_allow 23 "arquivo com traço inicial passa (sem confusão de flag)" flash boot_b "$DASHIMG"
+
 printf 'GUARD-SELFTEST: %s passada(s), %s falha(s)\n' "$pass" "$fail"
-[ "$fail" -eq 0 ] && { echo 'SELFTEST-GUARD PASS'; exit 0; } || { echo 'SELFTEST-GUARD FAIL'; exit 1; }
+[ "$fail" -eq 0 ] && { echo 'V66 OK fastboot guard behavioral selftest (fake fastboot, allow+deny+TOCTOU)'; echo 'SELFTEST-GUARD PASS'; exit 0; } || { echo 'V66 FAIL fastboot guard behavioral selftest'; echo 'SELFTEST-GUARD FAIL'; exit 1; }

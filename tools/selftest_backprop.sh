@@ -356,6 +356,10 @@ case_run 71 "V63 T-1.3 loses slot re-check" check_protocol_invariants.sh '^V63 F
 case_run 78 "V65 failing unit test fails suite" selftest_python.sh '^V65 FAIL' \
   "printf 'import unittest\nclass Z(unittest.TestCase):\n def test_planted(self):\n  self.assertTrue(False)\n' > tests/test_zz_sabotage.py"
 
+# V66: guard allowlist loosened (extra getvar) must FAIL the behavioral selftest
+case_run 79 "V66 loosened guard fails selftest" selftest_fastboot_guard.sh '^V66 FAIL' \
+  "sed -i 's/battery-soc-ok|battery-voltage/battery-soc-ok|battery-voltage|all/' tools/fastboot_guard.sh"
+
 # V64: generic RAM sentence back in protocol
 case_run 72 "V64 generic RAM sentence returns" check_protocol_invariants.sh '^V64 FAIL' \
   "sed -i 's/hold power to reboot (do not touch the screen)/hold power to reboot (RAM boots leave flash untouched; do not touch the screen)/' docs/DEVICE-TEST-PROTOCOL.md"

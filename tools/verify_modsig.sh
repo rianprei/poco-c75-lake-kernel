@@ -60,11 +60,24 @@ import struct, sys
 data = open(sys.argv[1], 'rb').read()
 out = sys.argv[2]
 magic = b'~Module signature appended~\n'
+
+
+def die(msg):
+    sys.stderr.write(f'ERRO: {msg} (sem traceback)\n')
+    sys.exit(3)
+
+
 i = data.rfind(magic)
-assert i > 0, 'sem magic de assinatura'
+if i < 12:
+    die('módulo sem assinatura (sem magic de assinatura nos últimos bytes)')
 ms = data[i-12:i]
-algo, h, idt, slen, klen, siglen = struct.unpack('>BBBBB3xI', ms)
+try:
+    algo, h, idt, slen, klen, siglen = struct.unpack('>BBBBB3xI', ms)
+except struct.error:
+    die('assinatura truncada/corrompida')
 # struct é: u8 algo,hash,id_type,signer_len,key_id_len, __be32 sig_len
+if siglen <= 0 or i - 12 - siglen < 0:
+    die(f'sig_len inválido ({siglen})')
 sig = data[i-12-siglen:i-12]
 mod = data[:i-12-siglen]
 open(out + '/content.bin', 'wb').write(mod)

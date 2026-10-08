@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# selftest_gates.sh — self-test of gate_kmi_crc.sh: 1 positive + 3 negative (sabotage) cases.
+# selftest_gates.sh — self-test of gate_kmi_crc.sh: 1 positive + 3 negative (sabotage)
+# cases + 1 exact-key case (U4: prefix-differing symbols must not join).
 # Host-only, read-only on the repo: every sabotage happens on a copy under a fresh mktemp -d.
 #
 # usage: tools/selftest_gates.sh
@@ -48,8 +49,12 @@ echo "### [4/4] NEGATIVO (iii): symvers vazio"
 : > "$WORK/empty.symvers"
 run_case "symvers-vazio" 1 "compared=0 .*missing_exports=2309" "$WORK/empty.symvers"
 
+echo "### [5/5] EXATIDÃO (U4): símbolo que só difere por prefixo não casa (mutex_lock vs mutex_lockX)"
+sed "s/\t${SYM}\t/\t${SYM}X\t/" "$REF" > "$WORK/prefix.symvers"
+run_case "prefixo-exato" 1 "^MISSING_EXPORT ${SYM}$" "$WORK/prefix.symvers"
+
 if [ "$fails" -eq 0 ]; then
-  echo "SELFTEST PASS (positivo PASS + 3 negativos FAIL)"
+  echo "SELFTEST PASS (positivo PASS + 3 sabotagens FAIL + 1 exatidão de chave)"
 else
   echo "SELFTEST FAIL ($fails caso(s) fora do esperado)"
   exit 1

@@ -37,6 +37,7 @@
 #   V57  residual risks table R1-R4 present ..... tools/check_protocol_invariants.sh
 #   V58-V64  FIX14 guard/wrapper/stderr/retry/policy/T-1.3/RAM-generic
 #   V65  Python unit tests pass (unittest) ....... tools/selftest_python.sh
+#   V66  fastboot guard behavioral selftest ...... tools/selftest_fastboot_guard.sh
 #                                            ....... tools/check_protocol_invariants.sh (V58 guard file),
 #                                            docs (V59-V64)
 #   V10-V13  aliases of V2/V5/V2/V7 (FIX6 ids, see SPEC.md §V)
@@ -95,15 +96,17 @@ run "GATE crc self-test"       "$HERE/selftest_gates.sh"
 if [ "$(cat "$T/GATE crc self-test.rc")" -eq 0 ] && grep -q 'SELFTEST PASS' "$T/GATE crc self-test.out"; then RC[GATE]=0; else RC[GATE]=1; fi
 run "PY unit tests"              "$HERE/selftest_python.sh"
 script_ok "PY unit tests" '^V65 FAIL' && RC[V65]=0 || RC[V65]=1
+run "GUARD fastboot stub"          "$HERE/selftest_fastboot_guard.sh"
+script_ok "GUARD fastboot stub" '^V66 FAIL' && RC[V66]=0 || RC[V66]=1
 
 echo "=== resumo dos invariantes ==="
 bad=0
-for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V54 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64 V65 GATE; do
+for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V54 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64 V65 V66 GATE; do
   if [ "${RC[$v]:-1}" -eq 0 ]; then printf '%-5s PASS\n' "$v"; else printf '%-5s FAIL\n' "$v"; bad=$((bad + 1)); fi
 done
 if [ "$bad" -eq 0 ]; then
-  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V33 + V34-V65 + gate self-test)"
+  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V33 + V34-V66 + gate self-test)"
   exit 0
 fi
-echo "run_all_checks: FAIL ($bad de 66 verificações falharam)"
+echo "run_all_checks: FAIL ($bad de 67 verificações falharam)"
 exit 1
