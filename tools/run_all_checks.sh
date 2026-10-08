@@ -42,6 +42,9 @@
 #   GATE  the CRC gate's own self-test ............. tools/selftest_gates.sh
 #
 # usage: tools/run_all_checks.sh            (read-only apart from mktemp dirs)
+# Fail-closed (items 18/19): each check passes only with exit 0, no FAIL line
+# for its invariants, and an explicit OK/PASS signal. The gate needs the
+# SELFTEST PASS string AND exit 0.
 set -uo pipefail; export LC_ALL=C
 HERE="$(cd "$(dirname "$0")" && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -55,27 +58,40 @@ run() { # <label> <script>
   printf '%s' "$rc" > "$T/$label.rc"
 }
 
+# Item 18/19 hardening: a check passes only if it exits 0 AND shows no FAIL AND
+# shows an explicit PASS/OK signal. A crashed/muted script can no longer pass
+# by absence of FAIL lines, and the gate needs the string AND exit 0.
+script_ok() { # <label> <fail-pattern> -> 0 only if rc==0, no FAIL, explicit PASS/OK
+  local label="$1" pat="$2" rc
+  rc="$(cat "$T/$label.rc")"
+  [ "$rc" -eq 0 ] || return 1
+  grep -qE "$pat" "$T/$label.out" && return 1
+  grep -qE 'OK|PASS' "$T/$label.out" || return 1
+  return 0
+}
+
 declare -A RC
 run "V1 docs numbers"          "$HERE/check_docs_numbers.sh"
-RC[V1]=$(grep -q '^V1 FAIL' "$T/V1 docs numbers.out" && echo 1 || echo 0)
+script_ok "V1 docs numbers" '^V1 FAIL' && RC[V1]=0 || RC[V1]=1
 run "V2 regex controls"        "$HERE/check_regex_controls.sh"
-RC[V2]=$(grep -q '^V2 FAIL' "$T/V2 regex controls.out" && echo 1 || echo 0)
+script_ok "V2 regex controls" '^V2 FAIL' && RC[V2]=0 || RC[V2]=1
 run "V3-V8+V14-V17 invariants" "$HERE/check_protocol_invariants.sh"
-for v in 3 4 5 7 8 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 55 56 57 58 59 60 61 62 63 64; do RC[V$v]=$(grep -q "^V$v FAIL" "$T/V3-V8+V14-V17 invariants.out" && echo 1 || echo 0); done
+for v in 3 4 5 7 8 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 55 56 57 58 59 60 61 62 63 64; do script_ok "V3-V8+V14-V17 invariants" "^V$v FAIL" && RC[V$v]=0 || RC[V$v]=1; done
 # V37 is enforced by check_regex_controls.sh (V2 extended to all five docs), not by the invariants script
-RC[V37]=$(grep -q '^V37 FAIL' "$T/V2 regex controls.out" && echo 1 || echo 0)
+script_ok "V2 regex controls" '^V37 FAIL' && RC[V37]=0 || RC[V37]=1
 # V10-V13 are aliases of V2/V5/V2/V7 respectively (SPEC.md §V)
 for v in 10 12; do RC[V$v]="${RC[V2]}"; done
 for v in 11; do RC[V$v]="${RC[V5]}"; done
 for v in 13; do RC[V$v]="${RC[V7]}"; done
 run "V6 destructive ops"       "$HERE/check_destructive_ops.sh"
-RC[V6]=$(grep -q '^V6 FAIL' "$T/V6 destructive ops.out" && echo 1 || echo 0)
+script_ok "V6 destructive ops" '^V6 FAIL' && RC[V6]=0 || RC[V6]=1
 run "V54 sigpipe hygiene"      "$HERE/check_sigpipe.sh"
-RC[V54]=$(grep -q '^V54 FAIL' "$T/V54 sigpipe hygiene.out" && echo 1 || echo 0)
+script_ok "V54 sigpipe hygiene" '^V54 FAIL' && RC[V54]=0 || RC[V54]=1
 run "V9 fetch url"             "$HERE/selftest_fetch.sh"
-RC[V9]=$(grep -q '^V9 FAIL' "$T/V9 fetch url.out" && echo 1 || echo 0)
+script_ok "V9 fetch url" '^V9 FAIL' && RC[V9]=0 || RC[V9]=1
 run "GATE crc self-test"       "$HERE/selftest_gates.sh"
-RC[GATE]=$(grep -q 'SELFTEST PASS' "$T/GATE crc self-test.out" && echo 0 || echo 1)
+# GATE (item 19): needs the explicit SELFTEST PASS string AND exit 0.
+if [ "$(cat "$T/GATE crc self-test.rc")" -eq 0 ] && grep -q 'SELFTEST PASS' "$T/GATE crc self-test.out"; then RC[GATE]=0; else RC[GATE]=1; fi
 
 echo "=== resumo dos invariantes ==="
 bad=0

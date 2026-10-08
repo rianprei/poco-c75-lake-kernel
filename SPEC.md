@@ -84,6 +84,8 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B65 | 2026-10-07 | No per-variable getvar policy; absence handled ad hoc (false safety or false STOP risk). | V62 |
 | B66 | 2026-10-07 | T-1.3 checks version/uname only; slot-state, boot-metadata, hash, build and release drift go undetected. | V63 |
 | B67 | 2026-10-07 | Generic "(RAM boots leave flash untouched...)" safety claim in abort criteria. | V64 |
+| B68 | 2026-10-07 | `run_all_checks.sh` fail-open: crashed/muted check with no FAIL lines passed; GATE required only the string, not exit 0. | run_all_checks.sh (script_ok + GATE string+rc) |
+| B69 | 2026-10-07 | Check hardening batch: V8 vacuous on empty facts log; V2 silently missed multiline/unquoted/variable greps; V31 counted non-fenced lines; V21 missed duplicates; V40 (FIX13) matched SPEC by hard-coded line number. | V8/V2/V31/V21/V40 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -139,6 +141,7 @@ Per the fable rule, each bug was searched for again everywhere:
 - TWINS: searched `lacunae L1-L6 in abort criteria` — found 1 table: "If something goes wrong" (fixed, V53 keeps all six rows); V53 keeps them all.
 - TWINS: searched status-checked `| grep -q` pipelines — found 33 sites in `check_protocol_invariants.sh` + 1 each in `selftest_backprop.sh`/`selftest_gates.sh` (all flaked under load via SIGPIPE=141 + pipefail; fixed, herestrings); V54 forbids any pipe into `grep -q` in `tools/*.sh`.
 - TWINS: searched `PROTO:NN`/`SAFETY:NN` cross-references — found 17 PROTO + 6 SAFETY refs in the device-facing docs (1 stale: userdata fact at SAFETY:8 cited as :11; fixed); V55 keeps every ref resolving to an existing line.
+- TWINS: searched hard-coded SPEC line numbers in checks — found 1 site: V40 `awk NR==180` (FIX13; broke on any §B insert); fixed to id-match + sabotage made line-independent (case 60).
 - TWINS: searched bare on-device commands (`uname -r`, `getprop`, `cat /proc/modules`, `dmesg`, `ls /sys/fs/pstore` without `adb shell`) — found 2 rows: T-1.3, baseline-capture (fixed); acceptance block already used `adb shell` (3 sites, untouched); V56 keeps the prefix on all five forms.
 
 ## §V — invariants (each one testable, with the file that protects it)

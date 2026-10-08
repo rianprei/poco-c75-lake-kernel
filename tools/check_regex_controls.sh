@@ -42,7 +42,15 @@ patterns = []          # (doc_name, line_no, flags, pattern, fixture_pair|None)
 for doc in docs:
     if not doc.exists():
         continue
-    for i, line in enumerate(doc.read_text().splitlines(), 1):
+    text = doc.read_text()
+    # Out-of-scope guard (item 25): multiline continuations, unquoted patterns
+    # and variable-held patterns are invisible to the single-line parser below.
+    # They must not exist silently — rewrite single-line-quoted or the check fails.
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if 'grep' in s and re.search(r'-[A-Za-z]*E', s) and not QUOTED.search(s):
+            fail(f'{doc.relative_to(root)}:{i} grep -E fora do parser single-line (multiline/unquoted/variável?): reescreva single-line-quoted: {s[:100]!r}')
+    for i, line in enumerate(text.splitlines(), 1):
         for m in QUOTED.finditer(line):
             flags, _, pat = m.groups()
             if 'E' not in flags:

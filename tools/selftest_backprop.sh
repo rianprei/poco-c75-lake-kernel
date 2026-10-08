@@ -168,9 +168,9 @@ case_run 27 "V30 getvar all ordered as executable step" check_protocol_invariant
 case_run 27b "V42 getvar all with allowlist mention but executable" check_protocol_invariants.sh '^V30 FAIL' \
   "printf '\ncheck the allowlist then run fastboot getvar all\n' >> docs/DEVICE-TEST-PROTOCOL.md"
 
-# V31: a third 'fastboot flash' command appears in the protocol
-case_run 28 "V31 third wrapper flash in protocol" check_protocol_invariants.sh '^V31 FAIL' \
-  "printf '\ntools/fastboot_guard.sh flash super super.img\n' >> docs/DEVICE-TEST-PROTOCOL.md"
+# V31: a third wrapper flash fenced command appears in the protocol
+case_run 28 "V31 third fenced flash in protocol" check_protocol_invariants.sh '^V31 FAIL' \
+  "printf '\n\`\`\`bash\ntools/fastboot_guard.sh flash super super.img\n\`\`\`\n' >> docs/DEVICE-TEST-PROTOCOL.md"
 
 # V32: T-1 moved back before R3
 case_run 29 "V32 T-1 before R3 again" check_protocol_invariants.sh '^V32 FAIL' \
@@ -355,6 +355,28 @@ case_run 71 "V63 T-1.3 loses slot re-check" check_protocol_invariants.sh '^V63 F
 # V64: generic RAM sentence back in protocol
 case_run 72 "V64 generic RAM sentence returns" check_protocol_invariants.sh '^V64 FAIL' \
   "sed -i 's/hold power to reboot (do not touch the screen)/hold power to reboot (RAM boots leave flash untouched; do not touch the screen)/' docs/DEVICE-TEST-PROTOCOL.md"
+
+# MISSION-3: runner fail-closed + check hardening
+
+# run fail-closed: muted check script (exit 3, no output) must FAIL the runner
+case_run 73 "runner muted check fails closed" run_all_checks.sh 'V54 +FAIL' \
+  "printf '#!/usr/bin/env bash\nexit 3\n' > tools/check_sigpipe.sh"
+
+# V8 floor: facts log with zero data rows must FAIL (not vacuous-pass)
+case_run 74 "V8 empty facts log fails floor" check_protocol_invariants.sh '^V8 FAIL' \
+  "sed -i '/^[|] *[0-9][0-9]* *|/d' docs/PLAN-AND-FINDINGS.pt-BR.md"
+
+# V2 guard: multiline grep in docs must FAIL (rewrite single-line-quoted)
+case_run 75 "V2 multiline grep flagged" check_regex_controls.sh '^V2 FAIL' \
+  "printf '\nRun: grep -iE PLACEHOLDER\n  \"Unknown symbol\" dmesg\n' >> README.md"
+
+# V31 fenced: README loses the two-writes affirmation (count leg intact)
+case_run 76 "V31 README loses two-writes count" check_protocol_invariants.sh '^V31 FAIL' \
+  "sed -i 's/two protected writes of \`boot_b\` (T-1 backup, T3 kernel)/two protected writes/' README.md"
+
+# V21 multiset: duplicated Z0.3 line must FAIL (presence still passes)
+case_run 77 "V21 duplicated allowlist line fails" check_protocol_invariants.sh '^V21 FAIL' \
+  "sed -i '/^  \`tools\\/fastboot_guard.sh getvar battery-voltage\`$/a\\  \`tools\\/fastboot_guard.sh getvar battery-voltage\`' docs/DEVICE-TEST-PROTOCOL.md"
 
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

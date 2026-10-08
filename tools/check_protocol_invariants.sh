@@ -310,6 +310,15 @@ else
       && ok 21 "Z0 allowlist contains getvar $v" \
       || fail 21 "Z0 allowlist lost getvar $v"
   done
+  # 1b. Exact multiset (item 24): the 15 fenced Z0.3 lines, sorted, must equal the
+  # allowlist exactly — catches duplicates that presence checks miss.
+  z0fenced="$(grep -E '^  `tools/fastboot_guard.sh getvar [^`]+`$' <<<"$z0" | sort || true)"
+  expected21="$(printf '%s\n' product current-slot slot-count is-userspace unlocked max-download-size partition-size:boot_b slot-successful:a slot-successful:b slot-unbootable:a slot-unbootable:b slot-retry-count:a slot-retry-count:b battery-soc-ok battery-voltage | sed 's|^|  `tools/fastboot_guard.sh getvar |;s|$|`|' | sort)"
+  if [ "$z0fenced" = "$expected21" ]; then
+    ok 21 "Z0.3 fenced lines match the 15-name allowlist exactly (no dupes, no extras)"
+  else
+    fail 21 "Z0.3 fenced lines differ from the 15-name allowlist: $(printf '%s' "$z0fenced" | head -1 | cut -c1-100)"
+  fi
   # 2. No EXTRA getvar lines in Z0.3 (closed allowlist)
   extra="$(printf '%s\n' "$z0" | grep -E '^  `tools/fastboot_guard.sh getvar [^`]+`$' | grep -vE 'getvar (product|current-slot|slot-count|is-userspace|unlocked|max-download-size|partition-size:boot_b|slot-successful:a|slot-successful:b|slot-unbootable:a|slot-unbootable:b|slot-retry-count:a|slot-retry-count:b|battery-soc-ok|battery-voltage)' || true)"
   if [ -n "$extra" ]; then
@@ -471,9 +480,9 @@ fi
 # ------------------------------------------------------------------------------------------------
 # V31 — wrapper flash lines == README number (2), target always boot_b
 # ------------------------------------------------------------------------------------------------
-# Command position only (block lines start with the wrapper); table-cell mentions are references.
-# (No pipe into grep -q: SIGPIPE race under pipefail — see V54.)
-flines31="$(grep -E '^tools/fastboot_guard.sh flash' "$PROTO" || true)"
+# Only real commands inside ``` fenced code blocks count (item 23); table-cell
+# mentions and prose are references, not commands. (No pipe into grep -q: V54.)
+flines31="$(awk '/^```/{f=!f} f && /^tools\/fastboot_guard.sh flash/' "$PROTO" || true)"
 nflash="$(printf '%s\n' "$flines31" | grep -c . || true)"
 [ "$nflash" -eq 2 ] \
   && ok 31 "protocol has exactly 2 wrapper flash lines (T-1, T3)" \
@@ -725,6 +734,11 @@ grep -qF 'L1' "$PROTO" && grep -qF 'L2' "$PROTO" && grep -qF 'L3' "$PROTO" \
 # NB: [|] rather than \| — in ERE an escaped pipe is a literal pipe anyway, and this file's own
 # V2 rule rejects the confusing form.
 rows="$(grep -cE '^[|] *[0-9]+ *[|]' docs/PLAN-AND-FINDINGS.pt-BR.md)"
+if [ "$rows" -lt 10 ]; then
+  fail 8 "facts log has only $rows data rows (minimum 10)"
+else
+  ok 8 "$rows fact rows present (>= 10)"
+fi
 empty="$(awk -F'|' '/^[|] *[0-9]+ *[|]/ {p=$5; gsub(/^[ \t]+|[ \t]+$/,"",p); if (p=="") print NR}' docs/PLAN-AND-FINDINGS.pt-BR.md)"
 if [ -n "$empty" ]; then
   fail 8 "linha(s) de fato sem coluna Prova em docs/PLAN-AND-FINDINGS.pt-BR.md: $(printf '%s' "$empty" | tr '\n' ' ')"
