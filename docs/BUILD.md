@@ -20,7 +20,7 @@ Gates run at the end of the sync: `common` must be `5a0ffb447c1dbd82e8e3af7a98c4
 ## 2. Control build (no changes)
 
 ```bash
-scripts/build.sh control        # ≈25 min on 3 cores, ≈12 min on 6
+scripts/build.sh control        # wall time is not a gate; one logged control build was ~25 min at 3 CPUs (fact 60). No 6-core timing is recorded here.
 ```
 
 This is the official target (`//common:kernel_aarch64_dist`, `--config=stamp`) with `SOURCE_DATE_EPOCH` set to the tag's commit time. Expected, and measured:
@@ -43,7 +43,7 @@ A rebuilt kernel signs its own modules with a fresh key. The stock GKI modules i
 scripts/build.sh cert
 ```
 
-This applies two patches (the Kleaf wrapper `define_common_kernels` does not forward the `system_trusted_key` attribute that `kernel_build` already supports; `common/BUILD.bazel` then sets it) and copies the certificate into `common/`. Measured result: the config differs from stock by **one line** — `CONFIG_SYSTEM_TRUSTED_KEYS="google_gki_ab13771415_modsign_cert.pem"` — and the image embeds **two** certificates.
+This applies two patches (the Kleaf wrapper `define_common_kernels` does not forward the `system_trusted_key` attribute that `kernel_build` already supports; `common/BUILD.bazel` then sets it) and copies the certificate into `common/`. The config diff that this page can show is the one line in [`KMI-GATES.md`](KMI-GATES.md) (`CONFIG_SYSTEM_TRUSTED_KEYS`). Fact 65 records two certificates inside the cert-build `Image` (ephemeral key plus the Google cert); that image is not in this repo, so "two certificates" stays a cited measurement, not a command you can re-run from a checkout alone.
 
 ## 4. Verify before anything else
 
@@ -69,8 +69,15 @@ exit=0
 
 ## 5. Repack into a boot image (host only)
 
-`tools/repack_boot_v2.py ORIG_BOOT KERNEL_GZ OUT --drop-signature` replaces only the kernel of a stock boot v4 image, validates the gzip by real decompression, refuses to overwrite files or to exceed the partition, and regenerates the AVB footer with `avbtool` (`--algorithm NONE`, rollback 0). It refuses by default to drop Google's 16 KiB *GKI boot signature* block — pass `--drop-signature` to confirm (it covers the old kernel and cannot be re-signed).
-
-The footer written here is **unsigned** (`--algorithm NONE`) and `--drop-signature` discards Google's 16 KiB GKI signature block (it covers the old kernel and cannot be re-signed). That is only acceptable on a device whose bootloader is **unlocked** (`verifiedbootstate=orange` — the state of the audited device): on a **locked** bootloader the image does not pass AVB verification, so flashing it is pointless at best and a recovery exercise at worst. Verify the produced image before it leaves the host (`avbtool info_image OUT`, `unpack_bootimg --boot_img OUT`), and remember that the RAM path itself (`fastboot boot`) is **UNKNOWN** on `lake` — see [`DEVICE-TEST-PROTOCOL.md`](DEVICE-TEST-PROTOCOL.md) step T0.
+`tools/repack_boot_v2.py ORIG_BOOT KERNEL_GZ OUT --drop-signature` replaces only the kernel of a stock boot v4 image, validates the gzip by real decompression, refuses to overwrite files or to exceed the partition, and regenerates the AVB footer with `avbtool`. Project choices (not upstream defaults): `--algorithm NONE` and rollback index 0 — the footer is therefore **unsigned** and pins no rollback protection; `--drop-signature` discards Google's 16 KiB *GKI boot signature* block (it covers the old kernel and cannot be re-signed). That combination is only acceptable on a device whose bootloader is **unlocked** (`verifiedbootstate=orange` — the state of the audited device): on a **locked** bootloader the image does not pass AVB verification, so flashing it is pointless at best and a recovery exercise at worst. Verify the produced image before it leaves the host (`avbtool info_image OUT`, `unpack_bootimg --boot_img OUT`), and remember that the RAM path itself (`fastboot boot`) is **UNKNOWN** on `lake` — see [`DEVICE-TEST-PROTOCOL.md`](DEVICE-TEST-PROTOCOL.md) (no RAM-boot step in the protocol).
 
 **Do not flash the result without reading [`SAFETY.md`](SAFETY.md).**
+
+### Signature vocabulary (item 64 — five different things)
+
+- **GKI boot signature**: 16 KiB block appended by Google covering the shipped kernel; cannot be re-signed; `--drop-signature` discards it (refused by default).
+- **AVB footer** (`AVBf`, 64 bytes at image end): `avbtool add_hash_footer` output; carries `original_image_size`, `vbmeta_offset/size`, algorithm and rollback index.
+- **VBMeta**: the metadata blob the footer points at (hash descriptors per partition).
+- **Verified boot**: the bootloader's runtime enforcement (orange = unlocked, tolerates descriptor mismatch; locked = rejects unsigned).
+- **Module signing**: `CONFIG_SYSTEM_TRUSTED_KEYS` certificate checked by the kernel at `modprobe` time — independent of the three above.
+- **VTS note** (item 65): removing the GKI boot signature block changes the image layout CTS/VTS may fingerprint; a VTS run against a repacked image is untested and could flag the missing signature — declared, not verified.

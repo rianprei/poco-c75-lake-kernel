@@ -1,6 +1,6 @@
 # poco-c75-lake-kernel
 
-**Reproducible, gate-verified build of the Android GKI 6.6.89 kernel used by the POCO C75 4G / Redmi 14C 4G (`lake`, MediaTek MT6768/MT6769) — with the tooling to customize it safely.**
+**rebuild-reproducible, gate-verified build of the Android GKI 6.6.89 kernel used by the POCO C75 4G / Redmi 14C 4G (`lake`, MediaTek MT6768/MT6769) — with host-side gates that must pass before any device write. Device boot is not yet tested. All verification below is host-verified; hardware behavior is hardware-unverified and booting remains boot-unproven until a real device run is logged.**
 
 ![status](https://img.shields.io/badge/status-experimental-orange) ![kernel](https://img.shields.io/badge/kernel-6.6.89--android15--8-blue) ![soc](https://img.shields.io/badge/SoC-MT6768%2FMT6769-lightgrey) ![license](https://img.shields.io/badge/license-MIT-green)
 
@@ -19,8 +19,8 @@ Xiaomi has not published kernel source for the `lake` device, and community kern
 |---|---|
 | The device runs **Google's unmodified GKI** kernel: its `Image` is byte-identical to the public CI build `13771415` (`android15-6.6-2025-06_r12`, commit `5a0ffb447c1d…`). | `cmp` + sha256 `a023b4fd…bbaca` |
 | The kernel **config is exactly known**: Google's build `.config` is byte-identical to `/proc/config.gz` of the device. | sha256 `9b544345…eb19ec` |
-| All device-specific code lives in **closed vendor modules** (557 `.ko` files = 370 distinct modules: 342 ramdisk files from `vendor_boot` + 215 in `vendor_dlkm`, 17 names in both), not in the kernel. | `modinfo` / ELF parsing — `tools/data/modules_inventory.tsv` |
-| A rebuilt kernel exports **exactly the same symbols and CRCs** as stock, so the closed modules keep loading. | `vmlinux.symvers` byte-identical to Google's; gate on all 557 `.ko`: 2309 kernel symbols compared, 0 mismatches |
+| All device-specific code lives outside the GKI kernel: closed vendor modules (557 `.ko` files = 370 distinct modules), plus device tree/DTBO, firmware blobs, boot metadata and userspace — this project tracks the `.ko` interface; the rest is out of scope (see below) | `modinfo` / ELF parsing — `tools/data/modules_inventory.tsv` |
+| A rebuilt kernel exports **exactly the same symbols and CRCs** as stock (host gate, 0 mismatches). Whether that is enough for the closed modules to load on a device is not yet tested. | `vmlinux.symvers` byte-identical to Google's; gate on all 557 `.ko`: 2309 kernel symbols compared, 0 mismatches |
 | A rebuilt kernel has a new ephemeral signing key, so Google-signed GKI modules (`rfkill`, `libarc4`, `bluetooth`, …) would lose `sig_ok` and be refused as *protected exports* — breaking Wi-Fi/Bluetooth. **Fix:** embed Google's public module-signing certificate via `CONFIG_SYSTEM_TRUSTED_KEYS`. | source analysis + controlled signature experiment |
 | The vermagic *version string* does **not** need to match (`same_magic()` ignores it when modules carry CRCs). | `kernel/module/version.c` |
 
@@ -54,7 +54,8 @@ tools/       gate_kmi_crc.sh, selftest_gates.sh, dump_modcrcs.py, verify_modsig.
 patches/     Kleaf + common patches that embed the Google module-signing certificate
 certs/       Google GKI module-signing certificate (public)
 manifests/   official CI manifest + pinned variant used here
-data/        official vmlinux.symvers, per-module required CRCs (all 557 .ko), KMI symbol lists, config safety table
+data/        official vmlinux.symvers, KMI symbol lists, config safety table
+tools/data/  per-module required CRCs (all 557 .ko) and the module inventory
 scripts/     build.sh (exact commands used)
 ```
 

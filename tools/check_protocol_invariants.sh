@@ -160,7 +160,7 @@ PY
 # ------------------------------------------------------------------------------------------------
 # V14 — bootloader claims cite the real lk_b.img evidence or are labelled INFERRED (other device)
 # ------------------------------------------------------------------------------------------------
-if grep -qE 'What we verified in the real bootloader' "$SAFETY" && grep -qF 'strings -n 5 backup-2026-10-05/lk_b.img' "$SAFETY" && grep -qF 'INFERRED (other device)' "$SAFETY"; then
+if grep -qE 'What we verified in the real bootloader' "$SAFETY" && grep -qF 'strings -n 5 <PRIVATE_DEVICE_DUMP>/lk_b.img' "$SAFETY" && grep -qF 'INFERRED (other device)' "$SAFETY"; then
   ok 14 "$SAFETY has the real-bootloader evidence table (lk_b.img strings source + INFERRED labelling)"
 else
   fail 14 "$SAFETY lost the LK evidence table (source command, INFERRED label, or the table itself)"
@@ -182,7 +182,7 @@ if grep -qF 'INFERRED (other device)' "$PROTO" || grep -qF 'RE1_opencode_flash.m
 else
   fail 14 "$PROTO states LK check order with neither INFERRED (other device) nor RE1 evidence"
 fi
-note 14 "the semantic truth (string really in lk_b.img) still needs the retained binary, but the recipe (image sha256 + 4 file offsets, greppable with grep -boa -F) is checked above; the quoted strings were grepped against /tmp/lk_b_strings.txt during the FIX7 review"
+note 14 "the semantic truth (string really in lk_b.img) still needs the retained binary, but the recipe (image sha256 + 4 file offsets, greppable with grep -boa -F) is checked above; the quoted strings were grepped against a retained strings extract during the FIX7 review (extract not published)"
 
 # ------------------------------------------------------------------------------------------------
 # V15 — no alternative boot path is an executable step; legacy RAM-boot explicitly discarded
@@ -384,7 +384,7 @@ grep -qF 'example only' <<<"$line" \
 # ------------------------------------------------------------------------------------------------
 # V27 — the honest list of what Z0 does not prove is present
 # ------------------------------------------------------------------------------------------------
-grep -qi 'does not prove' <<<"$z0" \
+grep -qF 'What Z0 does not prove' <<<"$z0" \
   && grep -q 'UNVERIFIED' <<<"$z0" \
   && ok 27 "Z0 carries the honest list of what it does not prove" \
   || fail 27 "Z0 lost the honest list of what it does not prove"
@@ -512,9 +512,9 @@ r3line="$(grep -n '^### R3' "$PROTO" | head -1 | cut -d: -f1)"
 # expansion), /var/tmp, /Users/, 15-digit runs (IMEI-shaped), secret shapes
 # (tokens, private keys). Herestring form (V54-safe); bare usernames stay manual
 # review (too fuzzy to grep without false positives).
-bad33="$(grep -rn -E '/tmp/|/home/|~/|\$HOME|/var/tmp|/Users/|[0-9]{15}|ghp_|gho_|github_pat_|glpat-|AKIA|sk_live|xox[bpas]-|BEGIN .*PRIVATE KEY' docs/research/*.md 2>/dev/null | grep -v 'docs/research/README.md' || true)"
+bad33="$(grep -rn -E '/tmp/|/home/|~/|\$HOME|/var/tmp|/Users/|[0-9]{15}|ghp_|gho_|github_pat_|glpat-|AKIA|sk_live|xox[bpas]-|BEGIN .*PRIVATE KEY' docs/research/*.md docs/research/raw/*.md docs/PLAN-AND-FINDINGS.pt-BR.md data/config_safety_table.csv 2>/dev/null | grep -v 'README.md' || true)"
 if [ -z "$bad33" ]; then
-  ok 33 "no machine paths, identifiers or secret shapes in docs/research/ notes"
+  ok 33 "no machine paths, identifiers or secret shapes in research notes, the plan, or the config table"
 else
   fail 33 "machine paths in notes: $(printf '%s' "$bad33" | head -1 | cut -c1-120)"
 fi
@@ -893,13 +893,15 @@ grep -qF 'Getvar answer policy' "$PROTO" \
 # ------------------------------------------------------------------------------------------------
 # V63 — T-1.3 detects unexpected change (slot state, build, release)
 # ------------------------------------------------------------------------------------------------
-t13="$(sed -n '/^| T-1.3/,/ |$/p' "$PROTO")"
+t13="$(grep -E '^[|] T-1[.]3' "$PROTO" || true)"
 grep -qF 'slot-successful:b' <<<"$t13" \
   && grep -qF 'slot-unbootable:b' <<<"$t13" \
   && grep -qF 'adb shell uname -r' <<<"$t13" \
   && grep -qF 'adb shell getprop ro.build.version.incremental' <<<"$t13" \
-  && ok 63 "T-1.3 re-checks slot state, build line and kernel release" \
-  || fail 63 "T-1.3 lost the change-detection criteria"
+  && grep -qF 'Power off' <<<"$t13" \
+  && grep -qF 'Vol− + Power' <<<"$t13" \
+  && ok 63 "T-1.3 re-checks build/release on Android, then slot state only after key re-entry" \
+  || fail 63 "T-1.3 lost the split change-detection (Android props, then key re-entry, then slot getvars)"
 
 # ------------------------------------------------------------------------------------------------
 # V64 — no generic RAM-boots-leave-flash-untouched sentence
@@ -911,8 +913,125 @@ else
   ok 64 "no generic RAM sentence in protocol"
 fi
 
+# ------------------------------------------------------------------------------------------------
+# V69 — controlled safety vocabulary is actually used (item 2A.5)
+# ------------------------------------------------------------------------------------------------
+for f in README.md docs/KMI-GATES.md docs/SAFETY.md; do
+  for term in host-verified rebuild-reproducible hardware-unverified boot-unproven; do
+    grep -qF "$term" "$f" \
+      && ok 69 "$f uses controlled term: $term" \
+      || fail 69 "$f missing controlled term: $term"
+  done
+done
+
+# ------------------------------------------------------------------------------------------------
+# V71 — no stale test-step references (T0/T2 as live steps; item 2A.2/2A.3)
+# ------------------------------------------------------------------------------------------------
+# Current steps are Z0/R3/T-1/T2b/T3. Any bare T0/T2 mention in device-facing
+# docs is stale until reworded (historical mentions must not read as live steps).
+stale71="$(grep -rnE '\bT0\b|\bT2\b' README.md CONTRIBUTING.md docs/BUILD.md docs/SAFETY.md docs/KMI-GATES.md 2>/dev/null || true)"
+if [ -z "$stale71" ]; then
+  ok 71 "no stale T0/T2 live-step references in device-facing docs"
+else
+  fail 71 "stale step reference: $(printf '%s' "$stale71" | head -1 | cut -c1-120)"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V72 — one getvar class per name; max-download threshold matches R3; no zero-risk
+# ------------------------------------------------------------------------------------------------
+acc72="$(awk '/accepted-absent/,/Z0\.4/' "$PROTO")"
+if grep -qF 'slot-successful' <<<"$acc72" && grep -qF 'not accepted-absent' <<<"$acc72"; then
+  ok 72 "slot-successful is required, and the accepted-absent block says it is not accepted-absent"
+else
+  fail 72 "slot-successful is both required and accepted-absent"
+fi
+if grep -qF 'any per-slot' "$PROTO"; then
+  fail 72 "accepted-absent still swallows every per-slot variable"
+else
+  ok 72 "no 'any per-slot' accepted-absent clause"
+fi
+grep -qF 'threshold-if-present' "$PROTO" \
+  && grep -qF 'if answered, it must be' "$PROTO" \
+  && grep -qF 'if absent, record and continue' "$PROTO" \
+  && ok 72 "max-download-size is threshold-if-present in Z0 and in R3" \
+  || fail 72 "max-download-size policy disagrees between Z0 and R3"
+if grep -qiE 'zero-risk|risk-free' "$PROTO" "$SAFETY"; then
+  fail 72 "zero-risk or risk-free is back in the protocol or SAFETY"
+else
+  ok 72 "no zero-risk or risk-free claim in the protocol or SAFETY"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V73 — T2b-post is after the T3 flash and before reboot; T3 pass is OKAY, not stress
+# ------------------------------------------------------------------------------------------------
+pre73="$(grep -n '^| T2b-pre |' "$PROTO" | head -1 | cut -d: -f1)"
+t373="$(grep -n '^| T3 |' "$PROTO" | head -1 | cut -d: -f1)"
+post73="$(grep -n '^| T2b-post |' "$PROTO" | head -1 | cut -d: -f1)"
+if [ -n "$pre73" ] && [ -n "$t373" ] && [ -n "$post73" ] && [ "$pre73" -lt "$t373" ] && [ "$t373" -lt "$post73" ]; then
+  ok 73 "order is T2b-pre, then T3 flash, then T2b-post"
+else
+  fail 73 "T2b/T3 order is not pre < flash < post (pre=$pre73 t3=$t373 post=$post73)"
+fi
+t3row="$(grep '^| T3 |' "$PROTO" || true)"
+grep -qF 'Do not reboot yet' <<<"$t3row" \
+  && grep -qF 'not this pass criterion' <<<"$t3row" \
+  && ok 73 "T3 pass is OKAY; 30 min stress is not the pass criterion" \
+  || fail 73 "T3 pass criterion is missing the do-not-reboot gate"
+grep -qF 'Only then `tools/fastboot_guard.sh reboot`' "$PROTO" \
+  && ok 73 "reboot of the new image waits for T2b-post" \
+  || fail 73 "protocol lost the T2b-post-then-reboot gate"
+
+# ------------------------------------------------------------------------------------------------
+# V74 — lacuna actions are actions (L2 rollback, L3 stop, L4 wrapper rollback)
+# ------------------------------------------------------------------------------------------------
+l2="$(grep '^| L2 |' "$PROTO" || true)"
+l3="$(grep '^| L3 |' "$PROTO" || true)"
+l4="$(grep '^| L4 |' "$PROTO" || true)"
+if grep -qF 'ação exata' <<<"$l2"; then
+  fail 74 "L2 still has the placeholder ação exata"
+elif grep -qF 'rollback' <<<"$l2" && grep -qF 'tools/fastboot_guard.sh' <<<"$l2"; then
+  ok 74 "L2 names one key attempt, then wrapper rollback or stop"
+else
+  fail 74 "L2 action lost the wrapper rollback"
+fi
+grep -qF 'Parar' <<<"$l3" && grep -qF 'Não repetir' <<<"$l3" \
+  && ok 74 "L3 says stop and do not repeat the flash" \
+  || fail 74 "L3 is not an action"
+grep -qF 'fora de `tools/fastboot_guard.sh`' <<<"$l4" && grep -qF 'rollback' <<<"$l4" \
+  && ok 74 "L4 rolls back a flash that bypassed the wrapper and ends the day" \
+  || fail 74 "L4 action lost the wrapper rollback"
+
+# ------------------------------------------------------------------------------------------------
+# V75 — PROTO:N#token / SAFETY:N#token: token is on that line (topical, not just existence)
+# ------------------------------------------------------------------------------------------------
+python3 - "$PROTO" "$SAFETY" <<'PY'
+import re, sys
+proto = open(sys.argv[1], encoding='utf-8').read().splitlines()
+safety = open(sys.argv[2], encoding='utf-8').read().splitlines()
+files = {'PROTO': proto, 'SAFETY': safety}
+bad = 0
+bare = 0
+for path, lines in ((sys.argv[1], proto), (sys.argv[2], safety)):
+    for i, line in enumerate(lines, 1):
+        # (?![\d#]) stops \d+ from backing up into PROTO:32#token and calling it bare PROTO:3
+        for m in re.finditer(r'\b(PROTO|SAFETY):(\d+)(?![\d#])', line):
+            bare += 1
+            bad += 1
+            print(f'V75 FAIL {path}:{i} citation {m.group(0)} has no #token')
+        for m in re.finditer(r'\b(PROTO|SAFETY):(\d+)#([A-Za-z0-9_:+.-]+)', line):
+            kind, n, token = m.group(1), int(m.group(2)), m.group(3)
+            src = files[kind]
+            if not 1 <= n <= len(src) or token not in src[n-1]:
+                bad += 1
+                print(f'V75 FAIL {path}:{i} {kind}:{n}#{token} not on that line')
+if bad == 0:
+    print('V75 OK every PROTO/SAFETY citation names a token present on the cited line')
+sys.exit(1 if bad else 0)
+PY
+[ $? -eq 0 ] || fails=$((fails + 1))
+
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3 V4 V5 V7 V8 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64)"
+  echo "PASS protocol invariants (V3-V75 except aliases and the checks that live in other scripts)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"

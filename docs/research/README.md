@@ -1,6 +1,6 @@
 # Research notes (raw)
 
-These files are the **unedited output of several AI research agents** plus review passes, kept for traceability — with one documented exception: machine paths (`/tmp/<agent>-work`, `~/Documentos/mods/...`, agent scratch dirs) were replaced by `<workdir>` / `<lake-kernel>` / `<tabs-agent-os>` so the notes can be published; nothing else was rewritten. **They contain errors.** The verified facts are in [`../PLAN-AND-FINDINGS.pt-BR.md`](../PLAN-AND-FINDINGS.pt-BR.md); when a note and that log disagree, the log is right.
+These files are the **unedited output of several AI research agents** plus review passes, kept for traceability — with one documented exception: machine paths (`/tmp/<agent>-work`, `~/Documentos/mods/...`, agent scratch dirs) were replaced by `<workdir>` / `<lake-kernel>` / `<tabs-agent-os>` so the notes can be published; nothing else was rewritten. **They contain errors.** The verified facts are in [`../PLAN-AND-FINDINGS.pt-BR.md`](../PLAN-AND-FINDINGS.pt-BR.md); when a note and that log disagree, the log is right. Superseded raw outputs live in [`raw/`](raw/README.md) and are not normative.
 
 Claims from these notes that were later **refuted by measurement**:
 
@@ -18,7 +18,7 @@ Claims from these notes that were later **refuted by measurement**:
 
 ## Where the raw device dumps are
 
-The raw dumps of the audited device (`audit/`, `backup-*`, `official-ab13771415/`) were **retained and not published**: they contain device identifiers and partition images. What is published is the distilled evidence — hashes, sizes, symbol/CRC tables and command output — in [`../PLAN-AND-FINDINGS.pt-BR.md`](../PLAN-AND-FINDINGS.pt-BR.md) (facts 1-67), [`../KMI-GATES.md`](../KMI-GATES.md), `data/` and `tools/data/`.
+The raw dumps of the audited device (`audit/`, `backup-*`, `official-ab13771415/`) were **retained and not published**: they contain device identifiers and partition images. In docs they are cited only as `<PRIVATE_DEVICE_DUMP>` (retained, unpublished, non-reproducible source). What is published is the distilled evidence — hashes, sizes, symbol/CRC tables and command output — in [`../PLAN-AND-FINDINGS.pt-BR.md`](../PLAN-AND-FINDINGS.pt-BR.md) (facts 1-67), [`../KMI-GATES.md`](../KMI-GATES.md), `data/` and `tools/data/`.
 
 ## External links that are NOT verified (UNVERIFIED)
 

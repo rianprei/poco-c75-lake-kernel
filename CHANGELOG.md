@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.0 (2026-10-07) — maintainer round (FIX8–FIX13 + MISSION)
+
+Host-side only; still not boot-tested on hardware. Backprop registry now B1–B89 (§B),
+invariants V1–V75 (§V; V10–V13 are aliases), sabotage suite 99 cases
+(`SELFTEST-BACKPROP PASS`, 99/99).
+
+- Device protocol: T-1 identical-content rehearsal before any write (FIX8); Z0 closed
+  allowlist + key-entry criterion + slot-mismatch/no-adb/baseline rules (FIX9); real LK
+  partition tables (FIX10); never-touch completeness + bidirectional table check (FIX11/11b);
+  REVIEW9/10 + runbook findings (FIX12); residual-risks table (FIX13); exact-allowlist
+  `tools/fastboot_guard.sh` wrapper, retry-as-informational, getvar policy, stderr captures,
+  T-1.3 change detection (MISSION/FIX14). One class per getvar (`slot-successful` /
+  `slot-unbootable` required; `is-userspace` is the only accepted-absent;
+  `max-download-size` is threshold-if-present). Order is T2b-pre, then T3, then
+  T2b-post; T3 pass is `OKAY`, not the 30 min stress. L2/L3/L4 name a stop or a
+  wrapper rollback. `fastboot boot` stays UNKNOWN and is not a stop criterion.
+- Gates: fail-closed runner; export_type/namespace identity; modsig signer-compare +
+  synthetic 6-matrix; repack fatal post-conditions + strict ELF parsing + unit tests;
+  fetch traversal/atomic/partial/magic hardening; build.sh state machine + provenance.
+- Docs: controlled safety vocabulary (host-verified / rebuild-reproducible /
+  hardware-unverified / boot-unproven); FACTS log + raw/ separation; config-table
+  gate columns; glossary GKI-signature/AVB-footer/VBMeta/verified-boot/module-signing.
+
 ## 0.1.0-experimental (2026-10-05)
 
 First public snapshot. **Host-side verified only; not boot-tested on hardware.**
@@ -21,7 +44,7 @@ Everything below is host-side; still not boot-tested on hardware. Supersedes the
 - New `tools/selftest_gates.sh`: 1 positive + 3 sabotage cases (corrupted CRC of a required symbol, dropped export, empty symvers), all on `mktemp -d` copies → `SELFTEST PASS`.
 - `tools/dump_modcrcs.py` rewritten (deterministic output, `--inventory` mode, slot-prefix normalisation); `tools/data/vendor_required_crcs.txt` and `tools/data/kmi_need_from_kernel.txt` removed as superseded.
 - `tools/fetch_official_artifacts.sh` hardened: browser User-Agent, 3 attempts with backoff, explicit error with the manual URL when `artifactUrl` is absent, and sha256 verification of `Image`/`can.ko`.
-- `tools/verify_modsig.sh` no longer writes to a hard-coded `/tmp/opencode`: temporary workdirs come from `mktemp -d` and are removed by an `EXIT` trap.
+- `tools/verify_modsig.sh` no longer writes to a hard-coded scratch directory: temporary workdirs come from `mktemp -d` and are removed by an `EXIT` trap.
 
 ## 0.1.2 (2026-10-06)
 

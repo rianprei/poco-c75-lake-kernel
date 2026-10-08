@@ -5,7 +5,7 @@ while building this project is written down in §B, turned into an invariant in 
 command that fails when the error reappears. Run all of it with:
 
 ```bash
-tools/run_all_checks.sh          # prints PASS/FAIL per invariant V1..V9, exit != 0 on any FAIL
+tools/run_all_checks.sh          # prints PASS/FAIL for each §V row (V1–V9 and V14–V75; V10–V13 are aliases), exit != 0 on any FAIL
 tools/selftest_backprop.sh       # proves each check catches its own defect (FAIL -> PASS)
 ```
 
@@ -98,6 +98,14 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B79 | 2026-10-07 | build.sh modes share one checkout (cert contaminates control); no idempotence/state gates; 2 SHAs of 36 projects; tag pin; loose REPO_NO_VERIFY; no disk gate; no provenance record. | scripts/build.sh (28-35) |
 | B80 | 2026-10-07 | V6 covered `rm` only (`dd`, `truncate`, `mkfs`, fastboot-write, `set_active`, /dev writes, continuations invisible). | V6 |
 | B81 | 2026-10-07 | V33 covered `/tmp/`+`/home/` only (`~/`, `$HOME`, 15-digit runs, token shapes leaked through; 19 redactions applied). | V33 |
+| B82 | 2026-10-07 | Config table: schedutil `hispeed_freq` knob fiction; absolute SEGURO/PROIBIDO language; no gate columns; weak third-party URLs. | V70 |
+| B83 | 2026-10-07 | Docs drift batch: CONTRIBUTING T0/T2/T3 steps; BUILD "step T0" + plain NONE/rollback facts; README module-overclaim + "Reproducible" title; CHANGELOG ends at 0.1.2; missing controlled vocabulary. | V69/V71 + docs |
+| B84 | 2026-10-07 | Getvar policy gave slot-successful two classes, max-download-size was optional and also a hard R3 gate, and Z0 was titled zero-risk. | V72 |
+| B85 | 2026-10-07 | T2b was ordered before the T3 flash it is supposed to watch, and T3's pass criterion was the 30 min stress. | V73 |
+| B86 | 2026-10-07 | L2 action was the placeholder "ação exata"; L3 and L4 named a risk and not an action. | V74 |
+| B87 | 2026-10-07 | PROTO/SAFETY line citations existed and described a different line. | V75 |
+| B88 | 2026-10-07 | SPEC still required `command fastboot` (V46/V47) and said the protocol stops when `fastboot boot` is absent. | V46/V47/§T |
+| B89 | 2026-10-07 | The measurement log and the config table still published `/tmp/` and `~/` paths after V33 had been limited to research notes. | V33 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -144,7 +152,7 @@ Per the fable rule, each bug was searched for again everywhere:
 - TWINS: searched `is-userspace string exists in LK` — found 2 sites: R3 row, SAFETY LK row (fixed, V44 states string exists); V44 keeps the fact.
 - TWINS: searched `check-before-write order MEASURED` — found 3 sites: SAFETY LK row (§3.3 + MEASURED suffix), protocol, SPEC §T (was stale INFERRED, fixed); V45 keeps the citation.
 - TWINS: searched `inline commands T-1.2/T2b` — found 2 sites: T-1.2 (indirect reference to the two-write block, V46 names it), T2b (six getvars inline); V46 keeps them.
-- TWINS: searched `same command form T-1/T3` — found 3 sites: T-1 block line, T3 block line, SAFETY recovery path (fixed, V47 enforces the guarded `command fastboot` form everywhere); V47 keeps the form consistent.
+- TWINS: searched `same command form T-1/T3` — found 3 sites: T-1 block line, T3 block line, SAFETY recovery path (fixed, V47 forbids `command fastboot` and requires `tools/fastboot_guard.sh`); V47 keeps the wrapper form.
 - TWINS: searched `protect1/protect2 order` — found 2 sites carrying both names: PROTOCOL NEVER list, SAFETY rule 1 (fixed, V48 enforces measured order protect2-first); README names neither partition (vacuous leg); V48 keeps the order.
 - TWINS: searched `baseline 429 modules example` — found 2 sites: Z0.6 (exact plain phrase) and the baseline-capture row (same meaning with emphasis); V49 keeps the exact phrase "429 modules (example only); your number is your baseline" in Z0.6.
 - TWINS: searched `pstore reading guidance` — found 1 site: the abort-criteria line (fixed, V50 adds "next normal boot on a good kernel"); V50 keeps the guidance.
@@ -192,7 +200,7 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V30 | ∀ line mentioning `getvar all` in `README.md`/`docs/*.md` (research notes excluded): `!` the line forbids it (contains `forbid`/`PROIBIDO`/`never run`/`not run`/`allowlist`/`instead`) **and** the line does not order it (`run`/`execute` + `getvar all` is executable even with an allowlist mention); an executable `getvar all` instruction is `⊥`. | `tools/check_protocol_invariants.sh` |
 | V31 | ∀ `fastboot flash` command **line** (line starts with the command; table-cell mentions are references, not commands) in `docs/DEVICE-TEST-PROTOCOL.md`: `!` there are exactly as many as `README.md` affirms (two protected writes: T-1 backup, T3 kernel) and every one targets `boot_b`; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V32 | ∀ T-1 section in `docs/DEVICE-TEST-PROTOCOL.md`: `!` it comes after the R3 section (it depends on R3); else `⊥`. | `tools/check_protocol_invariants.sh` |
-| V33 | ∀ file in `docs/research/*.md` except `README.md` (which documents the redaction): `!` it contains `/tmp/`, `/home/`, `~/`, `$HOME`, `/var/tmp`, `/Users/`, 15-digit runs, or secret shapes (`ghp_*`, `AKIA*`, `sk_live*`, `xox*`, `glpat-*`, `*PRIVATE KEY*`); else `⊥`. Bare usernames stay manual review. | `tools/check_protocol_invariants.sh` |
+| V33 | ∀ file in `docs/research/*.md` except `README.md` (which documents the redaction), plus `docs/PLAN-AND-FINDINGS.pt-BR.md` and `data/config_safety_table.csv`: `!` it contains `/tmp/`, `/home/`, `~/`, `$HOME`, `/var/tmp`, `/Users/`, 15-digit runs, or secret shapes (`ghp_*`, `AKIA*`, `sk_live*`, `xox*`, `glpat-*`, `*PRIVATE KEY*`); else `⊥`. Bare usernames stay manual review. | `tools/check_protocol_invariants.sh` |
 | V34 | ∀ never-touch rule (rule 1 of SAFETY.md) and protocol NEVER list: `!` both contain {preloader, lk, seccfg, nvram, nvdata, nvcfg, persist, proinfo, protect1, protect2, misc, boot_para, expdb}; preloader covers preloader_*, boot0/1 covered by preloader; else `⊥`. | `tools/check_protocol_invariants.sh` |
 |---|---|---|
 | V35 | The Z0 section header states that mandatory Z0 (Z0.1–Z0.3) writes nothing; Z0.0 (optional) writes only the Android boot reason. | `tools/check_protocol_invariants.sh` |
@@ -200,14 +208,14 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V37 | ∀ `grep -E`/`-iE` pattern P a reader is told to run in `README.md`/`docs/SAFETY.md`/`docs/BUILD.md`/`docs/KMI-GATES.md`/`docs/DEVICE-TEST-PROTOCOL.md`: `!` P has positive+negative controls; `∄ \|` in P; else `⊥`. | `tools/check_regex_controls.sh` |
 | V38 | The Z0 section's allowlist is **closed**: `∀` line in Z0.3 matching `getvar ...`: the name is one of the 15; `∄` other `getvar` in Z0.3; `∄` `oem` in Z0.3; else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V39 | The protocol contains no stale sentence claiming a single write (e.g., "one protected write", "single write", "one and only write"); the README affirms two protected writes (T-1 backup, T3 kernel) and carries no stale suite ranges ("V1–V9", "V14–V17", "14 sabotage", "V1..V9"). | `tools/check_protocol_invariants.sh` |
-| V40 | V22 requires the exact phrase "key-reached fastboot" + `Vol− + Power` in Z0.1/Z0.2; V26 requires the line with `429` to also contain "reference" or "reference only" with the meaning that baseline is criterion. | `tools/check_protocol_invariants.sh` |
+| V40 | V22 requires the exact phrase "key-reached fastboot" + `Vol− + Power` in Z0.1/Z0.2. The 429 line is owned by V49 ("example only"), not by a second token "reference". | `tools/check_protocol_invariants.sh` |
 | V41 | `docs/research/README.md` carries the "contain errors" warning **and** the UNVERIFIED link table. | `tools/check_protocol_invariants.sh` |
 | V42 | ∀ line mentioning `getvar all` in `README.md`/`docs/*.md` (research excluded): the line **forbids** it (contains `forbid`/`PROIBIDO`/`never`/`not run`/`allowlist`/`instead`); an executable `getvar all` is `⊥`. | `tools/check_protocol_invariants.sh` |
 | V43 | Z0.4 exception states that rollback index 0 means the LK **can** boot old slot A (RE4 D3), so power off by keys is required. | `tools/check_protocol_invariants.sh` |
 | V44 | `is-userspace` text states the string **exists** in the LK getvar table; `no` or `Variable not found` accepted; `yes` = STOP. | `tools/check_protocol_invariants.sh` |
 | V45 | Protocol cites RE1 disassembly for check-before-write order (check `bl 0x4c4367d2` precedes write `bl 0x4c436834`). | `tools/check_protocol_invariants.sh` |
-| V46 | T-1.2 contains the exact command `command fastboot flash boot_b <path/to/backup/boot_b.img>`; T2b lists the six exact `getvar` commands inline. | `tools/check_protocol_invariants.sh` |
-| V47 | The shell guard blocks `fastboot flash lk ...` but allows exactly the two permitted commands (`command fastboot flash boot_b <backup>` and `command fastboot flash boot_b boot_b_new.img`); the SAFETY recovery path uses the same guarded `command` form. | `tools/check_protocol_invariants.sh` |
+| V46 | T-1.2 contains `tools/fastboot_guard.sh flash boot_b <path/to/backup/boot_b.img>`; T2b lists the six exact `getvar` names. | `tools/check_protocol_invariants.sh` |
+| V47 | Device-facing docs contain no `command fastboot` instruction. The protocol names the wrapper refusal and exactly two gated flashes (`tools/fastboot_guard.sh flash boot_b` backup, then `boot_b_new.img`). The SAFETY recovery path uses that wrapper form. | `tools/check_protocol_invariants.sh` |
 | V48 | `protect2` appears before `protect1` in all device-facing docs (measured table order). | `tools/check_protocol_invariants.sh` |
 | V49 | Baseline modules text says "429 modules (example only); your number is your baseline". | `tools/check_protocol_invariants.sh` |
 | V50 | Protocol states when/how to read `pstore`: after a crash, on the **next normal boot** on a good kernel. | `tools/check_protocol_invariants.sh` |
@@ -215,7 +223,7 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V52 | Slot firmware comparison "accept in writing" = type `I accept that slot A is older firmware OS3.0.20.0 and fallback would boot old OS over new data` in the terminal. | `tools/check_protocol_invariants.sh` |
 | V53 | Abort criteria table includes entries for L1–L6 lacunae. | `tools/check_protocol_invariants.sh` |
 | V54 | ∀ status-checked pipeline P in `tools/*.sh`: `!` P feeds `grep -q` (SIGPIPE race under `set -o pipefail`: `grep -q` exits early, the writer dies with 141, the chain flakes); use a herestring or a file argument; else `⊥`. | `tools/check_sigpipe.sh` |
-| V55 | ∀ `PROTO:NN`/`SAFETY:NN` cross-reference R in `docs/DEVICE-TEST-PROTOCOL.md`/`docs/SAFETY.md`: `!` line NN exists in the cited file; else `⊥`. (Existence only; topical relatedness stays human review.) | `tools/check_protocol_invariants.sh` |
+| V55 | ∀ `PROTO:NN`/`SAFETY:NN` cross-reference R in `docs/DEVICE-TEST-PROTOCOL.md`/`docs/SAFETY.md`: `!` line NN exists in the cited file; else `⊥`. Topical match is V75 (`PROTO:NN#token`). | `tools/check_protocol_invariants.sh` |
 | V56 | ∀ on-device observation command C in `docs/DEVICE-TEST-PROTOCOL.md` (T-1.3 `uname`/`getprop`, baseline `cat /proc/modules`, `dmesg`, `ls /sys/fs/pstore`): `!` C carries the `adb shell` prefix (bare forms would read the host); else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V57 | (FIX13) protocolo carrega a tabela consolidada de riscos residuais (R1–R4 com mitigação + status). | `tools/check_protocol_invariants.sh` |
 | V58 | `tools/fastboot_guard.sh` impõe allowlist exata (`devices`, `reboot`, 15 `getvar` do Z0.3) + gates de escrita (só `flash boot_b`, tamanho == 67108864, magic `ANDROID!`, sha256 em arquivo de hashes); resto recusado com exit ≠ 0 sem executar. | `tools/check_protocol_invariants.sh` (estrutura) + `tools/selftest_fastboot_guard.sh` (comportamento) |
@@ -223,12 +231,19 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V60 | ∀ captura fastboot em `docs/DEVICE-TEST-PROTOCOL.md` (Z0.5, T2b): `!` ela funde stderr (`2>&1`); else `⊥`. | `tools/check_protocol_invariants.sh` |
 | V61 | Z0.4: `slot-retry-count:b` é informativo (`0` legítimo); gate = `slot-successful:b=yes` E `slot-unbootable:b=no`. | `tools/check_protocol_invariants.sh` |
 | V62 | `docs/DEVICE-TEST-PROTOCOL.md` carrega a política getvar required/optional/accepted-absent; ausência nunca é falsa segurança nem falso STOP. | `tools/check_protocol_invariants.sh` |
-| V63 | T-1.3 re-checa slot state, build line e kernel release contra os valores pré-T-1. | `tools/check_protocol_invariants.sh` |
+| V63 | T-1.3a re-checks the build line and `adb shell uname -r` on Android; T-1.3b power-cycles by keys (`Power off`, `Vol− + Power`) and only then re-reads `slot-successful:b` and `slot-unbootable:b`. | `tools/check_protocol_invariants.sh` |
 | V64 | ∄ frase genérica "RAM boots leave flash untouched" no protocolo. | `tools/check_protocol_invariants.sh` |
 | V65 | `python3 -m unittest discover -s tests -p 'test_*.py'` passa (exit 0 + `^OK`): repack (exit codes, magics, keep-footer, info_image fatal), dump_modcrcs (ELF malformado, permissive, sem-__versions, prefixos, CRC divergente), modsig (sem-assinatura/truncado sem traceback). | `tools/selftest_python.sh` |
 | V66 | `tools/selftest_fastboot_guard.sh` passa contra fastboot falso (20 allow + 16 deny + prova de cópia privada 0400 + nomes hostis). | `tools/selftest_fastboot_guard.sh` |
 | V67 | `tools/verify_modsig.sh --selftest-full` passa a matriz sintética offline (6/6: signatário ok/errado, conteúdo/assinatura modificados, cert ausente, mesmo issuer outra chave). | `tools/verify_modsig.sh --selftest-full` |
 | V68 | `docs/KMI-GATES.md` cita o fingerprint sha256 exato do cert Google (`certs/google_gki_ab13771415_modsign_cert.pem`), recomputado aqui. | `tools/check_docs_numbers.sh` |
+| V69 | Controlled safety vocabulary in use (`host-verified`, `rebuild-reproducible`, `hardware-unverified`, `boot-unproven` across README/KMI-GATES/SAFETY). | `tools/check_protocol_invariants.sh` |
+| V70 | `data/config_safety_table.csv`: no absolute-risk language, no schedutil knob fiction, every row carries `gates_status` + `tree_check`. | `tools/check_config_table.sh` |
+| V71 | No stale T0/T2 live-step references in device-facing docs (current steps: Z0/R3/T-1/T2b/T3). | `tools/check_protocol_invariants.sh` |
+| V72 | One getvar class per name: `slot-successful`/`slot-unbootable` are required and the accepted-absent block says they are not; no `any per-slot` clause; `max-download-size` is threshold-if-present in Z0 and in R3; no `zero-risk`/`risk-free` in the protocol or SAFETY. | `tools/check_protocol_invariants.sh` |
+| V73 | Table order is T2b-pre, then T3, then T2b-post. T3 pass is `OKAY` and "do not reboot"; reboot of the new image is only after T2b-post. | `tools/check_protocol_invariants.sh` |
+| V74 | L2 names a wrapper rollback (no "ação exata"); L3 says stop and do not repeat the flash; L4 rolls back a flash that bypassed `tools/fastboot_guard.sh`. | `tools/check_protocol_invariants.sh` |
+| V75 | Every `PROTO:N#token` / `SAFETY:N#token` citation has that token on line N. A bare `PROTO:N` without `#token` fails. | `tools/check_protocol_invariants.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):
@@ -244,7 +259,7 @@ script that cannot automate it):
 ## §T — tasks still open (nothing below is proven; do not treat any as done)
 
 - **Boot on a real `lake` device** — no image from this project has been booted on hardware.
-- **`fastboot boot` support on this bootloader** — UNKNOWN; if absent, the whole RAM-test path disappears and the protocol STOPS.
+- **`fastboot boot` support on this bootloader** — UNKNOWN. It is not a step. Absence of the command is not a stop criterion; the protocol continues with the two `boot_b` writes through `tools/fastboot_guard.sh`.
 - **Automatic A/B fallback on this device** — disassembly of the real `lk_b.img` shows the mechanism (same-boot `_a`→`_b` fallback with direct branches; both-invalid lands in a non-returning `fastboot_init`; retry read is a 3-bit field, decrement/initial value unproven: `docs/research/RE4_codex_fallback.md` D1–D2); on-device behaviour still UNVERIFIED.
 - **Wi-Fi / Bluetooth / modem / camera with the new kernel** — untested; the certificate reasoning is host-side only.
 - **Acceptance of an unsigned repacked `boot` by the chained-partition verifier** — analogous to the measured `init_boot_b` tolerance, but unproven.

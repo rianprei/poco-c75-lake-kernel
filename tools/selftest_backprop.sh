@@ -348,7 +348,7 @@ case_run 68 "V60 Z0.5 loses stderr capture" check_protocol_invariants.sh '^V60 F
 
 # V61: retry-count back as a hard gate
 case_run 69 "V61 retry-count back as gate" check_protocol_invariants.sh '^V61 FAIL' \
-  "sed -i 's/Record \`slot-retry-count:b\` as informational only/Require \`slot-retry-count:b\` above \`0\` aka gate/' docs/DEVICE-TEST-PROTOCOL.md"
+  "sed -i 's/informational only/REQUIRED GATE/g' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V62: getvar policy loses accepted-absent
 case_run 70 "V62 policy loses accepted-absent" check_protocol_invariants.sh '^V62 FAIL' \
@@ -356,7 +356,7 @@ case_run 70 "V62 policy loses accepted-absent" check_protocol_invariants.sh '^V6
 
 # V63: T-1.3 loses slot-state re-check
 case_run 71 "V63 T-1.3 loses slot re-check" check_protocol_invariants.sh '^V63 FAIL' \
-  "sed -i 's/, \`slot-unbootable:b\`, \`slot-retry-count:b\`, \`current-slot\`//' docs/DEVICE-TEST-PROTOCOL.md"
+  "sed -i '/^| T-1\\.3/s/slot-unbootable:b/slot-removed/' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V65: planted failing unit test must FAIL the suite
 case_run 78 "V65 failing unit test fails suite" selftest_python.sh '^V65 FAIL' \
@@ -374,7 +374,7 @@ case_run 80 "V67 modsig signer extraction broken" verify_modsig.sh '^V67 FAIL' \
 case_run 81 "V68 fingerprint dropped from docs" check_docs_numbers.sh '^V68 FAIL' \
   "sed -i 's/76:FB:DF:D1:3F:6B:A6:12:75:6E:AE:36:E9:9F:88:50:8F:A3:20:2A:A3:51:17:70:4C:26:D5:5A:99:CC:72:A1/00:00/' docs/KMI-GATES.md"
 
-# V6 extended classes (item 26/82): destructive-command variants must FAIL
+# V6: generic destructive-command classes must FAIL
 case_run 82 "V6 dd literal target fails" check_destructive_ops.sh '^V6 FAIL' \
   "printf '\ndd if=/dev/zero of=/tmp/wiped.img bs=1M count=1\n' >> tools/gate_kmi_crc.sh"
 case_run 83 "V6 truncate literal fails" check_destructive_ops.sh '^V6 FAIL' \
@@ -409,6 +409,38 @@ case_run 76 "V31 README loses two-writes count" check_protocol_invariants.sh '^V
 # V21 multiset: duplicated Z0.3 line must FAIL (presence still passes)
 case_run 77 "V21 duplicated allowlist line fails" check_protocol_invariants.sh '^V21 FAIL' \
   "sed -i '/^  \`tools\\/fastboot_guard.sh getvar battery-voltage\`$/a\\  \`tools\\/fastboot_guard.sh getvar battery-voltage\`' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V69: controlled vocabulary dropped from README
+case_run 88 "V69 README loses rebuild-reproducible" check_protocol_invariants.sh '^V69 FAIL' \
+  "sed -i 's/rebuild-reproducible/rebuild-claim/' README.md"
+
+# V70: absolute category returns to the config table
+case_run 89 "V70 SEGURO category returns" check_config_table.sh '^V70 FAIL' \
+  "sed -i 's/LOW-RISK/SEGURO/' data/config_safety_table.csv"
+
+# V71: bare T0 comes back as a live step
+case_run 90 "V71 bare T0 live step returns" check_protocol_invariants.sh '^V71 FAIL' \
+  "printf '\nStep T0 is the live entry.\n' >> README.md"
+
+# V72: zero-risk claim returns
+case_run 91 "V72 zero-risk claim returns" check_protocol_invariants.sh '^V72 FAIL' \
+  "sed -i '1s/$/ zero-risk/' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V73: T3 pass becomes the reboot
+case_run 92 "V73 T3 pass loses do-not-reboot" check_protocol_invariants.sh '^V73 FAIL' \
+  "sed -i 's/Do not reboot yet/reboot immediately/' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V74: L2 placeholder returns
+case_run 93 "V74 L2 placeholder returns" check_protocol_invariants.sh '^V74 FAIL' \
+  "sed -i 's/Uma tentativa: Vol/ação exata: Vol/' docs/DEVICE-TEST-PROTOCOL.md"
+
+# V75: citation token is not on the cited line
+case_run 94 "V75 citation token misses its line" check_protocol_invariants.sh '^V75 FAIL' \
+  "printf '\nsee PROTO:1#THIS_TOKEN_IS_ABSENT\n' >> docs/DEVICE-TEST-PROTOCOL.md"
+
+# V33: machine path in the measurement log (research-note case 30 stays)
+case_run 95 "V33 machine path in the plan fails" check_protocol_invariants.sh '^V33 FAIL' \
+  "printf '\nscratch /tmp/plant\n' >> docs/PLAN-AND-FINDINGS.pt-BR.md"
 
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }
