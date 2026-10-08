@@ -29,25 +29,43 @@ SLOT_PREFIX = re.compile(r'^vb_[a-z]+_r\d+__')
 MAGIC = b'\x7fELF'
 
 
+class _ELFError(ValueError):
+    """Malformed ELF input: strict mode fails, --permissive warns and skips."""
+
+
 def _sections(d):
-    """Return [(name, offset, size)] for every section, or None if not a valid ELF64."""
+    """Return [(name, offset, size)] for every section; raise _ELFError if invalid."""
     if d[:4] != MAGIC or len(d) < 5 or d[4] != 2:  # 2 = ELFCLASS64
-        return None
-    shoff, = struct.unpack_from('<Q', d, 0x28)
-    shentsize, shnum, shstrndx = struct.unpack_from('<HHH', d, 0x3A)
-    if not shnum or shoff + shnum * shentsize > len(d):
-        return None
+        raise _ELFError('not an ELF64 file (bad magic/class)')
+    if len(d) < 0x40:
+        raise _ELFError('truncated ELF header')
+    try:
+        shoff, = struct.unpack_from('<Q', d, 0x28)
+        shentsize, shnum, shstrndx = struct.unpack_from('<HHH', d, 0x3A)
+    except struct.error as e:
+        raise _ELFError(f'truncated section-header table ({e})')
+    if not shnum:
+        raise _ELFError('zero sections')
+    if shoff + shnum * shentsize > len(d):
+        raise _ELFError('section-header table out of range')
+    if shstrndx >= shnum:
+        raise _ELFError(f'shstrndx {shstrndx} >= shnum {shnum}')
     raw = []
     for i in range(shnum):
         o = shoff + i * shentsize
-        name, _typ, _flags, _addr, off, size = struct.unpack_from('<IIQQQQ', d, o)
+        try:
+            name, _typ, _flags, _addr, off, size = struct.unpack_from('<IIQQQQ', d, o)
+        except struct.error as e:
+            raise _ELFError(f'truncated section header {i} ({e})')
+        if off + size > len(d):
+            raise _ELFError(f'section {i} out of range (off={off} size={size} len={len(d)})')
         raw.append((name, off, size))
     stroff = raw[shstrndx][1]
     out = []
     for name, off, size in raw:
         end = d.find(b'\0', stroff + name)
-        if end < 0:
-            continue
+        if end < 0 or stroff + name >= len(d):
+            raise _ELFError('section-name string out of range')
         out.append((d[stroff + name:end], off, size))
     return out
 
@@ -56,8 +74,6 @@ def versions(path):
     """(symbol, crc) pairs imported by the module (__versions entries are 64 B each)."""
     d = open(path, 'rb').read()
     secs = _sections(d)
-    if secs is None:
-        return []
     out = []
     for name, off, size in secs:
         if name != b'__versions':
@@ -74,8 +90,6 @@ def vermagic(path):
     """vermagic string from the .modinfo section, or '' if absent."""
     d = open(path, 'rb').read()
     secs = _sections(d)
-    if secs is None:
-        return ''
     for name, off, size in secs:
         if name != b'.modinfo':
             continue
@@ -104,33 +118,55 @@ def module_id(path, keep_prefix):
 def main(argv):
     inventory = False
     keep_prefix = False
+    permissive = False
     args = []
     for a in argv:
         if a == '--inventory':
             inventory = True
         elif a == '--keep-prefix':
             keep_prefix = True
+        elif a == '--permissive':
+            permissive = True
         elif a in ('-h', '--help'):
             print(__doc__.strip())
             return 0
         else:
             args.append(a)
     if not args:
-        print('usage: dump_modcrcs.py [--inventory] [--keep-prefix] <dir-or-ko>...', file=sys.stderr)
+        print('usage: dump_modcrcs.py [--inventory] [--keep-prefix] [--permissive] <dir-or-ko>...', file=sys.stderr)
         return 2
     files = collect(args)
     if not files:
         print('no .ko files found in: %s' % ' '.join(args), file=sys.stderr)
         return 2
 
+    errors = 0
+
+    def parse_one(f):
+        """(symbols, vermagics) or raise; missing __versions/.modinfo warns, not fails."""
+        nonlocal errors
+        try:
+            syms = versions(f)
+            vm = vermagic(f)
+        except (_ELFError, struct.error, OSError) as e:
+            msg = f'{f}: skipped ({e})'
+            if permissive:
+                print(f'AVISO: {msg}', file=sys.stderr)
+                return [], set()
+            print(f'ERRO: {msg}', file=sys.stderr)
+            errors += 1
+            return [], set()
+        if not syms:
+            print(f'AVISO: {f}: no __versions section (nothing to dump)', file=sys.stderr)
+        return syms, ({vm} if vm else set())
+
     if inventory:
         mods = {}
         for f in files:
             m = module_id(f, keep_prefix)
-            copies, vm = mods.get(m, (0, set()))
-            vm = set(vm)
-            vm.add(vermagic(f))
-            mods[m] = (copies + 1, vm)
+            syms, vm = parse_one(f)
+            copies, old = mods.get(m, (0, set()))
+            mods[m] = (copies + 1, set(old) | set(vm))
         for m in sorted(mods):
             copies, vm = mods[m]
             print('%s\t%d\t%s' % (m, copies, '|'.join(sorted(v for v in vm if v))))
@@ -138,11 +174,12 @@ def main(argv):
         rows = set()
         for f in files:
             m = module_id(f, keep_prefix)
-            for sym, crc in versions(f):
+            syms, _vm = parse_one(f)
+            for sym, crc in syms:
                 rows.add((sym, '0x%08x' % crc, m))
         for sym, crc, m in sorted(rows):
             print('%s\t%s\t%s' % (sym, crc, m))
-    return 0
+    return 1 if errors else 0
 
 
 if __name__ == '__main__':

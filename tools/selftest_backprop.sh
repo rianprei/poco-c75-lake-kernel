@@ -352,6 +352,10 @@ case_run 70 "V62 policy loses accepted-absent" check_protocol_invariants.sh '^V6
 case_run 71 "V63 T-1.3 loses slot re-check" check_protocol_invariants.sh '^V63 FAIL' \
   "sed -i 's/, \`slot-unbootable:b\`, \`slot-retry-count:b\`, \`current-slot\`//' docs/DEVICE-TEST-PROTOCOL.md"
 
+# V65: planted failing unit test must FAIL the suite
+case_run 78 "V65 failing unit test fails suite" selftest_python.sh '^V65 FAIL' \
+  "printf 'import unittest\nclass Z(unittest.TestCase):\n def test_planted(self):\n  self.assertTrue(False)\n' > tests/test_zz_sabotage.py"
+
 # V64: generic RAM sentence back in protocol
 case_run 72 "V64 generic RAM sentence returns" check_protocol_invariants.sh '^V64 FAIL' \
   "sed -i 's/hold power to reboot (do not touch the screen)/hold power to reboot (RAM boots leave flash untouched; do not touch the screen)/' docs/DEVICE-TEST-PROTOCOL.md"

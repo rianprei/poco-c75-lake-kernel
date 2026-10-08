@@ -16,10 +16,12 @@ Endurecimentos vs v1 (cada um com teste em run_fuzz.py):
   - saída existente -> recusa sem --force; entrada==saída -> sempre recusa;
   - avbtool ausente/falha -> ERRO limpo (exit 2 / 1) com a saída do avbtool;
   - temporários via tempfile no dir de saída + limpeza em falha (try/finally);
-  - --salt com --algorithm NONE -> recusa (avbtool rejeitaria);
+  - --keep-footer restrito a kernel byte-idêntico ao stock (footer amarra conteúdo);
+    --salt é repassado ao avbtool como recebido;
   - rollback-index negativo -> recusa;
   - teto de tamanho usa VBMETA_MAX_SIZE=64 KiB (libavb) em vez de 256 mágico;
-  - pós-verificação: avbtool info_image + roundtrip do kernel no OUT (não-fatal, logado).
+  - pós-verificação FATAL: tamanho == partition_size, footer AVBf no fim, roundtrip
+    exato do kernel, avbtool info_image com sucesso;
 Página fixa em 4096: boot v3+ fixa page_size em 4096
 (system/tools/mkbootimg bootimg.h: "in version 3 ... page size is fixed at 4096").
 Layout v4: header(4096) + kernel(pad 4096) [+ ramdisk(recusado)].
@@ -37,7 +39,8 @@ GUNZIP_CAP = 256 * 1024 * 1024
 
 
 def err(msg, code=1):
-    sys.exit(f"ERRO: {msg}")
+    print(f"ERRO: {msg}", file=sys.stderr)
+    sys.exit(code)
 
 
 def page_align(size, p=PAGE):
@@ -129,6 +132,8 @@ def main():
         err("footer AVBf curto/corrompido")
     if fb_version != 1:
         err(f"versão major de footer AVB={fb_version} (esperado 1)")
+    if not (0 < fb_img_size <= args.max_partition):
+        err(f"original_image_size={fb_img_size} impossível (fora de 1..{args.max_partition})")
     if not (0 < fb_vbmeta_size <= VBMETA_MAX_SIZE and fb_vbmeta_off + fb_vbmeta_size <= len(orig)):
         err("offsets do footer AVB inconsistentes")
 
@@ -150,6 +155,10 @@ def main():
     if len(new_kernel) < 2 or new_kernel[0:2] != b"\x1f\x8b":
         err("kernel novo não parece gzip (magic 1f8b)")
     new_image = gunzip_check(new_kernel, "kernel novo")
+    # kernel descomprimido tem que ser um Linux arm64 Image (magic ARM\x64 @ 0x38);
+    # gunzip_check prova que é gzip válido, isto prova que o conteúdo é um kernel.
+    if len(new_image) < 0x3C or new_image[0x38:0x3C] != b"ARM\x64":
+        err("kernel novo descomprimido não é um Linux arm64 Image (magic ARMd @0x38 ausente)")
 
     new_header = bytearray(header_bytes)
     struct.pack_into("<I", new_header, HDR_KERNEL_SIZE, len(new_kernel))
@@ -163,6 +172,13 @@ def main():
     if args.keep_footer:
         if len(new_padded) != page_align(kernel_size):
             err("--keep-footer exige kernel novo com mesmo size alinhado do stock")
+        # --keep-footer só é seguro para kernel byte-idêntico: o footer (vbmeta)
+        # amarra hashes do conteúdo; trocar o kernel mantendo o footer antigo
+        # gera imagem inválida. Para kernel novo, regenere o footer (sem --keep-footer).
+        if new_kernel != kernel_old:
+            err("--keep-footer exige kernel idêntico ao stock (byte-a-byte)")
+        if fb_img_size != len(orig):
+            err(f"--keep-footer: original_image_size={fb_img_size} != tamanho do stock ({len(orig)})")
         out_img = bytes(new_header) + new_padded
         # preserva o gap (assinatura/vbmeta intermediária) e o footer verbatim:
         # com padded igual, body_len == fim do kernel no stock.
@@ -198,19 +214,23 @@ def main():
         if r.returncode != 0:
             err(f"avbtool falhou (exit={r.returncode}): {(r.stderr or r.stdout).strip()[:300]}")
         os.replace(tmp_final, args.output)
-        # pós-verificação (não-fatal): kernel roundtrip + info_image
-        try:
-            got = open(args.output, "rb").read()
-            gk = struct.unpack_from("<I", got, HDR_KERNEL_SIZE)[0]
-            assert got[PAGE:PAGE + gk] == new_kernel, "roundtrip do kernel"
-            print(f"ROUNDTRIP OK: kernel {gk} B idêntico no OUT")
-        except Exception as e:
-            print(f"AVISO pós-verificação: {e}", file=sys.stderr)
+        # pós-verificação FATAL (era não-fatal): kernel roundtrip + info_image +
+        # tamanho == partition_size + footer no fim + VBMeta legível.
+        got = open(args.output, "rb").read()
+        if len(got) != args.max_partition:
+            err(f"saída tem {len(got)} B != partition_size {args.max_partition}")
+        if got[-AVB_FOOTER_LEN:-AVB_FOOTER_LEN + 4] != AVB_MAGIC:
+            err("footer AVBf ausente no fim da saída")
+        gk = struct.unpack_from("<I", got, HDR_KERNEL_SIZE)[0]
+        if got[PAGE:PAGE + gk] != new_kernel:
+            err("roundtrip do kernel: bytes no OUT != kernel novo")
+        print(f"ROUNDTRIP OK: kernel {gk} B idêntico no OUT")
         ri = subprocess.run(["avbtool", "info_image", "--image", args.output],
                             capture_output=True, text=True)
-        if ri.returncode == 0:
-            print("".join(l for l in ri.stdout.splitlines(True)
-                           if "Algorithm" in l or "Original image size" in l or "VBMeta offset" in l))
+        if ri.returncode != 0:
+            err(f"avbtool info_image falhou (exit={ri.returncode}): {(ri.stderr or ri.stdout).strip()[:300]}")
+        print("".join(l for l in ri.stdout.splitlines(True)
+                       if "Algorithm" in l or "Original image size" in l or "VBMeta offset" in l))
     finally:
         for t in (tmp_nosig, tmp_final):
             try:

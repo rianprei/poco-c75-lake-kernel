@@ -86,6 +86,7 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B67 | 2026-10-07 | Generic "(RAM boots leave flash untouched...)" safety claim in abort criteria. | V64 |
 | B68 | 2026-10-07 | `run_all_checks.sh` fail-open: crashed/muted check with no FAIL lines passed; GATE required only the string, not exit 0. | run_all_checks.sh (script_ok + GATE string+rc) |
 | B69 | 2026-10-07 | Check hardening batch: V8 vacuous on empty facts log; V2 silently missed multiline/unquoted/variable greps; V31 counted non-fenced lines; V21 missed duplicates; V40 (FIX13) matched SPEC by hard-coded line number. | V8/V2/V31/V21/V40 |
+| B70 | 2026-10-07 | No Python unit tests for repack/dump tools (exit codes, malformed inputs, keep-footer gates untested). | V65 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -212,6 +213,7 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V62 | `docs/DEVICE-TEST-PROTOCOL.md` carrega a política getvar required/optional/accepted-absent; ausência nunca é falsa segurança nem falso STOP. | `tools/check_protocol_invariants.sh` |
 | V63 | T-1.3 re-checa slot state, build line e kernel release contra os valores pré-T-1. | `tools/check_protocol_invariants.sh` |
 | V64 | ∄ frase genérica "RAM boots leave flash untouched" no protocolo. | `tools/check_protocol_invariants.sh` |
+| V65 | `python3 -m unittest discover -s tests -p 'test_*.py'` passa (exit 0 + `^OK`): repack (exit codes, magics, keep-footer, info_image fatal) e dump_modcrcs (ELF malformado, permissive, sem-__versions, prefixos, CRC divergente). | `tools/selftest_python.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):
