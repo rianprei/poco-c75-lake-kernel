@@ -37,7 +37,9 @@
 #   V57  residual risks table R1-R4 present ..... tools/check_protocol_invariants.sh
 #   V58-V64  FIX14 guard/wrapper/stderr/retry/policy/T-1.3/RAM-generic
 #   V65  Python unit tests pass (unittest) ....... tools/selftest_python.sh
+#   V68  Google-key fingerprint exact ............ tools/check_docs_numbers.sh
 #   V66  fastboot guard behavioral selftest ...... tools/selftest_fastboot_guard.sh
+#   V67  modsig synthetic matrix (6 cases) ....... tools/verify_modsig.sh --selftest-full
 #                                            ....... tools/check_protocol_invariants.sh (V58 guard file),
 #                                            docs (V59-V64)
 #   V10-V13  aliases of V2/V5/V2/V7 (FIX6 ids, see SPEC.md §V)
@@ -75,6 +77,7 @@ script_ok() { # <label> <fail-pattern> -> 0 only if rc==0, no FAIL, explicit PAS
 declare -A RC
 run "V1 docs numbers"          "$HERE/check_docs_numbers.sh"
 script_ok "V1 docs numbers" '^V1 FAIL' && RC[V1]=0 || RC[V1]=1
+script_ok "V1 docs numbers" '^V68 FAIL' && RC[V68]=0 || RC[V68]=1
 run "V2 regex controls"        "$HERE/check_regex_controls.sh"
 script_ok "V2 regex controls" '^V2 FAIL' && RC[V2]=0 || RC[V2]=1
 run "V3-V8+V14-V17 invariants" "$HERE/check_protocol_invariants.sh"
@@ -98,15 +101,17 @@ run "PY unit tests"              "$HERE/selftest_python.sh"
 script_ok "PY unit tests" '^V65 FAIL' && RC[V65]=0 || RC[V65]=1
 run "GUARD fastboot stub"          "$HERE/selftest_fastboot_guard.sh"
 script_ok "GUARD fastboot stub" '^V66 FAIL' && RC[V66]=0 || RC[V66]=1
+run "MODSIG matrix"                    "$HERE/verify_modsig.sh --selftest-full"
+script_ok "MODSIG matrix" '^V67 FAIL' && RC[V67]=0 || RC[V67]=1
 
 echo "=== resumo dos invariantes ==="
 bad=0
-for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V54 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64 V65 V66 GATE; do
+for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V54 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64 V65 V66 V67 V68 GATE; do
   if [ "${RC[$v]:-1}" -eq 0 ]; then printf '%-5s PASS\n' "$v"; else printf '%-5s FAIL\n' "$v"; bad=$((bad + 1)); fi
 done
 if [ "$bad" -eq 0 ]; then
-  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V33 + V34-V66 + gate self-test)"
+  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V33 + V34-V68 + gate self-test)"
   exit 0
 fi
-echo "run_all_checks: FAIL ($bad de 67 verificações falharam)"
+echo "run_all_checks: FAIL ($bad de 69 verificações falharam)"
 exit 1

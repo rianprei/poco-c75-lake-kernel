@@ -94,6 +94,22 @@ done
 note "not cross-checkable offline (device dump not published; see SPEC.md §V/V1): 342 ramdisk +"
 note "215 vendor_dlkm + 17 in both; vermagic groups 193/170/7; 101|68 kCFI counts; 429 baseline modules"
 
+# --- 5. V68: recorded Google-key fingerprint (item 50) recorded Google-key fingerprint matches the repo cert file --------------------------
+# (docs must quote the exact fingerprint; recomputed here so doc drift fails loudly)
+v50fails=0
+CERT="certs/google_gki_ab13771415_modsign_cert.pem"
+if [ -f "$CERT" ]; then
+  real_fp="$(openssl x509 -in "$CERT" -noout -fingerprint -sha256 2>/dev/null | sed 's/^.*=//')"
+  if grep -qF "$real_fp" docs/KMI-GATES.md; then
+    echo "V68 OK KMI-GATES.md quotes the Google-key fingerprint ($real_fp)"
+  else
+    echo "V68 FAIL KMI-GATES.md lost the Google-key fingerprint ($real_fp)"; v50fails=$((v50fails + 1))
+  fi
+else
+  echo "V68 FAIL $CERT missing"; v50fails=$((v50fails + 1))
+fi
+
+fails=$((fails + v50fails))
 if [ "$fails" -eq 0 ]; then
   echo "V1 PASS docs numbers == gate/data ($files files, $unique modules, $required required, $provides provided)"
   exit 0

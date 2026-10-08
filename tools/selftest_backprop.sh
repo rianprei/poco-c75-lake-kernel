@@ -14,18 +14,18 @@ PRISTINE="$BASE/pristine"; mkdir -p "$PRISTINE"
 cp -a "$ROOT/tools" "$ROOT/tests" "$ROOT/docs" "$ROOT/data" "$ROOT/scripts" "$ROOT/README.md" "$ROOT/SPEC.md" "$PRISTINE/"
 
 pass=0; fail=0
-case_run() { # <n> <label> <check script> <expected FAIL pattern> <mutation (bash, runs inside the copy)>
-  local n="$1" label="$2" script="$3" pat="$4" mut="$5"
+case_run() { # <n> <label> <check script> <expected FAIL pattern> <mutation (bash, runs inside the copy)> [extra args]
+  local n="$1" label="$2" script="$3" pat="$4" mut="$5" extra="${6:-}"
   local dir out rc
   dir="$(mktemp -d "$BASE/case.XXXXXX")"; cp -a "$PRISTINE/." "$dir/"
   ( cd "$dir" && eval "$mut" ) >/dev/null 2>&1
-  out="$( cd "$dir" && bash "tools/$script" 2>&1 )"; rc=$?
+  out="$( cd "$dir" && bash "tools/$script" $extra 2>&1 )"; rc=$?
   printf '### [%s] %s\n' "$n" "$label"
   if [ "$rc" -ne 0 ] && grep -qE "$pat" <<<"$out"; then
     printf '    defeito plantado DETECTADO: exit=%s, casou /%s/\n' "$rc" "$pat"
     printf '%s\n' "$out" | grep -E "$pat" | head -2 | sed 's/^/      /'
     local pout prc
-    pout="$( cd "$PRISTINE" && bash "tools/$script" 2>&1 )"; prc=$?
+    pout="$( cd "$PRISTINE" && bash "tools/$script" $extra 2>&1 )"; prc=$?
     if [ "$prc" -eq 0 ]; then
       printf '    cópia limpa: PASS (exit=0)\n  => OK   FAIL->PASS\n\n'
       pass=$((pass + 1))
@@ -359,6 +359,14 @@ case_run 78 "V65 failing unit test fails suite" selftest_python.sh '^V65 FAIL' \
 # V66: guard allowlist loosened (extra getvar) must FAIL the behavioral selftest
 case_run 79 "V66 loosened guard fails selftest" selftest_fastboot_guard.sh '^V66 FAIL' \
   "sed -i 's/battery-soc-ok|battery-voltage/battery-soc-ok|battery-voltage|all/' tools/fastboot_guard.sh"
+
+# V67: modsig matrix sabotaged (signer extraction broken) must FAIL
+case_run 80 "V67 modsig signer extraction broken" verify_modsig.sh '^V67 FAIL' \
+  "sed -i 's/serialNumber:/ZZZ-nope:/' tools/verify_modsig.sh" --selftest-full
+
+# V68: recorded fingerprint dropped from docs must FAIL
+case_run 81 "V68 fingerprint dropped from docs" check_docs_numbers.sh '^V68 FAIL' \
+  "sed -i 's/76:FB:DF:D1:3F:6B:A6:12:75:6E:AE:36:E9:9F:88:50:8F:A3:20:2A:A3:51:17:70:4C:26:D5:5A:99:CC:72:A1/00:00/' docs/KMI-GATES.md"
 
 # V64: generic RAM sentence back in protocol
 case_run 72 "V64 generic RAM sentence returns" check_protocol_invariants.sh '^V64 FAIL' \

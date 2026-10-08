@@ -90,6 +90,10 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B71 | 2026-10-07 | Guard verified-then-flashed the ORIGINAL path (TOCTOU: file could change between check and write). | V58+V66 |
 | B72 | 2026-10-07 | Input-hardening batch: dash/space filenames vs flag confusion (guard), unsigned/truncated module traceback (modsig), dash-prefixed repack paths (covered by argparse+test). | V65 (tests) |
 | B73 | 2026-10-07 | Join exactness unproven (prefix-differing symbols); gates case review (U5: logic sound, 2309 pinned). | GATE (case 5) |
+| B74 | 2026-10-07 | Method B only printed signer identity; validating cert could differ from the signer named in PKCS#7. | verify_modsig.sh (signer-compare) |
+| B75 | 2026-10-07 | No recorded expected-cert fingerprint; modsig selftest needs official files (fails offline). | docs (G-CERT-FP) + V68 |
+| B76 | 2026-10-07 | Selftest had 2 cases; 6-matrix (wrong signer, modified content/signature, missing cert, same-issuer-different-key) missing. | V67 |
+| B76 | 2026-10-07 | Selftest had 2 cases; 6-matrix (wrong signer, modified content/signature, missing cert, same-issuer-different-key) missing. | V67 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -218,6 +222,8 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V64 | ∄ frase genérica "RAM boots leave flash untouched" no protocolo. | `tools/check_protocol_invariants.sh` |
 | V65 | `python3 -m unittest discover -s tests -p 'test_*.py'` passa (exit 0 + `^OK`): repack (exit codes, magics, keep-footer, info_image fatal), dump_modcrcs (ELF malformado, permissive, sem-__versions, prefixos, CRC divergente), modsig (sem-assinatura/truncado sem traceback). | `tools/selftest_python.sh` |
 | V66 | `tools/selftest_fastboot_guard.sh` passa contra fastboot falso (20 allow + 16 deny + prova de cópia privada 0400 + nomes hostis). | `tools/selftest_fastboot_guard.sh` |
+| V67 | `tools/verify_modsig.sh --selftest-full` passa a matriz sintética offline (6/6: signatário ok/errado, conteúdo/assinatura modificados, cert ausente, mesmo issuer outra chave). | `tools/verify_modsig.sh --selftest-full` |
+| V68 | `docs/KMI-GATES.md` cita o fingerprint sha256 exato do cert Google (`certs/google_gki_ab13771415_modsign_cert.pem`), recomputado aqui. | `tools/check_docs_numbers.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):

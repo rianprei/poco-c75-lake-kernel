@@ -6,9 +6,13 @@
 # Método:
 #   1) Extrai a assinatura PKCS#7 do fim do .ko (struct module_signature + magic).
 #   2) Garimpa certificados DER do Image (toda SEQUENCE válida que o openssl aceita
-#      como X.509) — 2 passagens independentes: (A) varredura ampla, (B) por fingerprint.
-#   3) openssl cms -verify do conteúdo do módulo contra cada cert garimpado.
-#   PASS = algum cert do Image valida; FAIL caso contrário.
+#      como X.509).
+#   3) openssl cms -verify do conteúdo do módulo contra cada cert garimpado, E a
+#      identidade do signatário declarada no PKCS#7 (issuer+serial) tem que ser a
+#      do cert que validou (método B real).
+#   PASS = algum cert do Image valida E a identidade do signatário confere; FAIL
+#   caso contrário. Isto prova offline a cadeia cert↔assinatura; não diz nada
+#   sobre o comportamento do keyring em runtime (item 53).
 # Requer: python3, openssl, xxd. Somente leitura nos inputs.
 set -euo pipefail
 
@@ -118,15 +122,28 @@ cmd_verify() {
     # protocol checks reject (SPEC.md V2/B12) — the two forms print the same lines.
     openssl cms -inform DER -in "$SIG" -cmsout -print 2>/dev/null | grep -a -m2 -iE "serial|issuer" | sed 's/^/      /' || true
     echo "[3/3] verificando assinatura contra cada cert do Image..."
+    # Método B real (item 49): a identidade do signatário declarada no PKCS#7
+    # (issuer+serial) tem que ser a do cert que valida — não basta "algum cert valida".
+    # Extração canônica "issuer|serial" dos dois lados (minúsculas, só [a-z0-9]).
+    signer_id="$(openssl cms -inform DER -in "$SIG" -cmsout -print 2>/dev/null | awk '
+        /serialNumber:/ { gsub(/.*0[xX]/, ""); sn=$0 }
+        /issuer:/ && !done { sub(/.*issuer:[[:space:]]*/, ""); iss=$0; done=1 }
+        END { print tolower(iss) "|" tolower(sn) }' | tr -cd 'a-z0-9|')"
     for c in "${CERTS[@]}"; do
         if verify_one "$CONTENT" "$SIG" "$c"; then
-            echo "PASS: $ko validado por cert do Image: $c"
-            return 0
+            cert_id="$(openssl x509 -inform DER -in "$c" -noout -issuer -serial 2>/dev/null \
+                | sed -e 's/^issuer=//' -e 's/^serial=//' | tr 'A-Z' 'a-z' | tr -cd 'a-z0-9\n' | paste -sd'|' -)"
+            if [ -n "$signer_id" ] && [ "$signer_id" = "$cert_id" ]; then
+                echo "PASS: $ko validado por cert do Image: $c (signatário confere)"
+                return 0
+            else
+                echo "      - valida criptograficamente com $c mas signatário difere (segue procurando)"
+            fi
         else
             echo "      - não valida com $c"
         fi
     done
-    echo "FAIL: nenhum cert do Image valida $ko"
+    echo "FAIL: nenhum cert do Image valida $ko com identidade do signatário"
     return 1
 }
 
@@ -154,8 +171,65 @@ PY
     echo 'SELFTEST PASS (positivo PASS + negativo FAIL)'
 }
 
+cmd_selftest_full() { # matriz sintética offline (item 52): chaves/módulos gerados aqui
+    local work="${SELFTEST_WORK:-}"
+    if [ -z "$work" ]; then new_tmpwork; work="$TMPWORK"; fi
+    mkdir -p "$work/full"
+    local fails=0
+    # duas identidades: (k1,c1) e (k2,c2 com MESMO subject CN, outra chave)
+    openssl req -x509 -newkey rsa:2048 -nodes -keyout "$work/full/k1.key" \
+        -out "$work/full/c1.crt" -days 2 -subj "/CN=unittest-signer/" 2>/dev/null
+    openssl req -x509 -newkey rsa:2048 -nodes -keyout "$work/full/k2.key" \
+        -out "$work/full/c2.crt" -days 2 -subj "/CN=unittest-signer/" 2>/dev/null
+    openssl x509 -in "$work/full/c1.crt" -outform DER -out "$work/full/c1.der" 2>/dev/null
+    openssl x509 -in "$work/full/c2.crt" -outform DER -out "$work/full/c2.der" 2>/dev/null
+    printf 'fake-module-content-0123456789' > "$work/full/content.bin"
+    openssl cms -sign -binary -in "$work/full/content.bin" -outform DER \
+        -signer "$work/full/c1.crt" -inkey "$work/full/k1.key" -nocerts \
+        -out "$work/full/sig1.der" 2>/dev/null
+    openssl cms -sign -binary -in "$work/full/content.bin" -outform DER \
+        -signer "$work/full/c2.crt" -inkey "$work/full/k2.key" -nocerts \
+        -out "$work/full/sig2.der" 2>/dev/null
+    mkmod() { # <content> <sig.der> <out.ko>
+        python3 - "$1" "$2" "$3" <<'PY'
+import struct, sys
+content = open(sys.argv[1], 'rb').read()
+sig = open(sys.argv[2], 'rb').read()
+info = struct.pack('>BBBBB3xI', 1, 2, 0, len(b'signer'), 0, len(sig))
+open(sys.argv[3], 'wb').write(content + sig + info + b'~Module signature appended~\n')
+PY
+    }
+    mkimg() { # <der-cert-ou-vazio> <out.img>
+        python3 -c "import sys; open('$2','wb').write(b'\0'*512 + open('$1','rb').read() + b'\0'*512)" 2>/dev/null || \
+            python3 -c "open('$2','wb').write(b'\0'*1024)"
+    }
+    mkmod "$work/full/content.bin" "$work/full/sig1.der" "$work/full/mod_ok.ko"
+    mkimg "$work/full/c1.der" "$work/full/img_ok.img"
+    full_case() { # <n> <label> <want-rc> <img> <ko>
+        local n="$1" label="$2" want="$3" out rc
+        printf '### [%s] %s\n' "$n" "$label"
+        out="$(cmd_verify "$4" "$5" "$work/full/w$n" 2>&1)" && rc=0 || rc=$?
+        if [ "$rc" -eq "$want" ]; then printf '  => OK (exit=%s)\n\n' "$rc";
+        else printf '  => FALHA (exit=%s, esperado %s)\n%s\n\n' "$rc" "$want" "$out"; fails=$((fails + 1)); fi
+    }
+    full_case 1 "signatário correto valida" 0 "$work/full/img_ok.img" "$work/full/mod_ok.ko"
+    mkmod "$work/full/content.bin" "$work/full/sig2.der" "$work/full/mod_k2.ko"
+    full_case 2 "signatário errado rejeitado" 1 "$work/full/img_ok.img" "$work/full/mod_k2.ko"
+    python3 -c "d=bytearray(open('$work/full/mod_ok.ko','rb').read()); d[10]^=1; open('$work/full/mod_bad.ko','wb').write(bytes(d))"
+    full_case 3 "conteúdo modificado rejeitado" 1 "$work/full/img_ok.img" "$work/full/mod_bad.ko"
+    python3 -c "d=bytearray(open('$work/full/mod_ok.ko','rb').read()); d[-30]^=1; open('$work/full/mod_badsig.ko','wb').write(bytes(d))"
+    full_case 4 "assinatura modificada rejeitada" 1 "$work/full/img_ok.img" "$work/full/mod_badsig.ko"
+    mkimg "" "$work/full/img_empty.img"
+    full_case 5 "cert ausente rejeitado limpo" 1 "$work/full/img_empty.img" "$work/full/mod_ok.ko"
+    mkimg "$work/full/c2.der" "$work/full/img_samecn.img"
+    full_case 6 "mesmo issuer, outra chave rejeitado" 1 "$work/full/img_samecn.img" "$work/full/mod_ok.ko"
+    if [ "$fails" -eq 0 ]; then echo 'V67 OK modsig synthetic matrix (6/6: signer ok/errado, conteúdo/assinatura, cert ausente, mesmo issuer)'; echo 'SELFTEST-FULL PASS (6/6)'; return 0; fi
+    echo 'V67 FAIL modsig synthetic matrix'; echo "SELFTEST-FULL FAIL ($fails caso(s))"; return 1
+}
+
 case "${1:-}" in
     --selftest) cmd_selftest ;;
+    --selftest-full) cmd_selftest_full ;;
     -h|--help) sed -n '2,12p' "$0" ;;
     *) [ $# -ge 2 ] || { echo "uso: $0 <Image> <mod.ko> [workdir] | $0 --selftest"; exit 2; }
        cmd_verify "$1" "$2" "${3:-}" ;;
