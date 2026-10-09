@@ -226,7 +226,7 @@ grep -qF 'partition-size:boot_b' "$PROTO" \
 grep -qE 'is-userspace.?=.?(yes|fastbootd)' "$PROTO" && grep -qiE 'STOP' "$PROTO" \
   && ok 16 "is-userspace=yes (fastbootd) is a STOP" \
   || fail 16 "$PROTO does not STOP on is-userspace=yes (fastbootd)"
-note 16 "the runtime value of is-userspace on this LK is UNVERIFIED (SPEC.md §T); tolerating both non-fastbootd answers is the only safe reading until a Z0 run"
+note 16 "is-userspace was read as no on 2026-10-09; the protocol still tolerates Variable not found"
 
 # ------------------------------------------------------------------------------------------------
 # V17 — PROVED/MEASURED bootloader claims need evidence of the right kind (order needs disassembly)
@@ -1134,16 +1134,16 @@ grep -qF 'STOP if z0_fastboot_before.txt lacks one answer per allowlist name' "$
   || fail 95 "Z0.5 capture has no stop for a missing answer"
 
 # ------------------------------------------------------------------------------------------------
-# V96 — max-download-size is decimal or 0x hex, both in bytes, in Z0 and in R3
+# V96 — max-download-size is LK hex with an optional 0x prefix, in Z0 and in R3
 # ------------------------------------------------------------------------------------------------
 thr96="$(sed -n '59,62p' "$PROTO")"
 r396="$(sed -n '79p' "$PROTO")"
-phrase96='decimal or 0x hex, both in bytes'
+phrase96='LK hex, optional 0x prefix, in bytes'
 if grep -qF "$phrase96" <<<"$thr96" && grep -qF "$phrase96" <<<"$r396" \
    && grep -qF 'threshold-if-present' <<<"$thr96" \
    && grep -qF 'if answered, it must be' <<<"$r396" \
    && grep -qF 'if absent, record and continue' <<<"$r396"; then
-  ok 96 "max-download-size is decimal or 0x hex, both in bytes, in Z0 and in R3"
+  ok 96 "max-download-size is LK hex, optional 0x prefix, in bytes, in Z0 and in R3"
 else
   fail 96 "max-download-size radix disagrees between Z0 and R3"
 fi
@@ -1160,8 +1160,91 @@ else
   fail 97 "Z0 PASS equation differs between the close line and the summary line"
 fi
 
+# ------------------------------------------------------------------------------------------------
+# V98 — lk_parse_size is the one hex parser, and the flash guard calls it
+# ------------------------------------------------------------------------------------------------
+# shellcheck source=lk_size.sh
+. "$HERE/lk_size.sh"
+v98_bad=0
+v98_eq() { # <token> <decimal>
+  local got
+  got="$(lk_parse_size "$1" 2>/dev/null || true)"
+  if [ "$got" = "$2" ]; then
+    return 0
+  fi
+  v98_bad=$((v98_bad + 1))
+  return 1
+}
+v98_eq '4000000' 67108864 || true
+v98_eq '0x4000000' 67108864 || true
+v98_eq '0X4000000' 67108864 || true
+v98_eq '3ffffff' 67108863 || true
+v98_eq '67108864' 1729136740 || true
+v98_eq '0x8000000' 134217728 || true
+if lk_parse_size '' >/dev/null 2>&1; then v98_bad=$((v98_bad + 1)); fi
+if lk_parse_size 'Variable not found' >/dev/null 2>&1; then v98_bad=$((v98_bad + 1)); fi
+guard98="$(sed -n '/# V98-PARTSIZE$/,/# V98-PARTSIZE-END$/p' tools/fastboot_guard.sh)"
+if [ "$v98_bad" -eq 0 ] \
+   && grep -qF 'lk_parse_size' <<<"$guard98" \
+   && grep -qF 'getvar partition-size:boot_b' <<<"$guard98" \
+   && grep -qF 'partition-size:boot_b recusado' <<<"$guard98" \
+   && grep -qF '4000000` and `0x4000000` are the same value' "$PROTO"; then
+  ok 98 "lk_parse_size accepts lake hex with or without 0x and the flash guard uses it"
+else
+  fail 98 "lk_parse_size or the flash partition-size gate drifted"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V99 — key entry order at every key-entry point
+# ------------------------------------------------------------------------------------------------
+phrase99='Power off, disconnect the cable, hold Vol− + Power until FASTBOOT, release, then reconnect the cable'
+v99_bad=0
+for pair in "$PROTO:32" "$PROTO:110" "$PROTO:132" "$PROTO:206" "$PROTO:207" "$PROTO:229" "$SAFETY:58"; do
+  file="${pair%%:*}"
+  n="${pair##*:}"
+  if ! grep -qF "$phrase99" <<<"$(sed -n "${n}p" "$file")"; then
+    v99_bad=$((v99_bad + 1))
+    fail 99 "key-entry order missing on $file line $n"
+  fi
+done
+if [ "$v99_bad" -eq 0 ]; then
+  ok 99 "key entry is power off, disconnect, Vol− + Power until FASTBOOT, release, reconnect"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V100 — the 2026-10-09 Z0 run is logged, and the old unlogged sentence is gone
+# ------------------------------------------------------------------------------------------------
+if grep -qF '## Z0 results (2026-10-09)' "$PROTO" \
+   && grep -qF '| partition-size:boot_b | 4000000 |' "$PROTO" \
+   && grep -qF '| max-download-size | 0x8000000 |' "$PROTO" \
+   && grep -qF '| is-userspace | no |' "$PROTO" \
+   && grep -qF '| slot-retry-count:b | 1 |' "$PROTO" \
+   && grep -qF '| slot-unbootable:a | yes |' "$PROTO" \
+   && ! grep -qF 'until a Z0 run is logged' "$PROTO" \
+   && grep -qF 'partition-size:boot_b=4000000' docs/PLAN-AND-FINDINGS.pt-BR.md \
+   && grep -qF '2026-10-09' docs/PLAN-AND-FINDINGS.pt-BR.md; then
+  ok 100 "Z0 2026-10-09 values are logged and the unlogged sentence is gone"
+else
+  fail 100 "Z0 results are missing or the protocol still says the run is unlogged"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V101 — slot A flags, the priority-nibble skip, and the T3 retry implication
+# ------------------------------------------------------------------------------------------------
+if grep -qF 'INFERRED until observed' "$PROTO" \
+   && grep -qF '0x4c42cae2' "$PROTO" \
+   && grep -qF '0x4c453df8' "$PROTO" \
+   && grep -qF 'Risk remains' "$PROTO" \
+   && grep -qF 'slot-retry-count:b` is MEASURED 1' "$PROTO" \
+   && grep -qF 'unbootable=yes' docs/PLAN-AND-FINDINGS.pt-BR.md \
+   && grep -qF 'slot-retry-count:b` measured 1' docs/SAFETY.md; then
+  ok 101 "slot A is measured unbootable, the skip is the priority nibble, and retry b=1 stays INFERRED for T3"
+else
+  fail 101 "slot A, the priority-nibble skip, or retry-count:b=1 dropped out of the docs"
+fi
+
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3-V75 and V90-V97 except aliases and the checks that live in other scripts)"
+  echo "PASS protocol invariants (V3-V75 and V90-V101 except aliases and the checks that live in other scripts)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"

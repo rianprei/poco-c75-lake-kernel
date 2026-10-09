@@ -1,6 +1,6 @@
 # poco-c75-lake-kernel
 
-**rebuild-reproducible, gate-verified build of the Android GKI 6.6.89 kernel used by the POCO C75 4G / Redmi 14C 4G (`lake`, MediaTek MT6768/MT6769) — with host-side gates recommended before any device write. `tools/fastboot_guard.sh` checks three words, size, sha256, and magic; it does not check those gate results. Device boot is not yet tested. All verification below is host-verified; hardware behavior is hardware-unverified and booting remains boot-unproven until a real device run is logged.**
+**rebuild-reproducible, gate-verified build of the Android GKI 6.6.89 kernel used by the POCO C75 4G / Redmi 14C 4G (`lake`, MediaTek MT6768/MT6769) — with host-side gates recommended before any device write. `tools/fastboot_guard.sh` checks three words, size, sha256, magic, and `partition-size:boot_b`; it does not check those gate results. Device boot is not yet tested. All verification below is host-verified; hardware behavior is hardware-unverified and booting remains boot-unproven until a real device run is logged.**
 
 **rebuild-reproducible** means the control build matches stock symvers, config, and Image size. It does not mean a bit-identical Image. `common` is pinned by a tag; that tag's SHA is recorded and not enforced.
 

@@ -28,6 +28,9 @@ fi
 if [ "\$1" = "getvar" ] && [ "\$2" = "is-userspace" ]; then
   printf '%s\n' "\${FAKE_USER_LINE:-is-userspace: no}" >&2
 fi
+if [ "\$1" = "getvar" ] && [ "\$2" = "partition-size:boot_b" ]; then
+  printf '%s\n' "\${FAKE_PART_LINE:-partition-size:boot_b: 4000000}" >&2
+fi
 echo "FAKE-OKAY \$*"
 exit 0
 EOF
@@ -182,6 +185,135 @@ if [ "$v89_fail" -eq 0 ]; then
 else
   echo 'V89 FAIL reboot interlock'
   fail=$((fail + v89_fail))
+fi
+
+# V98: partition-size is LK hex. Accept 4000000 / 0x4000000 / 0X4000000.
+# Refuse 3ffffff, the decimal-looking token 67108864, empty, and
+# Variable not found. A refusal still calls getvar and must not flash.
+v98_fail=0
+v98_case() { # <label> <part-line> <pass|deny>
+  local label="$1" part_line="$2" expect="$3"
+  local before errf rc new
+  before="$(wc -l < "$STUBLOG" 2>/dev/null || echo 0)"
+  errf="$BASE/v98.err"
+  FAKE_PART_LINE="$part_line" \
+    "$GUARD" flash boot_b "$GOODIMG" >"$BASE/v98.out" 2>"$errf"
+  rc=$?
+  new="$(tail -n +"$((before + 1))" "$STUBLOG" 2>/dev/null || true)"
+  printf '### V98 %s\n' "$label"
+  if [ "$expect" = "pass" ]; then
+    if [ "$rc" -eq 0 ] && grep -qx 'getvar partition-size:boot_b' <<<"$new" \
+        && grep -q 'flash boot_b ' <<<"$new"; then
+      printf '    flash depois de partition-size\n  => OK\n\n'
+      return 0
+    fi
+  else
+    if [ "$rc" -ne 0 ] && grep -qF 'partition-size:boot_b recusado' "$errf" \
+        && grep -qx 'getvar partition-size:boot_b' <<<"$new" \
+        && ! grep -q 'flash boot_b ' <<<"$new"; then
+      printf '    recusado sem flash\n  => OK\n\n'
+      return 0
+    fi
+  fi
+  printf '    ESPERAVA %s; rc=%s\n%s\n  => FALHA\n\n' "$expect" "$rc" "$new"
+  v98_fail=$((v98_fail + 1))
+}
+
+v98_case "4000000 passa" "partition-size:boot_b: 4000000" pass
+v98_case "0x4000000 passa" "partition-size:boot_b: 0x4000000" pass
+v98_case "0X4000000 passa" "partition-size:boot_b: 0X4000000" pass
+v98_case "Finished trailer ignorado" $'partition-size:boot_b: 4000000\nFinished. Total time: 0.001s' pass
+v98_case "3ffffff recusa" "partition-size:boot_b: 3ffffff" deny
+v98_case "67108864 é hex e recusa" "partition-size:boot_b: 67108864" deny
+v98_case "vazio recusa" "partition-size:boot_b:" deny
+v98_case "Variable not found recusa" "partition-size:boot_b: Variable not found" deny
+v98_case "FAILED recusa" "FAILED (remote: Variable not found)" deny
+
+# T-1: accept exactly flash boot_b when size, magic, the listed hash, and
+# stub partition-size 4000000 all hold. Refuse any one of those changing.
+# The audited backup image is used when it sits next to this checkout.
+# A throwaway copy of the repo has no image there; the synthetic file still
+# proves the same four gates.
+t1_fail=0
+t1_note() { printf '### T-1 %s\n%s\n' "$1" "$2"; }
+
+t1_run() { # <label> <expect pass|deny> <part-line> <hashes-file> <image> [extra-arg...]
+  local label="$1" expect="$2" part_line="$3" hashes="$4" image="$5"
+  shift 5
+  local before errf rc new
+  before="$(wc -l < "$STUBLOG" 2>/dev/null || echo 0)"
+  errf="$BASE/t1.err"
+  FAKE_PART_LINE="$part_line" \
+    "$GUARD" --hashes "$hashes" flash boot_b "$image" "$@" >"$BASE/t1.out" 2>"$errf"
+  rc=$?
+  new="$(tail -n +"$((before + 1))" "$STUBLOG" 2>/dev/null || true)"
+  printf '### T-1 %s\n' "$label"
+  if [ "$expect" = "pass" ]; then
+    if [ "$rc" -eq 0 ] && grep -qx 'getvar partition-size:boot_b' <<<"$new" \
+        && grep -q 'flash boot_b ' <<<"$new"; then
+      printf '    aceito\n  => OK\n\n'
+      return 0
+    fi
+  else
+    if [ "$rc" -ne 0 ] && ! grep -q 'flash boot_b ' <<<"$new"; then
+      printf '    recusado sem flash\n  => OK\n\n'
+      return 0
+    fi
+  fi
+  printf '    ESPERAVA %s; rc=%s\n%s\n  => FALHA\n\n' "$expect" "$rc" "$new"
+  t1_fail=$((t1_fail + 1))
+}
+
+GOODSUM="$(sha256sum "$GOODIMG" | cut -d' ' -f1)"
+SYN_HASHES="$BASE/t1_syn.sha256"
+printf '%s\n' "$GOODSUM" > "$SYN_HASHES"
+BAD_HASHES="$BASE/t1_bad.sha256"
+printf '%s\n' '3890fb9664c6543a4939b18b3845f05995221672fb4af905d2367ef12b829fc0' > "$BAD_HASHES"
+t1_run "sintético hash+size+magic+4000000" pass "partition-size:boot_b: 4000000" "$SYN_HASHES" "$GOODIMG"
+t1_run "hash que não é o do arquivo recusa" deny "partition-size:boot_b: 4000000" "$BAD_HASHES" "$GOODIMG"
+t1_run "partição 3ffffff recusa" deny "partition-size:boot_b: 3ffffff" "$SYN_HASHES" "$GOODIMG"
+t1_run "partição 67108864 recusa" deny "partition-size:boot_b: 67108864" "$SYN_HASHES" "$GOODIMG"
+t1_run "partição vazia recusa" deny "partition-size:boot_b:" "$SYN_HASHES" "$GOODIMG"
+t1_run "partição Variable not found recusa" deny "partition-size:boot_b: Variable not found" "$SYN_HASHES" "$GOODIMG"
+t1_run "magic errado recusa" deny "partition-size:boot_b: 4000000" "$SYN_HASHES" "$NOMAGIC"
+t1_run "tamanho errado recusa" deny "partition-size:boot_b: 4000000" "$SYN_HASHES" "$SMALL"
+t1_run "boot_a recusa" deny "partition-size:boot_b: 4000000" "$SYN_HASHES" "$GOODIMG" boot_a
+
+T1_HASH='3890fb9664c6543a4939b18b3845f05995221672fb4af905d2367ef12b829fc7'
+T1_DIR="$(cd "$ROOT/../lake-kernel/backup-2026-10-05" 2>/dev/null && pwd || true)"
+T1_IMG=""
+if [ -n "$T1_DIR" ]; then
+  T1_IMG="$T1_DIR/boot_b.img"
+fi
+if [ -n "$T1_IMG" ] && [ -f "$T1_IMG" ]; then
+  t1_got="$(sha256sum "$T1_IMG" | cut -d' ' -f1)"
+  t1_sz="$(stat -c%s -- "$T1_IMG")"
+  t1_mag="$(head -c 8 -- "$T1_IMG" || true)"
+  if [ "$t1_got" = "$T1_HASH" ] && [ "$t1_sz" = "67108864" ] && [ "$t1_mag" = "ANDROID!" ]; then
+    T1_HASHES="$BASE/t1_audited.sha256"
+    printf '%s\n' "$T1_HASH" > "$T1_HASHES"
+    t1_run "backup 3890fb96…829fc7 + 4000000" pass "partition-size:boot_b: 4000000" "$T1_HASHES" "$T1_IMG"
+    t1_run "backup com hash trocado recusa" deny "partition-size:boot_b: 4000000" "$BAD_HASHES" "$T1_IMG"
+    t1_run "backup com partição 3ffffff recusa" deny "partition-size:boot_b: 3ffffff" "$T1_HASHES" "$T1_IMG"
+  else
+    printf '### T-1 backup presente mas hash/tamanho/magic divergem\n  => FALHA\n\n'
+    t1_fail=$((t1_fail + 1))
+  fi
+else
+  echo 'T1-AUDITED skip'
+fi
+
+if [ "$v98_fail" -eq 0 ]; then
+  echo 'V98 OK partition-size hex parse'
+else
+  echo 'V98 FAIL partition-size hex parse'
+  fail=$((fail + v98_fail))
+fi
+if [ "$t1_fail" -eq 0 ]; then
+  echo 'T-1 pronto: sim'
+else
+  echo 'T-1 pronto: não'
+  fail=$((fail + t1_fail))
 fi
 
 printf 'GUARD-SELFTEST: %s passada(s), %s falha(s)\n' "$pass" "$fail"

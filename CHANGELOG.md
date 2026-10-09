@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.4 (2026-10-09)
+
+- `lk_parse_size` is the one LK size parser: optional `0x`/`0X`, then hex.
+  `4000000` and `0x4000000` are 67108864. The all-digit token `67108864` is
+  hex 1729136740, not that byte count. `tools/fastboot_guard.sh` reads
+  `partition-size:boot_b` and flashes only when the parsed integer equals
+  the file size (V98).
+- Z0 on 2026-10-09 is logged: `partition-size:boot_b` was `4000000`,
+  `max-download-size` was `0x8000000`, `is-userspace` was `no`, slot A was
+  `unbootable=yes` / `successful=no` / retry 0, and `slot-retry-count:b`
+  was 1. "Does not fall to A" stays INFERRED. Risk remains (V100, V101).
+- Key entry is: power off, disconnect the cable, hold Vol− + Power until
+  FASTBOOT, release, then reconnect the cable (V99).
+- Suite: invariants V1–V101 (V10–V13 are aliases) plus the CRC gate
+  self-test (102 checks). Sabotage 136/136.
+
 ## 0.2.3 (2026-10-09)
 
 - `tools/fastboot_guard.sh reboot` reads `current-slot` and `is-userspace`

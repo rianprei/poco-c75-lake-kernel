@@ -21,6 +21,8 @@
 #      or --hashes FILE): the backup hash recorded by the operator, or the
 #      T3 image hash from its SHA256SUMS
 #   4. first 8 bytes of <file> are "ANDROID!" (boot magic)
+#   5. getvar partition-size:boot_b parses with lk_parse_size (LK hex, optional
+#      0x/0X prefix) and that integer equals the copied file's size
 #
 # usage: tools/fastboot_guard.sh [--hashes FILE] <fastboot args...>
 #   FASTBOOT_BIN overrides the real fastboot binary (default: `command fastboot`,
@@ -28,6 +30,8 @@
 # Exit: 0/real-fastboot-status on allowlisted commands; 2 when refused or on
 # usage errors (the real fastboot is NOT executed on refusal).
 set -uo pipefail; export LC_ALL=C
+# shellcheck source=lk_size.sh
+. "$(cd "$(dirname "$0")" && pwd)/lk_size.sh"
 
 # Private copy dir (TOCTOU): created per flash, removed on EXIT (trap, V6-clean).
 GDIR=""
@@ -107,6 +111,23 @@ esac
 # functions/aliases, so a stale fastboot() denylist cannot shadow it; the PATH
 # stub in tests resolves here). No exec: the private copy dir is removed after.
 bin="$(type -P "$FASTBOOT_BIN")" || refuse "binário fastboot não encontrado no PATH"
+# V98-PARTSIZE
+# File gates above already refused a bad image without calling getvar.
+# A flash that reached here has size 67108864. Read partition-size:boot_b
+# and accept it only when lk_parse_size yields that same integer.
+# Lake LK prints hex with no prefix (measured 2026-10-09: 4000000).
+if [ "$cmd" = "flash" ]; then
+  part_out="$("$bin" getvar partition-size:boot_b 2>&1 || true)"
+  if grep -qF 'FAILED (' <<<"$part_out"; then
+    refuse "partition-size:boot_b recusado"
+  fi
+  part_val="$(printf '%s\n' "$part_out" | sed -n 's/.*partition-size:boot_b:[[:space:]]*//p' | tail -n 1 | tr -d '\r' | sed 's/[[:space:]]*$//')"
+  part_dec="$(lk_parse_size "$part_val" 2>/dev/null || true)"
+  if [ -z "$part_dec" ] || [ "$part_dec" != "$size" ]; then
+    refuse "partition-size:boot_b recusado"
+  fi
+fi
+# V98-PARTSIZE-END
 # V89-REBOOT-INTERLOCK
 # reboot stays allowlisted, but it boots the current slot. Read both getvars
 # before that argv is sent. Refuse unless the slot value is exactly b and

@@ -124,7 +124,7 @@ case_run 19 "V22 adb reboot no longer marked optional" check_protocol_invariants
 
 # V22b: Z0.1 missing "Vol− + Power" phrase
 case_run 19b "V22 Z0.1 missing Vol−+Power phrase" check_protocol_invariants.sh '^V22 FAIL' \
-  "sed -i 's/hold \`Vol− + Power\` until the fastboot screen/wait for the fastboot screen to appear on its own/' docs/DEVICE-TEST-PROTOCOL.md"
+  "sed -i '32s/hold Vol− + Power until FASTBOOT/wait for the fastboot screen/' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V23: slot!=b rule flipped to 'always fastboot reboot'
 case_run 20 "V23 slot!=b rule flipped" check_protocol_invariants.sh '^V23 FAIL' \
@@ -432,7 +432,7 @@ case_run 92 "V73 T3 pass loses do-not-reboot" check_protocol_invariants.sh '^V73
 
 # V74: L2 placeholder returns
 case_run 93 "V74 L2 placeholder returns" check_protocol_invariants.sh '^V74 FAIL' \
-  "sed -i 's/Uma tentativa: Vol/ação exata: Vol/' docs/DEVICE-TEST-PROTOCOL.md"
+  "sed -i 's/Uma tentativa: Power off/ação exata: Power off/' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V75: citation token is not on the cited line
 case_run 94 "V75 citation token misses its line" check_protocol_invariants.sh '^V75 FAIL' \
@@ -536,7 +536,22 @@ case_run 125 "V95 capture miss is not a STOP" check_protocol_invariants.sh '^V95
   "sed -i 's/STOP if z0_fastboot_before.txt lacks one answer per allowlist name/capture saved/' docs/DEVICE-TEST-PROTOCOL.md"
 
 case_run 126 "V96 max-download radix removed" check_protocol_invariants.sh '^V96 FAIL' \
-  "sed -i 's/decimal or 0x hex, both in bytes/size as printed/' docs/DEVICE-TEST-PROTOCOL.md"
+  "sed -i 's/LK hex, optional 0x prefix, in bytes/size as printed/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 128 "V98 size parser treats the token as decimal" check_protocol_invariants.sh '^V98 FAIL' \
+  "sed -i 's/16#/10#/' tools/lk_size.sh"
+
+case_run 129 "V99 Z0.1 key order drops the cable" check_protocol_invariants.sh '^V99 FAIL' \
+  "sed -i '32s/disconnect the cable/leave the cable/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 130 "V100 Z0 results heading removed" check_protocol_invariants.sh '^V100 FAIL' \
+  "sed -i 's/## Z0 results (2026-10-09)/## Z0 notes/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 131 "V101 priority-nibble cite removed" check_protocol_invariants.sh '^V101 FAIL' \
+  "sed -i 's/INFERRED until observed/INFERRED-REMOVED/g' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 132 "V98 flash partition-size gate removed" selftest_fastboot_guard.sh '^V98 FAIL' \
+  "sed -i '/# V98-PARTSIZE\$/,/# V98-PARTSIZE-END\$/d' tools/fastboot_guard.sh"
 
 case_run 127 "V97 PASS equation diverges" check_protocol_invariants.sh '^V97 FAIL' \
   "sed -i '69s/Z0 PASS = /Z0 PASS ~= /' docs/DEVICE-TEST-PROTOCOL.md"

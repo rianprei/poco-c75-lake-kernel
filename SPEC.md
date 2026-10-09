@@ -136,6 +136,10 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B117 | 2026-10-09 | Z0.5 saved the capture and did not STOP when the file lacked one answer per allowlist name. | V95 |
 | B118 | 2026-10-09 | max-download-size was "≥ 67108864" with no radix, while partition-size was exact hex. | V96 |
 | B119 | 2026-10-09 | The short Z0 PASS lines omitted ro.product.device=lake and a short module set fell through to the reboot-on-anomaly preamble. | V97 |
+| B120 | 2026-10-09 | `partition-size:boot_b` on this LK is hex with no prefix (`4000000`). A parser that required `0x` or that read all-digit tokens as decimal would reject the measured answer or accept 4194304. | V98 |
+| B121 | 2026-10-09 | Key entry said Vol− + Power and did not require the cable to be disconnected first. On 2026-10-09 the device entered fastboot only with the cable disconnected. | V99 |
+| B122 | 2026-10-09 | The protocol still said the Z0 run was UNVERIFIED until logged, after the 2026-10-09 run had been measured. | V100 |
+| B123 | 2026-10-09 | Slot A is measured unbootable=yes, successful=no, retry 0, and slot-retry-count:b is 1. The docs still said the LK may fall to A, and they did not say what the operator does on the first loop. | V101 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -199,6 +203,10 @@ Per the fable rule, each bug was searched for again everywhere:
 - TWINS: searched `exactly the same symbols`, `36/36`, `3 negatives`, `the gate enforces everything vmlinux provides`, `item 42/43/44/45/64/65`, and `That is harmless` in README, BUILD, KMI-GATES, CHANGELOG, CONTRIBUTING — removed or never present; V82/V83 keep them out. `docs/SAFETY.md` still says `avbtool --algorithm NONE`, which is the avbtool flag, and V81 does not ban it.
 - TWINS: searched `grep -v '^#'`, a one-operand `cmp vmlinux.symvers`, and a shell redirect onto `tools/data/modules_required_crcs.tsv` in README, BUILD, KMI-GATES, CHANGELOG, CONTRIBUTING — removed from the instructions; V86 keeps them out. Raw notes under `docs/research/` still show the old diff and are not instructions.
 - TWINS: searched `does not pass verification` / `will not pass verification` in README, BUILD, and SAFETY — rewritten as unmeasured; V87 keeps the measured wording.
+- TWINS: searched `partition-size:boot_b` parsers — one function, `lk_parse_size`, sourced by the guard and by V98. Decimal acceptance of `4000000` is rejected by the equality with 67108864 because the token is hex.
+- TWINS: searched `Vol− + Power` key-entry lines in the protocol and SAFETY — Z0.1, T-1.3b, the T3 warning, the black-screen row, the bootloop row, L2, and the SAFETY recovery row carry the same cable order (V99).
+- TWINS: searched `until a Z0 run is logged` — removed from the protocol. The values live in the results section and in PLAN fact 68 (V100).
+- TWINS: searched `fall back to the other slot` as a stated fact — rewritten as INFERRED until observed, with the priority-nibble addresses kept (V101). Risk remains.
 
 ## §V — invariants (each one testable, with the file that protects it)
 
@@ -299,8 +307,12 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V93 | Absence is the bare string `Variable not found` with no `FAILED (` in that answer. The same sentence is in rule 4 and the abort row. The check classifies fixtures with that predicate: `FAILED (remote: Variable not found)` is a STOP. | `tools/check_protocol_invariants.sh` |
 | V94 | The empty-devices symptom row says `Sem outro cabo` and `Z0.2 empty ends the day`, and it does not say `Outro cabo`. | `tools/check_protocol_invariants.sh` |
 | V95 | Z0.5 says `STOP if z0_fastboot_before.txt lacks one answer per allowlist name` and still merges stderr into `z0_fastboot_before.txt`. | `tools/check_protocol_invariants.sh` |
-| V96 | Z0 lines 59–62 and the R3 row both say `decimal or 0x hex, both in bytes` for max-download-size, and R3 still says `if answered, it must be` and `if absent, record and continue`. | `tools/check_protocol_invariants.sh` |
+| V96 | Z0 lines 59–62 and the R3 row both say `LK hex, optional 0x prefix, in bytes` for max-download-size, and R3 still says `if answered, it must be` and `if absent, record and continue`. | `tools/check_protocol_invariants.sh` |
 | V97 | Protocol lines 69 and 73 both contain `Z0 PASS = Z0.1-Z0.4 green and Z0.6 shows ro.product.device=lake, slot _b, OS3.0.306.0, and modules superset of the day baseline`. | `tools/check_protocol_invariants.sh` |
+| V98 | `lk_parse_size` reads an optional `0x`/`0X` prefix plus 1–8 hex digits. `4000000`, `0x4000000`, and `0X4000000` are 67108864. `3ffffff` is 67108863. `67108864` is hex 1729136740, not decimal 67108864. Empty and `Variable not found` fail the parse. `tools/fastboot_guard.sh` calls that function on `getvar partition-size:boot_b` and flashes only when the integer equals the file size. | `tools/check_protocol_invariants.sh`, `tools/selftest_fastboot_guard.sh` |
+| V99 | Protocol lines 32, 110, 132, 206, 207, and 229, and SAFETY line 58, contain `Power off, disconnect the cable, hold Vol− + Power until FASTBOOT, release, then reconnect the cable`. | `tools/check_protocol_invariants.sh` |
+| V100 | The protocol has `## Z0 results (2026-10-09)` with the measured rows `partition-size:boot_b` = `4000000`, `max-download-size` = `0x8000000`, `is-userspace` = `no`, `slot-retry-count:b` = `1`, and `slot-unbootable:a` = `yes`. It does not say `until a Z0 run is logged`. The plan records `partition-size:boot_b=4000000`. | `tools/check_protocol_invariants.sh` |
+| V101 | The protocol says `INFERRED until observed`, cites `0x4c42cae2` and `0x4c453df8`, says `Risk remains`, and records `slot-retry-count:b` as MEASURED 1. The plan says `unbootable=yes`. SAFETY records the measured retry value. | `tools/check_protocol_invariants.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):
@@ -317,15 +329,15 @@ script that cannot automate it):
 
 - **Boot on a real `lake` device** — no image from this project has been booted on hardware.
 - **`fastboot boot` support on this bootloader** — UNKNOWN. It is not a step. Absence of the command is not a stop criterion; the protocol continues with the two `boot_b` writes through `tools/fastboot_guard.sh`.
-- **Automatic A/B fallback on this device** — disassembly of the real `lk_b.img` shows the mechanism (same-boot `_a`→`_b` fallback with direct branches; both-invalid lands in a non-returning `fastboot_init`; retry read is a 3-bit field, decrement/initial value unproven: `docs/research/RE4_codex_fallback.md` D1–D2); on-device behaviour still UNVERIFIED.
+- **Automatic A/B fallback on this device** — disassembly shows slot selection skips a priority nibble of 0 (`0x4c42cae2` / `0x4c42cb02` via `0x4c453df8`) and that both-invalid lands in `fastboot_init` (`docs/research/RE4_codex_fallback.md` D1–D2). Slot A was measured `unbootable=yes` on 2026-10-09. "Does not fall to A" is INFERRED until observed. Risk remains. The retry decrement is still unproven.
 - **Wi-Fi / Bluetooth / modem / camera with the new kernel** — untested; the certificate reasoning is host-side only.
 - **Acceptance of an unsigned repacked `boot` by the chained-partition verifier** — analogous to the measured `init_boot_b` tolerance, but unproven.
 - **30-minute thermal/GPU stress with the new kernel** — not run.
 - **Reading `pstore` after a panic caused by *this* kernel** — the observability path is measured on stock, not validated for the new build.
-- **`fastboot getvar is-userspace` runtime value on this LK** — the string exists in `lk_b.img`, but the value it returns (or `Variable not found`) was never read on the device; the protocol tolerates both non-fastbootd answers.
+- **`fastboot getvar is-userspace` on a future boot** — the 2026-10-09 Z0 read `no`. The protocol still accepts `Variable not found`. A later `yes` (fastbootd) remains a STOP. What is open is any boot where that answer changes.
 - **The exact order of the LK's size/allowlist checks before a write** — MEASURED by disassembly of the real `lk_b.img` (`research/RE1_opencode_flash.md` §3.3); what stays unproven is the *runtime* behaviour on-device, so the protocol never relies on it (the pre-flight oversize check is yours).
 - **Denylist completeness** — `lk`, `misc`, `boot_para` do not appear explicitly in the protected-name lists inside the binary; whether a `flash`/`erase` on them would be refused is unknown and must stay untested.
-- **The Z0 rehearsal itself** — mandatory before any write, still unlogged: reaching fastboot by keys with a *healthy* device is proven only by the general key-combo lore, and with a *bad* `boot_b` it is UNVERIFIED until Z0 runs. (Disassembly bounds the risk: key detection runs before any boot-partition read, `docs/research/RE2_codex_bootmode.md` B1; it does not replace the rehearsal.)
+- **Z0 with a bad `boot_b`** — the healthy key entry and the 15 getvar values were logged on 2026-10-09. Key entry with a bad `boot_b` is still UNVERIFIED. (Disassembly: key detection runs before any boot-partition read, `docs/research/RE2_codex_bootmode.md` B1; it does not replace that rehearsal.)
 
 ## Critério de convergência (adversarial review)
 
