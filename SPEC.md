@@ -5,7 +5,7 @@ while building this project is written down in §B, turned into an invariant in 
 command that fails when the error reappears. Run all of it with:
 
 ```bash
-tools/run_all_checks.sh          # prints PASS/FAIL for each §V row (V1–V9 and V14–V76; V10–V13 are aliases), exit != 0 on any FAIL
+tools/run_all_checks.sh          # prints PASS/FAIL for each §V row plus the CRC gate, exit != 0 on any FAIL
 tools/selftest_backprop.sh       # proves each check catches its own defect (FAIL -> PASS)
 ```
 
@@ -125,6 +125,17 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B106 | 2026-10-08 | Docs still assigned vermagic strings to directories, called `compared=` the stock join, omitted three gate failure modes, and stated locked-bootloader and Bluetooth results that were not measured. | V87 |
 | B107 | 2026-10-08 | CONTRIBUTING omitted raw-log destinations, the SAFETY warning, the three sabotage commands, and `ro.product.device`. CHANGELOG paths and 0.1.x order were ambiguous. | V88 |
 | B108 | 2026-10-08 | Four config-table rows had an unquoted comma, so csv.DictReader shifted columns and the empty-field check still passed. | V70 |
+| B109 | 2026-10-09 | `tools/fastboot_guard.sh reboot` sent reboot without reading current-slot or is-userspace. | V89 |
+| B110 | 2026-10-09 | The Z0.6 retry repeated Z0.3 and rebooted without re-applying Z0.4, and a device, slot, OS-line, or module miss had no action that refuses reboot when the slot is not b. | V90 |
+| B111 | 2026-10-09 | The abort preamble told the operator to reboot on any FAILED, hang, missing module, or corrupt screen, including when current-slot is not b. | V91 |
+| B112 | 2026-10-09 | "Any other answer" did not name its subject, and slot-successful:a / slot-unbootable:a had no value rule. | V92 |
+| B113 | 2026-10-09 | `Variable not found` and `FAILED (` had no precedence when one answer contained both. | V93 |
+| B114 | 2026-10-09 | The plan confirmed lake, slot `_b`, the OS3.0.306.0 line, and the module superset, and the only Z0.6 failure action was adb not returning. The plan lives outside this repo; the protocol sentences it must copy are V90. | V90 |
+| B115 | 2026-10-09 | Z0.4 listed the PASS values and the only failure actions in the plan were current-slot not b and is-userspace yes. The plan lives outside this repo; the protocol sentence it must copy is V92. | V92 |
+| B116 | 2026-10-09 | The empty-devices row offered another cable or port after Z0.2 had already ended the day. | V94 |
+| B117 | 2026-10-09 | Z0.5 saved the capture and did not STOP when the file lacked one answer per allowlist name. | V95 |
+| B118 | 2026-10-09 | max-download-size was "≥ 67108864" with no radix, while partition-size was exact hex. | V96 |
+| B119 | 2026-10-09 | The short Z0 PASS lines omitted ro.product.device=lake and a short module set fell through to the reboot-on-anomaly preamble. | V97 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -281,6 +292,15 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V86 | A documented config diff does not use `grep -v '^#'`. A documented symvers `cmp` names `data/official-vmlinux.symvers` as the second file. TSV regeneration does not redirect onto `tools/data/modules_required_crcs.tsv` or `tools/data/modules_inventory.tsv`; it moves a temp file only after exit 0. | `tools/check_build_claims.sh` |
 | V87 | Vermagic strings are not assigned to a directory. `compared=` is the join with the symvers that was passed. The CRC gate also fails on conflicting CRC, export_type, and namespace. Locked-bootloader behaviour is unmeasured. Protected-export inventory is Wi-Fi only. The Portuguese summary does not say the Image is reproduced byte for byte. Control symvers cites PLAN fact 60 and a two-file `cmp`. | `tools/check_build_claims.sh` |
 | V88 | CONTRIBUTING names `ro.product.device`, the local raw logs, `docs/SAFETY.md`, and the three sabotage commands. CHANGELOG 0.1.x headings are descending, vendor `.ko` are not "of the device", and the ELF parser is `tools/dump_modcrcs.py`. | `tools/check_build_claims.sh` |
+| V89 | `tools/fastboot_guard.sh reboot` runs `getvar current-slot` and `getvar is-userspace` before sending reboot. It proceeds only when the slot value is exactly `b` and is-userspace is not exactly `yes`. Otherwise it exits non-zero, prints `desligue por teclas e encerre`, and the fastboot binary does not receive `reboot`. | `tools/selftest_fastboot_guard.sh` |
+| V90 | Z0.6 retry says `re-apply Z0.4 before reboot`, names `desligue por teclas e encerre`, keeps `do not unlock the screen`, and states an action for device not lake, slot not `_b`, OS line mismatch, and modules not a superset. | `tools/check_protocol_invariants.sh` |
+| V91 | Abort line 200 keeps `hold power to reboot`, `next normal boot`, and `on a good kernel`, and also says `current-slot other than b: do not reboot; power off by keys and leave it off`. | `tools/check_protocol_invariants.sh` |
+| V92 | Z0.4 says `Any other answer to those PASS predicates` and `record-only: any present value is not a value gate` for `slot-successful:a` and `slot-unbootable:a`. | `tools/check_protocol_invariants.sh` |
+| V93 | Absence is the bare string `Variable not found` with no `FAILED (` in that answer. The same sentence is in rule 4 and the abort row. The check classifies fixtures with that predicate: `FAILED (remote: Variable not found)` is a STOP. | `tools/check_protocol_invariants.sh` |
+| V94 | The empty-devices symptom row says `Sem outro cabo` and `Z0.2 empty ends the day`, and it does not say `Outro cabo`. | `tools/check_protocol_invariants.sh` |
+| V95 | Z0.5 says `STOP if z0_fastboot_before.txt lacks one answer per allowlist name` and still merges stderr into `z0_fastboot_before.txt`. | `tools/check_protocol_invariants.sh` |
+| V96 | Z0 lines 59–62 and the R3 row both say `decimal or 0x hex, both in bytes` for max-download-size, and R3 still says `if answered, it must be` and `if absent, record and continue`. | `tools/check_protocol_invariants.sh` |
+| V97 | Protocol lines 69 and 73 both contain `Z0 PASS = Z0.1-Z0.4 green and Z0.6 shows ro.product.device=lake, slot _b, OS3.0.306.0, and modules superset of the day baseline`. | `tools/check_protocol_invariants.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):

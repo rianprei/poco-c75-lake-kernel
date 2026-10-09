@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.3 (2026-10-09)
+
+- `tools/fastboot_guard.sh reboot` reads `current-slot` and `is-userspace`
+  before it sends `reboot`. Slot other than `b`, or `is-userspace` `yes`,
+  exits 2 and prints `desligue por teclas e encerre` (V89). The fastboot
+  binary does not receive `reboot` on that refusal.
+- Z0.6 re-applies Z0.4 before a retry reboot. The abort preamble does not
+  reboot when current-slot is not b. "Any other answer" names the PASS
+  predicates. `slot-successful:a` and `slot-unbootable:a` are record-only.
+  Absence is the string `Variable not found` with no `FAILED (` in that
+  answer. An empty Z0.2 ends the day with no other cable. Z0.5 stops when
+  the capture lacks one answer per allowlist name. `max-download-size` is
+  decimal or `0x` hex, both in bytes. The two Z0 PASS lines name lake,
+  slot `_b`, OS3.0.306.0, and the day baseline (V90–V97).
+- Suite: invariants V1–V97 (V10–V13 are aliases) plus the CRC gate self-test
+  (98 checks). Sabotage 131/131.
+
 ## 0.2.2 (2026-10-08)
 
 - Host gates now fail closed on a gate that exits non-zero (V77), on a curl

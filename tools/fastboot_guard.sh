@@ -10,7 +10,7 @@
 #
 # Allowlist (exact text):
 #   devices
-#   reboot
+#   reboot   — only after this script reads current-slot and is-userspace (V89)
 #   getvar <one of the 15 Z0.3 names>
 #   flash boot_b <file>   — ONLY if all write gates hold (see below)
 #
@@ -107,6 +107,22 @@ esac
 # functions/aliases, so a stale fastboot() denylist cannot shadow it; the PATH
 # stub in tests resolves here). No exec: the private copy dir is removed after.
 bin="$(type -P "$FASTBOOT_BIN")" || refuse "binário fastboot não encontrado no PATH"
+# V89-REBOOT-INTERLOCK
+# reboot stays allowlisted, but it boots the current slot. Read both getvars
+# before that argv is sent. Refuse unless the slot value is exactly b and
+# is-userspace is not exactly yes. A missing slot line refuses. An empty
+# is-userspace value is not yes.
+if [ "$cmd" = "reboot" ]; then
+  slot_out="$("$bin" getvar current-slot 2>&1 || true)"
+  user_out="$("$bin" getvar is-userspace 2>&1 || true)"
+  slot_val="$(printf '%s\n' "$slot_out" | sed -n 's/.*current-slot:[[:space:]]*//p' | tail -n 1 | tr -d '\r' | sed 's/[[:space:]]*$//')"
+  user_val="$(printf '%s\n' "$user_out" | sed -n 's/.*is-userspace:[[:space:]]*//p' | tail -n 1 | tr -d '\r' | sed 's/[[:space:]]*$//')"
+  if [ "$slot_val" != "b" ] || [ "$user_val" = "yes" ]; then
+    echo "desligue por teclas e encerre" >&2
+    exit 2
+  fi
+fi
+# V89-REBOOT-INTERLOCK-END
 "$bin" "$cmd" "$@"
 rc=$?
 exit "$rc"

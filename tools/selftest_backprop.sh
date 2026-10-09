@@ -511,5 +511,35 @@ case_run 116 "V88 device property name dropped" check_build_claims.sh '^V88 FAIL
 case_run 117 "V70 unquoted extra CSV field" check_config_table.sh '^V70 FAIL' \
   "printf '%s\n' 'LOW-RISK,a,b,c,d,e,f,g' >> data/config_safety_table.csv"
 
+case_run 118 "V89 reboot interlock removed" selftest_fastboot_guard.sh '^V89 FAIL' \
+  "sed -i '/# V89-REBOOT-INTERLOCK\$/,/# V89-REBOOT-INTERLOCK-END\$/d' tools/fastboot_guard.sh"
+
+case_run 119 "V90 retry skips Z0.4" check_protocol_invariants.sh '^V90 FAIL' \
+  "sed -i 's/re-apply Z0.4 before reboot/RETRY-SKIPS-Z0.4/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 120 "V91 abort slot exception removed" check_protocol_invariants.sh '^V91 FAIL' \
+  "sed -i 's/current-slot other than b: do not reboot; power off by keys and leave it off/SLOT-EXCEPTION-REMOVED/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 121 "V92 any-other-answer unscoped again" check_protocol_invariants.sh '^V92 FAIL' \
+  "sed -i 's/Any other answer to those PASS predicates/Any other answer/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 122 "V93 FAILED no longer wins" check_protocol_invariants.sh '^V93 FAIL' \
+  "sed -i 's/failed_wins = (\"FAILED (\" not in text)/failed_wins = True/' tools/check_protocol_invariants.sh"
+
+case_run 123 "V93 absence sentence dropped from one site" check_protocol_invariants.sh '^V93 FAIL' \
+  "python3 -c 'from pathlib import Path; p=Path(\"docs/DEVICE-TEST-PROTOCOL.md\"); t=p.read_text(); p.write_text(t.replace(\"Absence is the bare string Variable not found with no FAILED ( in that answer.\", \"\", 1))'"
+
+case_run 124 "V94 empty devices offers another cable" check_protocol_invariants.sh '^V94 FAIL' \
+  "sed -i 's/Sem outro cabo/TROQUE-O-CABO/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 125 "V95 capture miss is not a STOP" check_protocol_invariants.sh '^V95 FAIL' \
+  "sed -i 's/STOP if z0_fastboot_before.txt lacks one answer per allowlist name/capture saved/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 126 "V96 max-download radix removed" check_protocol_invariants.sh '^V96 FAIL' \
+  "sed -i 's/decimal or 0x hex, both in bytes/size as printed/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 127 "V97 PASS equation diverges" check_protocol_invariants.sh '^V97 FAIL' \
+  "sed -i '69s/Z0 PASS = /Z0 PASS ~= /' docs/DEVICE-TEST-PROTOCOL.md"
+
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

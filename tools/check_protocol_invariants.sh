@@ -1040,8 +1040,128 @@ sys.exit(1 if bad else 0)
 PY
 [ $? -eq 0 ] || fails=$((fails + 1))
 
+# ------------------------------------------------------------------------------------------------
+# V90 — Z0.6 retry re-applies Z0.4; each Z0.6 miss has an action; the guard phrase is named
+# ------------------------------------------------------------------------------------------------
+for p90 in \
+  're-apply Z0.4 before reboot' \
+  'desligue por teclas e encerre' \
+  'do not unlock the screen' \
+  'Device not lake: STOP, do not advance, do not unlock' \
+  'slot not _b: power off, do not unlock, do not reboot' \
+  'OS line mismatch: power off, do not unlock, report, do not reboot' \
+  'modules not a superset: STOP, do not advance, and do not reboot when current-slot is not b'
+do
+  grep -qF "$p90" "$PROTO" && ok 90 "protocol keeps: $p90" || fail 90 "protocol lost: $p90"
+done
+
+# ------------------------------------------------------------------------------------------------
+# V91 — abort preamble still reboots a good slot, and refuses reboot when the slot is not b
+# ------------------------------------------------------------------------------------------------
+l200="$(sed -n '200p' "$PROTO")"
+if grep -qF 'current-slot other than b: do not reboot; power off by keys and leave it off' <<<"$l200" \
+   && grep -qF 'hold power to reboot' <<<"$l200" \
+   && grep -qF 'next normal boot' <<<"$l200" \
+   && grep -qF 'on a good kernel' <<<"$l200" \
+   && grep -qF 'corrupted' <<<"$l200" \
+   && grep -qF 'FAILED' <<<"$l200" \
+   && grep -qF 'pstore' <<<"$l200"; then
+  ok 91 "abort preamble keeps the reboot instruction and the slot exception"
+else
+  fail 91 "abort preamble lost the current-slot exception or a required token"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V92 — "any other answer" names the PASS predicates; slot a values are record-only
+# ------------------------------------------------------------------------------------------------
+grep -qF 'Any other answer to those PASS predicates' "$PROTO" \
+  && grep -qF 'record-only: any present value is not a value gate' "$PROTO" \
+  && ok 92 "any-other-answer is scoped to the PASS predicates, and slot a is record-only" \
+  || fail 92 "Z0.4 lost the scoped any-other-answer rule or the slot-a record-only rule"
+
+# ------------------------------------------------------------------------------------------------
+# V93 — one absence definition: bare "Variable not found", and FAILED ( still stops
+# ------------------------------------------------------------------------------------------------
+abs93="$(grep -cF 'Absence is the bare string Variable not found with no FAILED ( in that answer.' "$PROTO" || true)"
+if [ "$abs93" -ge 2 ]; then
+  ok 93 "protocol states the single absence definition in rule 4 and the abort row"
+else
+  fail 93 "absence definition is missing from rule 4 or the abort row (count=$abs93)"
+fi
+python3 - <<'PY'
+samples = [
+    ("Variable not found", True),
+    ("(bootloader) is-userspace: Variable not found", True),
+    ("FAILED (remote: unknown command)", False),
+    ("FAILED (remote: Variable not found)", False),
+    ("OKAY", False),
+    ("", False),
+]
+
+def is_absence(text):
+    failed_wins = ("FAILED (" not in text)
+    return ("Variable not found" in text) and failed_wins
+
+bad = 0
+for text, want in samples:
+    got = is_absence(text)
+    if got != want:
+        bad += 1
+        print(f'V93 FAIL classifier {text!r} -> {got}, want {want}')
+if bad == 0:
+    print('V93 OK absence is Variable not found with no FAILED ( in that answer')
+raise SystemExit(1 if bad else 0)
+PY
+[ $? -eq 0 ] || fails=$((fails + 1))
+
+# ------------------------------------------------------------------------------------------------
+# V94 — an empty Z0.2 ends the day; the symptom row does not offer another cable
+# ------------------------------------------------------------------------------------------------
+l210="$(sed -n '210p' "$PROTO")"
+if grep -qF 'Sem outro cabo' <<<"$l210" && grep -qF 'Z0.2 empty ends the day' <<<"$l210" \
+   && ! grep -qF 'Outro cabo' <<<"$l210"; then
+  ok 94 "empty Z0.2 ends the day; the row does not offer another cable"
+else
+  fail 94 "Z0.2 empty-devices row still offers another cable or lost the stop"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V95 — Z0.5 stops when the saved file lacks one answer per allowlist name
+# ------------------------------------------------------------------------------------------------
+grep -qF 'STOP if z0_fastboot_before.txt lacks one answer per allowlist name' "$PROTO" \
+  && grep -qF '2>&1 | tee z0_fastboot_before.txt' "$PROTO" \
+  && ok 95 "Z0.5 stops when the capture lacks one answer per allowlist name" \
+  || fail 95 "Z0.5 capture has no stop for a missing answer"
+
+# ------------------------------------------------------------------------------------------------
+# V96 — max-download-size is decimal or 0x hex, both in bytes, in Z0 and in R3
+# ------------------------------------------------------------------------------------------------
+thr96="$(sed -n '59,62p' "$PROTO")"
+r396="$(sed -n '79p' "$PROTO")"
+phrase96='decimal or 0x hex, both in bytes'
+if grep -qF "$phrase96" <<<"$thr96" && grep -qF "$phrase96" <<<"$r396" \
+   && grep -qF 'threshold-if-present' <<<"$thr96" \
+   && grep -qF 'if answered, it must be' <<<"$r396" \
+   && grep -qF 'if absent, record and continue' <<<"$r396"; then
+  ok 96 "max-download-size is decimal or 0x hex, both in bytes, in Z0 and in R3"
+else
+  fail 96 "max-download-size radix disagrees between Z0 and R3"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V97 — the two Z0 PASS lines state the same equation, including lake
+# ------------------------------------------------------------------------------------------------
+eq97='Z0 PASS = Z0.1-Z0.4 green and Z0.6 shows ro.product.device=lake, slot _b, OS3.0.306.0, and modules superset of the day baseline'
+l69="$(sed -n '69p' "$PROTO")"
+l73="$(sed -n '73p' "$PROTO")"
+if grep -qF "$eq97" <<<"$l69" && grep -qF "$eq97" <<<"$l73"; then
+  ok 97 "Z0 PASS equation is identical on the close line and the summary line"
+else
+  fail 97 "Z0 PASS equation differs between the close line and the summary line"
+fi
+
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3-V75 except aliases and the checks that live in other scripts)"
+  echo "PASS protocol invariants (V3-V75 and V90-V97 except aliases and the checks that live in other scripts)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"

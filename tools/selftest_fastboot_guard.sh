@@ -22,6 +22,12 @@ if [ -f "\$last" ]; then
   extra=" sha=\$(sha256sum -- "\$last" | cut -d' ' -f1) mode=\$(stat -c%a -- "\$last")"
 fi
 printf '%s%s\n' "\$*""\$extra" >> "$STUBLOG"
+if [ "\$1" = "getvar" ] && [ "\$2" = "current-slot" ]; then
+  printf '%s\n' "\${FAKE_SLOT_LINE:-current-slot: b}" >&2
+fi
+if [ "\$1" = "getvar" ] && [ "\$2" = "is-userspace" ]; then
+  printf '%s\n' "\${FAKE_USER_LINE:-is-userspace: no}" >&2
+fi
 echo "FAKE-OKAY \$*"
 exit 0
 EOF
@@ -133,6 +139,50 @@ cp -- "$GOODIMG" "$SPACEIMG"
 cp -- "$GOODIMG" "$DASHIMG"
 t_allow 22 "arquivo com espaço passa" flash boot_b "$SPACEIMG"
 t_allow 23 "arquivo com traço inicial passa (sem confusão de flag)" flash boot_b "$DASHIMG"
+
+# V89: reboot reads current-slot and is-userspace first. Slot a, or
+# is-userspace yes, refuses and the stub must not see a reboot argv.
+v89_fail=0
+v89_case() { # <label> <slot-line> <user-line> <pass|deny>
+  local label="$1" slot_line="$2" user_line="$3" expect="$4"
+  local before errf rc new
+  before="$(wc -l < "$STUBLOG" 2>/dev/null || echo 0)"
+  errf="$BASE/v89.err"
+  FAKE_SLOT_LINE="$slot_line" FAKE_USER_LINE="$user_line" \
+    "$GUARD" reboot >"$BASE/v89.out" 2>"$errf"
+  rc=$?
+  new="$(tail -n +"$((before + 1))" "$STUBLOG" 2>/dev/null || true)"
+  printf '### V89 %s\n' "$label"
+  if [ "$expect" = "pass" ]; then
+    if [ "$rc" -eq 0 ] && [ "$new" = $'getvar current-slot\ngetvar is-userspace\nreboot' ]; then
+      printf '    reboot depois dos dois getvar\n  => OK\n\n'
+      return 0
+    fi
+  else
+    if [ "$rc" -ne 0 ] && grep -qF 'desligue por teclas e encerre' "$errf" \
+        && grep -qx 'getvar current-slot' <<<"$new" \
+        && grep -qx 'getvar is-userspace' <<<"$new" \
+        && ! grep -qx 'reboot' <<<"$new"; then
+      printf '    recusado sem argv reboot\n  => OK\n\n'
+      return 0
+    fi
+  fi
+  printf '    ESPERAVA %s; rc=%s\n%s\n  => FALHA\n\n' "$expect" "$rc" "$new"
+  v89_fail=$((v89_fail + 1))
+}
+
+v89_case "slot a recusa" "current-slot: a" "is-userspace: no" deny
+v89_case "is-userspace yes recusa" "current-slot: b" "is-userspace: yes" deny
+v89_case "slot b passa" "current-slot: b" "is-userspace: no" pass
+v89_case "userspace Variable not found passa" "current-slot: b" "is-userspace: Variable not found" pass
+v89_case "slot sem linha recusa" "no-slot-here" "is-userspace: no" deny
+
+if [ "$v89_fail" -eq 0 ]; then
+  echo 'V89 OK reboot interlock'
+else
+  echo 'V89 FAIL reboot interlock'
+  fail=$((fail + v89_fail))
+fi
 
 printf 'GUARD-SELFTEST: %s passada(s), %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'V66 OK fastboot guard behavioral selftest (fake fastboot, allow+deny+update+oem+TOCTOU)'; echo 'SELFTEST-GUARD PASS'; exit 0; } || { echo 'V66 FAIL fastboot guard behavioral selftest'; echo 'SELFTEST-GUARD FAIL'; exit 1; }
