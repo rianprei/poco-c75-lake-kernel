@@ -102,6 +102,30 @@ out="$(FETCH_OUT="$OUT" FETCH_EXTRA_KNOWN="local.symvers:$sum" "$FETCH" --ingest
 if grep -qx 'HASH-VERIFIED local.symvers' <<<"$out"; then ok "HASH-VERIFIED local.symvers"; else fail "falta HASH-VERIFIED"; fi
 if grep -q 'UNVERIFIED' <<<"$out"; then fail "HASH-VERIFIED e UNVERIFIED no mesmo arquivo"; else ok "uma palavra de verificação"; fi
 
+# V78: a curl that exits non-zero must say so. `|| true` used to turn that into
+# "sem artifactUrl" and hide the exit code. No network: the stub never connects.
+CURLDIR="$(mktemp -d "$WORK/curlbin.XXXXXX")"
+cat > "$CURLDIR/curl" <<'EOF'
+#!/bin/sh
+echo "forced curl failure" >&2
+exit 22
+EOF
+chmod +x "$CURLDIR/curl"
+curl_out="$(PATH="$CURLDIR:$PATH" FETCH_OUT="$WORK/curl-dest" FETCH_ATTEMPTS=1 FETCH_SLEEP=0 \
+  "$FETCH" Image 2>&1)" || curl_rc=$?
+curl_rc="${curl_rc:-0}"
+if [ "$curl_rc" -ne 0 ] && grep -q 'curl falhou (exit=22)' <<<"$curl_out"; then
+  echo "V78 OK curl failure is reported, not swallowed"
+else
+  echo "V78 FAIL curl failure hidden or accepted (exit=${curl_rc})"
+  printf '%s\n' "$curl_out" | tail -8 | sed 's/^/    /'
+  fails=$((fails + 1))
+fi
+if [ -e "$WORK/curl-dest/Image" ]; then
+  echo "V78 FAIL curl failure still published a body"
+  fails=$((fails + 1))
+fi
+
 if [ "$fails" -eq 0 ]; then
   echo "V76 PASS fetch name gate + atomic publish"
   exit 0

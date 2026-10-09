@@ -92,6 +92,9 @@ t_allow 4 "flash boot_b válido chama o stub" flash boot_b "$GOODIMG"
 t_deny 5 "getvar all recusado" getvar all
 t_deny 6 "getvar cpuid recusado" getvar cpuid
 t_deny 7 "oem recusado" oem allow-wipe-userdata
+t_deny 24 "oem unlock recusado" oem unlock
+t_deny 25 "oem off-mode-charge recusado" oem off-mode-charge
+t_deny 26 "update recusado" update
 t_deny 8 "erase recusado" erase boot_b
 t_deny 9 "format recusado" format boot_b
 t_deny 10 "set_active recusado" set_active a
@@ -132,4 +135,4 @@ t_allow 22 "arquivo com espaço passa" flash boot_b "$SPACEIMG"
 t_allow 23 "arquivo com traço inicial passa (sem confusão de flag)" flash boot_b "$DASHIMG"
 
 printf 'GUARD-SELFTEST: %s passada(s), %s falha(s)\n' "$pass" "$fail"
-[ "$fail" -eq 0 ] && { echo 'V66 OK fastboot guard behavioral selftest (fake fastboot, allow+deny+TOCTOU)'; echo 'SELFTEST-GUARD PASS'; exit 0; } || { echo 'V66 FAIL fastboot guard behavioral selftest'; echo 'SELFTEST-GUARD FAIL'; exit 1; }
+[ "$fail" -eq 0 ] && { echo 'V66 OK fastboot guard behavioral selftest (fake fastboot, allow+deny+update+oem+TOCTOU)'; echo 'SELFTEST-GUARD PASS'; exit 0; } || { echo 'V66 FAIL fastboot guard behavioral selftest'; echo 'SELFTEST-GUARD FAIL'; exit 1; }

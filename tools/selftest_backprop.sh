@@ -11,7 +11,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/.." && pwd)"
 
 BASE="$(mktemp -d)"; trap 'rm -rf "$BASE"' EXIT
 PRISTINE="$BASE/pristine"; mkdir -p "$PRISTINE"
-cp -a "$ROOT/tools" "$ROOT/tests" "$ROOT/docs" "$ROOT/data" "$ROOT/scripts" "$ROOT/README.md" "$ROOT/SPEC.md" "$ROOT/certs" "$ROOT/manifests" "$ROOT/patches" "$ROOT/CHANGELOG.md" "$ROOT/CONTRIBUTING.md" "$PRISTINE/"
+cp -a "$ROOT/tools" "$ROOT/tests" "$ROOT/docs" "$ROOT/data" "$ROOT/scripts" "$ROOT/README.md" "$ROOT/SPEC.md" "$ROOT/certs" "$ROOT/manifests" "$ROOT/patches" "$ROOT/CHANGELOG.md" "$ROOT/CONTRIBUTING.md" "$ROOT/.github" "$PRISTINE/"
 
 pass=0; fail=0
 case_run() { # <n> <label> <check script> <expected FAIL pattern> <mutation (bash, runs inside the copy)> [extra args]
@@ -64,7 +64,7 @@ case_run 7 "V6 rm -rf em caminho literal" check_destructive_ops.sh '^V6 FAIL' \
   "printf '\nrm -rf /tmp/opencode\n' >> tools/gate_kmi_crc.sh"
 
 case_run 8 "V7 afirmação de comportamento do kernel sem fonte" check_protocol_invariants.sh '^V7 FAIL' \
-  "python3 -c \"import pathlib;p=pathlib.Path('docs/KMI-GATES.md');p.write_text(p.read_text().replace('\`same_magic()\` (kernel/module/version.c)','\`same_magic()\`'))\""
+  "python3 -c \"import pathlib; p=pathlib.Path('docs/KMI-GATES.md'); t=p.read_text(); b=chr(96); old=b+'same_magic()'+b+' ('+b+'common/kernel/module/version.c'+b+', tag '+b+'android15-6.6-2025-06_r12'+b+')'; new=b+'same_magic()'+b; assert old in t; p.write_text(t.replace(old, new, 1))\""
 
 case_run 9 "V8 linha da tabela de fatos sem coluna de prova" check_protocol_invariants.sh '^V8 FAIL' \
   "python3 -c \"import pathlib;p=pathlib.Path('docs/PLAN-AND-FINDINGS.pt-BR.md');p.write_text(p.read_text().replace('| OPENCODE2_boot_safety.md §1 |','|   |'))\""
@@ -453,6 +453,63 @@ case_run 97 "V76 fetch type gate accepts garbage" selftest_fetch_publish.sh '^V7
 # V76: pinned hash mismatch is published
 case_run 98 "V76 fetch hash gate accepts a mismatch" selftest_fetch_publish.sh '^V76 FAIL' \
   "sed -i '/V76-HASH-GATE/,/^}/ s/return 1/return 0/' tools/fetch_official_artifacts.sh"
+
+case_run 99 "V77 gate PASS with exit 1 is not evidence" check_docs_numbers.sh '^V77 FAIL' \
+  "sed -i 's/echo PASS; exit 0/echo PASS; exit 1/' tools/gate_kmi_crc.sh"
+
+case_run 100 "V78 curl failure masked again" selftest_fetch_publish.sh '^V78 FAIL' \
+  "sed -i 's/|| curl_rc=\$?/|| true/' tools/fetch_official_artifacts.sh"
+
+case_run 101 "V79 cms diagnostic masked again" check_build_claims.sh '^V79 FAIL' \
+  "sed -i 's/|| diag_rc=\$?/|| true/' tools/verify_modsig.sh"
+
+case_run 102 "V80 checkout tag replaces the SHA" check_build_claims.sh '^V80 FAIL' \
+  "sed -i 's/actions\\/checkout@[0-9a-f]\\{40\\}/actions\\/checkout@v4/' .github/workflows/host-checks.yml"
+
+case_run 103 "V81 BUILD loses --footer-algorithm" check_build_claims.sh '^V81 FAIL' \
+  "sed -i 's/--footer-algorithm/XX-footer-removed/' docs/BUILD.md"
+
+case_run 104 "V82 README restores full-export claim" check_build_claims.sh '^V82 FAIL' \
+  "printf '\nexactly the same symbols and CRCs\n' >> README.md"
+
+case_run 105 "V83 1573 labelled recomputed again" check_build_claims.sh '^V83 FAIL' \
+  "sed -i 's/was not recomputed/was recomputed/' docs/KMI-GATES.md"
+
+case_run 106 "V84 build.sh masks a command" check_build_claims.sh '^V84 FAIL' \
+  "printf '\n|| true\n' >> scripts/build.sh"
+
+case_run 107 "V65 ResourceWarning is an error" selftest_python.sh '^V65 FAIL' \
+  "printf '%s\n' 'import unittest' 'class T(unittest.TestCase):' '    def test_leak(self):' '        open(\"/dev/null\", \"rb\")' > tests/test_zz_leak.py"
+
+case_run 108 "V65 run_fuzz.py failure is fatal" selftest_python.sh '^V65 FAIL' \
+  "printf '%s\n' 'import sys' 'raise SystemExit(1)' > tools/run_fuzz.py"
+
+case_run 109 "V66 update and oem become allowlisted" selftest_fastboot_guard.sh '^V66 FAIL' \
+  "python3 -c \"from pathlib import Path; p=Path('tools/fastboot_guard.sh'); t=p.read_text(); p.write_text(t.replace('  *)\\n    refuse \\\"comando', '  update|oem)\\n    ;;\\n  *)\\n    refuse \\\"comando', 1))\""
+
+case_run 110 "V67 expired-cert case removed" verify_modsig.sh '^V67 FAIL' \
+  "sed -i '/# V67-EXPIRED\$/d' tools/verify_modsig.sh" --selftest-full
+
+case_run 111 "V85 missing BUILD.md is a named failure" check_protocol_invariants.sh '^V85 FAIL' \
+  "rm docs/BUILD.md"
+
+case_run 112 "V86 config diff hides is-not-set lines" check_build_claims.sh '^V86 FAIL' \
+  "printf '%s\n' \"grep -v '^#'\" >> docs/KMI-GATES.md"
+
+case_run 113 "V86 TSV regen truncates the audited file" check_build_claims.sh '^V86 FAIL' \
+  "printf '%s\n' '> tools/data/modules_required_crcs.tsv' >> docs/KMI-GATES.md"
+
+case_run 114 "V86 symvers cmp has one operand" check_build_claims.sh '^V86 FAIL' \
+  "printf '%s\n' '\`cmp vmlinux.symvers\`' >> docs/KMI-GATES.md"
+
+case_run 115 "V87 full-export claim returns" check_build_claims.sh '^V87 FAIL' \
+  "printf '%s\n' \"all CRCs equal Google's\" >> docs/KMI-GATES.md"
+
+case_run 116 "V88 device property name dropped" check_build_claims.sh '^V88 FAIL' \
+  "sed -i 's/ro.product.device/ro.product.REMOVED/' CONTRIBUTING.md"
+
+case_run 117 "V70 unquoted extra CSV field" check_config_table.sh '^V70 FAIL' \
+  "printf '%s\n' 'LOW-RISK,a,b,c,d,e,f,g' >> data/config_safety_table.csv"
 
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

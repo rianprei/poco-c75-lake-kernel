@@ -1,63 +1,73 @@
 # Verification gates
 
-A custom kernel is only worth flashing if the closed vendor modules can still load. These gates prove, offline, that the exported CRCs, the config and the trusted certificate match the stock contract. They do not prove that the modules load on a device. Scope: the GKI rebuild is rebuild-reproducible from the pinned manifest; everything below is host-verified, hardware-unverified, boot-unproven. Each gate is a command you can re-run; the CRC gate additionally ships an automated self-test (positive + 4 sabotage cases and 1 exact-key case) in `tools/selftest_gates.sh`.
+A custom kernel is only worth flashing if the closed vendor modules can still load. These gates check, on the host, the CRCs the modules require, the config text, and the trusted certificate. They do not prove that the modules load on a device, and they do not compare every symbol vmlinux exports. Scope: the GKI rebuild is rebuild-reproducible from the pinned manifest: the control build matches stock symvers, config, and Image size. That is not a bit-identical Image. `common` is pinned by a tag; the resolved SHA is recorded and not enforced. Everything below is host-verified, hardware-unverified, boot-unproven. Each gate has a command or a stated limit. G-REPACK has no published command (published tests are `tests/test_repack_boot.py`, 11 cases; the author's 32-case harness is not published). G-CERT against a new build needs external artifacts and this repo stores no result of that run. The CRC gate ships an automated self-test (1 positive PASS + 4 sabotage FAIL + 1 exact-key case) in `tools/selftest_gates.sh`.
 
 ## Why the vendor modules are the constraint
 
-On `lake` the kernel image is Google's GKI; device-specific behavior beyond the kernel comes from closed vendor modules (**557 `.ko` files — 370 distinct modules**), device tree/DTBO, firmware blobs, boot metadata and userspace — the gates below track the `.ko`↔kernel interface (measured on the device dump: 342 files in the `vendor_boot` ramdisk, i.e. 170 slot-A + 172 slot-B copies; 215 files in `vendor_dlkm`; 17 module names have three copies, which is the directory overlap that closes `172+215−17=370`). Vermagic groups (verifiable in `tools/data/modules_inventory.tsv`): 193 modules with a single vermagic `6.6.89-android15-8-g810fd09a116c-4k …`, 170 inventory rows whose vermagic field contains both strings (`…g810fd09a116c…` in `vendor_dlkm` and `…gbdb5aebb8ade…` in the ramdisk — the early-boot copy; this 170 is not the 17-name overlap), and 7 modules `6.6.30-android15-8-gf597b3de5ef5-4k …`. They are prebuilt against Google's exported symbols and are **not** recompiled. They depend on the kernel through three mechanisms:
+On `lake` the kernel image is Google's GKI; device-specific behavior beyond the kernel comes from closed vendor modules (**557 `.ko` files — 370 distinct modules**), device tree/DTBO, firmware blobs, boot metadata and userspace — the gates below track the `.ko`↔kernel interface (measured on the device dump: 342 files in the `vendor_boot` ramdisk, i.e. 170 slot-A + 172 slot-B copies; 215 files in `vendor_dlkm`; 17 module names have three copies, which is the directory overlap that closes `172+215−17=370`). Vermagic groups (verifiable in `tools/data/modules_inventory.tsv`): 193 modules with a single vermagic `6.6.89-android15-8-g810fd09a116c-4k …`, 170 inventory rows whose vermagic field contains both strings (`…g810fd09a116c…` and `…gbdb5aebb8ade…`), and 7 modules `6.6.30-android15-8-gf597b3de5ef5-4k …`. The TSV has no directory column, so those strings are not assigned to `vendor_dlkm` or the ramdisk. This 170 is not the 17-name overlap. They are prebuilt against Google's exported symbols and are **not** recompiled. They depend on the kernel through three mechanisms:
 
 1. **Exported symbols + CRCs** (`CONFIG_MODVERSIONS`). A module imports `symbol` with an expected CRC. If the kernel's CRC differs → `disagrees about version of symbol`; if the symbol is trimmed away → `Unknown symbol`.
-2. **kCFI** (`CONFIG_CFI_CLANG`). The modules are compiled with kernel CFI; the kernel must keep it enabled — the device dump is not in this repo, so 101 of 215 `vendor_dlkm` modules and 68 of 172 ramdisk modules carrying `__kcfi_typeid_*` (fact 50) is not re-runnable here. The stock config gate still requires `CONFIG_CFI_CLANG=y`. *Do not copy kernels that turn CFI off — those target devices whose modules are built without it.*
+2. **kCFI** (`CONFIG_CFI_CLANG`). The modules are compiled with kernel CFI; the kernel must keep it enabled — the device dump is not in this repo, so the carrier counts are not re-runnable here. `docs/AUDIT-CODEX.md` records counts 101 and 68 (`__kcfi_typeid_*` carriers: 101 of 215 `vendor_dlkm` files, 68 of 172 ramdisk files). The stock config gate still requires `CONFIG_CFI_CLANG=y`. *Do not copy kernels that turn CFI off — those target devices whose modules are built without it.*
 3. **Module signing / protected exports** (`CONFIG_MODULE_SIG_PROTECT`). See [`BUILD.md`](BUILD.md) §3.
 
-The release string in the vermagic is **not** a constraint: `same_magic()` (kernel/module/version.c) skips the first token when the module has CRCs. Only the remainder (`SMP preempt mod_unload modversions aarch64`) must match.
+The release string in the vermagic is **not** a constraint: `same_magic()` (`common/kernel/module/version.c`, tag `android15-6.6-2025-06_r12`) skips the first token when the module has CRCs. Only the remainder (`SMP preempt mod_unload modversions aarch64`) must match.
 
 ## The gates
 
 | Gate | What it proves | How |
 |---|---|---|
-| **G-CONFIG** | the build config equals the stock config (or differs only in intended lines) | `diff <(sort .config) <(sort data/official-kernel_aarch64.config)` — the published file **is** the stock config, see below |
-| **G-SYMVERS** | exported symbol set and all CRCs equal Google's | `cmp vmlinux.symvers` |
+| **G-CONFIG** | the build config text equals the published flat config (or differs only in intended lines) | `LC_ALL=C diff` of `$HOME/lake-build/out/dist_control/.config` or `dist_cert/.config` (the only origins; `scripts/build.sh` writes them with `--dist_dir`) against this repo's `data/official-kernel_aarch64.config` — the block below |
+| **G-SYMVERS** | control-build symvers file equals the published reference. This is not the CRC gate, and the cert build has no stored `cmp` | `cmp <new vmlinux.symvers> data/official-vmlinux.symvers` |
 | **G-CRC** | every CRC any of the 557 `.ko` requires from the kernel equals the new kernel's | `tools/gate_kmi_crc.sh <new vmlinux.symvers>` → `mismatches=0` |
 | **G-EXPORTS** | no symbol the modules need (and stock exports) is missing | same script (`missing_exports=0`) |
-| **G-SELFTEST** | the CRC gate itself detects sabotage instead of rubber-stamping | `tools/selftest_gates.sh` → 1 positive PASS + 3 negatives FAIL |
-| **G-CERT** | the Google-signed GKI modules verify against the new image | `tools/verify_modsig.sh` (signer identity compared, `--selftest-full` matrix) |
+| **G-SELFTEST** | the CRC gate itself detects sabotage instead of rubber-stamping | `tools/selftest_gates.sh` → 1 positive PASS + 4 sabotage FAIL + 1 exact-key case |
+| **G-CERT** | signer identity on a synthetic matrix; a new Image only when artifacts exist | `tools/verify_modsig.sh --selftest-full` is offline. A cert-build check needs `official/can.ko` and that Image; no result of it is stored here |
 | **G-CERT-FP** | the recorded Google-key fingerprint is exact | `certs/google_gki_ab13771415_modsign_cert.pem` → `76:FB:DF:D1:3F:6B:A6:12:75:6E:AE:36:E9:9F:88:50:8F:A3:20:2A:A3:51:17:70:4C:26:D5:5A:99:CC:72:A1` (sha256, recomputed by V68; `issuer=CN=Build time autogenerated kernel key`, `serial=1CF83E801A04DD7FE604A515BC3DFDFA6D0B1721`) |
-| **G-REPACK** | the boot image changed only where intended | `tools/repack_boot_v2.py` — in-code refusals (truncated input, non-gzip kernel, `ramdisk_size != 0`, existing output, oversize, GKI signature block); the author's 32-case harness is **not** published |
+| **G-REPACK** | the boot image changed only where intended | in-code refusals in `tools/repack_boot_v2.py` (truncated input, non-gzip kernel, `ramdisk_size != 0`, existing output, oversize, GKI signature block). Published tests: `tests/test_repack_boot.py` (11). The author's 32-case harness is **not** published. No single command is this gate. |
 
 ### G-CONFIG
 
-`data/official-kernel_aarch64.config` is the `.config` of Google's build 13771415, taken from the public artifact `kernel_aarch64_filegroup_decl.tar.gz` (path inside the tar: `bazel-out/k8-fastbuild/bin/common/kernel_aarch64_config/out_dir/.config`). Its sha256 is `9b544345144b5e7d050981905a655308700151693ddf9d10f94eee1eadeb19ec`, which is also the sha256 of the audited device's `/proc/config.gz` — so an external reader can run the config gate without owning the device:
+`data/official-kernel_aarch64.config` is the flat `.config` text of Google's build 13771415. Its sha256 is `9b544345144b5e7d050981905a655308700151693ddf9d10f94eee1eadeb19ec`, the same hash as `zcat` of the audited device's `/proc/config.gz` (decompressed text). The file is not byte-identical to `/proc/config.gz`: gzip of this text hashes differently. The historical container was `kernel_aarch64_filegroup_decl.tar.gz` (path inside the tar: `bazel-out/k8-fastbuild/bin/common/kernel_aarch64_config/out_dir/.config`). This repo does not download that tar and does not record the tar's sha256. The flat file in the repo is what the config gate compares:
 
 ```bash
-# control build: expect NO output (identical files)
-diff <(sort out/dist_control/.config | grep -v '^#') <(sort data/official-kernel_aarch64.config | grep -v '^#')
+# One .config origin: scripts/build.sh control|cert, via --dist_dir.
+# Files live under $HOME/lake-build. The reference lives in this repo.
+# No grep -v filter: a line "# CONFIG_X is not set" is a real difference.
+# LC_ALL=C so the hunk header does not follow the locale.
+REPO=$PWD
+LC_ALL=C diff <(sort "$HOME/lake-build/out/dist_control/.config") \
+             <(sort "$REPO/data/official-kernel_aarch64.config")
+# control build: expect no output
 
-# cert build: expect exactly ONE line, the intended one
-diff <(sort out/dist_cert/.config | grep -v '^#') <(sort data/official-kernel_aarch64.config | grep -v '^#')
-# 2368c2368
-# < CONFIG_SYSTEM_TRUSTED_KEYS="google_gki_ab13771415_modsign_cert.pem"
-# > CONFIG_SYSTEM_TRUSTED_KEYS=""
+LC_ALL=C diff <(sort "$HOME/lake-build/out/dist_cert/.config") \
+             <(sort "$REPO/data/official-kernel_aarch64.config")
+# cert build: one option changes (CONFIG_SYSTEM_TRUSTED_KEYS).
+# A normal diff of that option is a four-line hunk:
+# < old line
+# ---
+# > new line
+# plus the hunk header. Do not treat one locale's NcN header as the only form.
 ```
 
 ### G-CRC / G-EXPORTS
 
-`tools/gate_kmi_crc.sh` reads `(symbol, CRC)` pairs extracted from every module's `__versions` section (`tools/data/modules_required_crcs.tsv`, generated with `tools/dump_modcrcs.py`), joins them with the new kernel's `vmlinux.symvers`, and fails on any mismatch or missing export. It prints the corpus metrics first, then the verdict.
+`tools/gate_kmi_crc.sh` reads `(symbol, CRC)` pairs extracted from every module's `__versions` section (`tools/data/modules_required_crcs.tsv`, generated with `tools/dump_modcrcs.py`), joins them with the symvers file you pass, and fails on a CRC mismatch, a missing export, a conflicting CRC, an export_type mismatch, or a namespace mismatch. It prints the corpus metrics first, then the verdict.
 
-Measured on this project (reference = `data/official-vmlinux.symvers`, and identically for the control and cert builds):
+What follows is a positive control on the reference symvers (`data/official-vmlinux.symvers` passed to the gate). Stored output of the control and cert builds is not in this repo; PLAN facts 60 and 65 record those measurements.
 
 ```
 $ tools/gate_kmi_crc.sh data/official-vmlinux.symvers
 modules.files=557 modules.unique=370
 symbols.required=4138 symbols.reference_exports=8795 symbols.reference_provides=2309
 compared=2309 mismatches=0 missing_exports=0 conflicting_crcs=0
+export_type_mismatches=0 namespace_mismatches=0
 PASS
-exit=0
+# the script does not print a status line; the shell's $? is 0 when the verdict is PASS
 ```
 
-`compared=2309` is the number of symbols the 557 modules require **and** the stock kernel exports — these are the ones whose CRC must match. `symbols.required=4138` is everything the modules import (the remaining 1829 come from other vendor/GKI modules, see below). `conflicting_crcs=0` means no symbol is required with two different CRCs anywhere in the corpus. `export_type_mismatches=0` / `namespace_mismatches=0` mean no required symbol changed its `EXPORT_SYMBOL` vs `_GPL` status or its namespace between stock and rebuild (item 42: export legality and visibility are part of the identity, not just the CRC).
+`compared=2309` is the join of the symbols the 557 modules require with the symvers file passed to the gate. It equals the stock provide-count only when that file matches stock. `symbols.required=4138` is everything the modules import (the remaining 1829 are 1819 exports of other vendor modules, 9 protected GKI exports, and `calc_eff_hook` required by `mtk_em.ko`). `conflicting_crcs=0` means no symbol is required with two different CRCs anywhere in the corpus. `export_type_mismatches=0` and `namespace_mismatches=0` mean no required symbol changed its `EXPORT_SYMBOL` vs `_GPL` status or its namespace between stock and rebuild. Export legality and visibility of those required symbols are part of what this gate checks. The other 6486 stock exports (8795-2309) are not compared here. Full symvers identity is a `cmp` of the control build only.
 
-Historical note: earlier revisions of this page said "1573 kernel symbols". 1573 was the count for the **215 `vendor_dlkm` modules only** (the subset whose CRCs had been extracted first); the full 557-file corpus requires 2309 kernel symbols. Both numbers come from the same method, different corpora.
+Historical note: earlier revisions of this page said "1573 kernel symbols". That label was reported for the 215 `vendor_dlkm` modules. It was not recomputed from a 215-only extract in this repo. The full 557-file corpus requires 2309 kernel symbols.
 
 ## Regenerating the data
 
@@ -65,16 +75,24 @@ Both data files are derived only from the device's own modules (no binary is red
 
 ```bash
 MODS=<dir with the 557 .ko>    # <MODS>/ramdisk/ (342) + <MODS>/vendor_dlkm/ (215)
-python3 tools/dump_modcrcs.py "$MODS/ramdisk" "$MODS/vendor_dlkm"             > tools/data/modules_required_crcs.tsv
-python3 tools/dump_modcrcs.py --inventory "$MODS/ramdisk" "$MODS/vendor_dlkm" > tools/data/modules_inventory.tsv
+# Write a temp file. mv onto the audited TSV only if the dump exits 0
+# and the line count matches (20187 CRC rows, 370 inventory rows).
+tmpc="$(mktemp)"
+tmpi="$(mktemp)"
+python3 tools/dump_modcrcs.py "$MODS/ramdisk" "$MODS/vendor_dlkm" > "$tmpc" \
+  && [ "$(wc -l < "$tmpc")" -eq 20187 ] \
+  && mv "$tmpc" tools/data/modules_required_crcs.tsv
+python3 tools/dump_modcrcs.py --inventory "$MODS/ramdisk" "$MODS/vendor_dlkm" > "$tmpi" \
+  && [ "$(wc -l < "$tmpi")" -eq 370 ] \
+  && mv "$tmpi" tools/data/modules_inventory.tsv
 ```
 
-`modules_required_crcs.tsv` = `symbol<TAB>0xCRC<TAB>module_basename` (20187 rows, sorted and deduplicated); `modules_inventory.tsv` = `module_basename<TAB>copies<TAB>vermagic` (370 rows, `copies` sums to 557). The `vb_<slot>_r<NN>__` prefix that the audit uses for ramdisk files is stripped so the slot-A/B copies collapse into one module identity. Both files are **derived, not regenerable without the original 557 vendor `.ko` files** (item 46): the device dump that produced them is private and unpublished; treat the TSVs as audited inputs, re-extractable only from the same module set.
+`modules_required_crcs.tsv` = `symbol<TAB>0xCRC<TAB>module_basename` (20187 rows, sorted and deduplicated); `modules_inventory.tsv` = `module_basename<TAB>copies<TAB>vermagic` (370 rows, `copies` sums to 557). The `vb_<slot>_r<NN>__` prefix that the audit uses for ramdisk files is stripped so the slot-A/B copies collapse into one module identity. Both files are **derived, not regenerable without the original 557 vendor `.ko` files**: the device dump that produced them is private and unpublished; treat the TSVs as audited inputs, re-extractable only from the same module set.
 
 ## Inter-module symbols
 
-4138 distinct symbols are imported by the modules: **2309 come from the kernel** and are covered above; the remaining 1829 are exported by *other vendor modules* (e.g. `mtk_cmdq_drv_ext`, `mediatek_drm`) and are unaffected by rebuilding the kernel. Nine of them (`arc4_*`, `rfkill_*`) are *protected exports* provided by Google-signed GKI modules — the reason for the certificate in the cert build. Source for that set: the `android/abi_gki_protected_exports_aarch64` list of the pinned r12 tree, cross-checked against the module dump (`docs/PLAN-AND-FINDINGS.pt-BR.md` fact 37).
+4138 distinct symbols are imported by the modules: **2309 come from the kernel** and are covered above; the remaining 1829 split as 1819 exports of other vendor modules (for example `mtk_cmdq_drv_ext`, `mediatek_drm`), 9 protected exports from Google-signed GKI modules (`arc4_*`, `rfkill_*`; `CONFIG_MODULE_SIG_PROTECT`; list `android/abi_gki_protected_exports_aarch64`), and 1 symbol with no provider in the published set (`calc_eff_hook`, required by `mtk_em.ko`). Rebuilding the kernel does not rewrite those vendor modules. Source for the protected set: `docs/PLAN-AND-FINDINGS.pt-BR.md` fact 37.
 
-Formally out of scope for the offline gates (item 45): per-symbol single-compatible-provider closure over the 1829 would require the vendor modules' own EXPORT tables, which are not published and cannot be re-derived without the original `.ko` files. Scope ends at the kernel boundary by construction: the gate enforces everything vmlinux provides (`missing_exports=0`, `mismatches=0`, export-type/namespace identity); vendor-to-vendor wiring is declared, not verified.
+Per-symbol closure over the 1829 is out of scope for the offline gates: it would need the vendor modules' own EXPORT tables, which are not published. The gate stops at the symbols vmlinux provides that the modules also require (`missing_exports=0`, `mismatches=0`, export-type and namespace of that intersection). Vendor-to-vendor wiring is declared, not verified.
 
-Out of scope likewise (no stock dataset published): `__kcfi_typeid_*` VALUE comparison (item 44) — only the device-dump counts are on record (101 vendor_dlkm + 68 ramdisk carriers); BTF/stgdiff/ABI-XML diffing (item 43) — no baseline artifacts offline. The r12 KMI symbol lists (`android/abi_gki_aarch64*`) remain the textual ABI reference; anything they do not cover is declared here, not assumed.
+Also out of scope (no stock dataset published): comparing `__kcfi_typeid_*` values. `docs/AUDIT-CODEX.md` records the device-dump carrier counts (101 and 68). BTF, stgdiff, and ABI-XML diffs have no baseline artifacts offline. The r12 KMI symbol lists (`android/abi_gki_aarch64*`) remain the textual ABI reference; anything they do not cover is declared here, not assumed.

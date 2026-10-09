@@ -70,9 +70,14 @@ def _sections(d):
     return out
 
 
+def _read_bytes(path):
+    with open(path, 'rb') as f:
+        return f.read()
+
+
 def versions(path):
     """(symbol, crc) pairs imported by the module (__versions entries are 64 B each)."""
-    d = open(path, 'rb').read()
+    d = _read_bytes(path)
     secs = _sections(d)
     out = []
     for name, off, size in secs:
@@ -88,7 +93,7 @@ def versions(path):
 
 def vermagic(path):
     """vermagic string from the .modinfo section, or '' if absent."""
-    d = open(path, 'rb').read()
+    d = _read_bytes(path)
     secs = _sections(d)
     for name, off, size in secs:
         if name != b'.modinfo':

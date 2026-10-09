@@ -120,7 +120,16 @@ cmd_verify() {
     read -r CONTENT SIG < <(mod_split "$ko" "$work/mod")
     # -iE (not -i "a\|b"): escaped alternation is needless here and is the construct the
     # protocol checks reject (SPEC.md V2/B12) — the two forms print the same lines.
-    openssl cms -inform DER -in "$SIG" -cmsout -print 2>/dev/null | grep -a -m2 -iE "serial|issuer" | sed 's/^/      /' || true
+    # V79: openssl failure and a missing issuer line are printed. Nothing here is `|| true`.
+    diag_rc=0
+    diag_out="$(openssl cms -inform DER -in "$SIG" -cmsout -print 2>&1)" || diag_rc=$?
+    if [ "$diag_rc" -ne 0 ]; then
+      echo "      diagnóstico: openssl cms -print falhou (exit=$diag_rc)"
+    elif printf '%s\n' "$diag_out" | grep -a -m2 -iE 'serial|issuer' >"$work/diag.txt"; then
+      sed 's/^/      /' "$work/diag.txt"
+    else
+      echo "      diagnóstico: issuer/serial ausentes na saída cms -print"
+    fi
     echo "[3/3] verificando assinatura contra cada cert do Image..."
     # Método B real (item 49): a identidade do signatário declarada no PKCS#7
     # (issuer+serial) tem que ser a do cert que valida — não basta "algum cert valida".
@@ -158,9 +167,11 @@ cmd_selftest() {
     python3 - "$work/neg/can_bad.ko" <<'PY'
 import sys
 p = sys.argv[1]
-d = bytearray(open(p, 'rb').read())
+with open(p, 'rb') as f:
+    d = bytearray(f.read())
 d[1000] ^= 0x01
-open(p, 'wb').write(d)
+with open(p, 'wb') as f:
+    f.write(d)
 PY
     if cmd_verify "$SELFTEST_IMAGE" "$work/neg/can_bad.ko" "$work/neg_out"; then
         echo 'FAIL DO TESTE: módulo adulterado validou (inaceitável)'
@@ -175,7 +186,7 @@ cmd_selftest_full() { # matriz sintética offline (item 52): chaves/módulos ger
     local work="${SELFTEST_WORK:-}"
     if [ -z "$work" ]; then new_tmpwork; work="$TMPWORK"; fi
     mkdir -p "$work/full"
-    local fails=0
+    local fails=0 n_ok=0
     # duas identidades: (k1,c1) e (k2,c2 com MESMO subject CN, outra chave)
     openssl req -x509 -newkey rsa:2048 -nodes -keyout "$work/full/k1.key" \
         -out "$work/full/c1.crt" -days 2 -subj "/CN=unittest-signer/" 2>/dev/null
@@ -193,10 +204,13 @@ cmd_selftest_full() { # matriz sintética offline (item 52): chaves/módulos ger
     mkmod() { # <content> <sig.der> <out.ko>
         python3 - "$1" "$2" "$3" <<'PY'
 import struct, sys
-content = open(sys.argv[1], 'rb').read()
-sig = open(sys.argv[2], 'rb').read()
+with open(sys.argv[1], 'rb') as f:
+    content = f.read()
+with open(sys.argv[2], 'rb') as f:
+    sig = f.read()
 info = struct.pack('>BBBBB3xI', 1, 2, 0, len(b'signer'), 0, len(sig))
-open(sys.argv[3], 'wb').write(content + sig + info + b'~Module signature appended~\n')
+with open(sys.argv[3], 'wb') as f:
+    f.write(content + sig + info + b'~Module signature appended~\n')
 PY
     }
     mkimg() { # <der-cert-ou-vazio> <out.img>
@@ -209,7 +223,7 @@ PY
         local n="$1" label="$2" want="$3" out rc
         printf '### [%s] %s\n' "$n" "$label"
         out="$(cmd_verify "$4" "$5" "$work/full/w$n" 2>&1)" && rc=0 || rc=$?
-        if [ "$rc" -eq "$want" ]; then printf '  => OK (exit=%s)\n\n' "$rc";
+        if [ "$rc" -eq "$want" ]; then printf '  => OK (exit=%s)\n\n' "$rc"; n_ok=$((n_ok + 1));
         else printf '  => FALHA (exit=%s, esperado %s)\n%s\n\n' "$rc" "$want" "$out"; fails=$((fails + 1)); fi
     }
     full_case 1 "signatário correto valida" 0 "$work/full/img_ok.img" "$work/full/mod_ok.ko"
@@ -223,8 +237,36 @@ PY
     full_case 5 "cert ausente rejeitado limpo" 1 "$work/full/img_empty.img" "$work/full/mod_ok.ko"
     mkimg "$work/full/c2.der" "$work/full/img_samecn.img"
     full_case 6 "mesmo issuer, outra chave rejeitado" 1 "$work/full/img_samecn.img" "$work/full/mod_ok.ko"
-    if [ "$fails" -eq 0 ]; then echo 'V67 OK modsig synthetic matrix (6/6: signer ok/errado, conteúdo/assinatura, cert ausente, mesmo issuer)'; echo 'SELFTEST-FULL PASS (6/6)'; return 0; fi
-    echo 'V67 FAIL modsig synthetic matrix'; echo "SELFTEST-FULL FAIL ($fails caso(s))"; return 1
+    # V67-EXPIRED: openssl cms -verify rejects notAfter in the past (proved: exit 4, "certificate has expired").
+    openssl req -x509 -newkey rsa:2048 -nodes -keyout "$work/full/kexp.key" \
+        -out "$work/full/cexp.crt" -subj "/CN=unittest-expired/" \
+        -not_before 20200101000000Z -not_after 20200102000000Z 2>/dev/null
+    openssl x509 -in "$work/full/cexp.crt" -outform DER -out "$work/full/cexp.der" 2>/dev/null
+    openssl cms -sign -binary -in "$work/full/content.bin" -outform DER \
+        -signer "$work/full/cexp.crt" -inkey "$work/full/kexp.key" -nocerts \
+        -out "$work/full/sigexp.der" 2>/dev/null
+    mkmod "$work/full/content.bin" "$work/full/sigexp.der" "$work/full/mod_exp.ko"
+    mkimg "$work/full/cexp.der" "$work/full/img_exp.img"
+    full_case 7 "cert expirado rejeitado" 1 "$work/full/img_exp.img" "$work/full/mod_exp.ko" # V67-EXPIRED
+    # V67-NOTYET: notBefore in the future is rejected ("certificate is not yet valid").
+    openssl req -x509 -newkey rsa:2048 -nodes -keyout "$work/full/kfut.key" \
+        -out "$work/full/cfut.crt" -subj "/CN=unittest-future/" \
+        -not_before 20300101000000Z -not_after 20310101000000Z 2>/dev/null
+    openssl x509 -in "$work/full/cfut.crt" -outform DER -out "$work/full/cfut.der" 2>/dev/null
+    openssl cms -sign -binary -in "$work/full/content.bin" -outform DER \
+        -signer "$work/full/cfut.crt" -inkey "$work/full/kfut.key" -nocerts \
+        -out "$work/full/sigfut.der" 2>/dev/null
+    mkmod "$work/full/content.bin" "$work/full/sigfut.der" "$work/full/mod_fut.ko"
+    mkimg "$work/full/cfut.der" "$work/full/img_fut.img"
+    full_case 8 "cert ainda não válido rejeitado" 1 "$work/full/img_fut.img" "$work/full/mod_fut.ko" # V67-NOTYET
+    if [ "$fails" -eq 0 ] && [ "$n_ok" -eq 8 ]; then
+      echo 'V67 OK modsig synthetic matrix (8/8: signer ok/errado, conteúdo/assinatura, cert ausente, mesmo issuer, cert expirado, cert ainda não válido)'
+      echo 'SELFTEST-FULL PASS (8/8)'
+      return 0
+    fi
+    echo 'V67 FAIL modsig synthetic matrix'
+    echo "SELFTEST-FULL FAIL (fails=$fails ok=$n_ok, esperado 8)"
+    return 1
 }
 
 case "${1:-}" in

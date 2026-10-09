@@ -19,12 +19,36 @@
 set -uo pipefail; export LC_ALL=C
 HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/.." && pwd)"; cd "$ROOT"
 fails=0
+T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 note() { printf 'V1 NOTE %s\n' "$1"; }
 bad()  { printf 'V1 FAIL %s\n' "$1"; fails=$((fails + 1)); }
 
 # --- 1. values straight from the gate -----------------------------------------------------------
-gate_out="$(bash tools/gate_kmi_crc.sh data/official-vmlinux.symvers 2>&1)" || true
+# V77-GATE-RC: numbers from a gate that did not exit 0 are not evidence.
+gate_rc=0
+gate_out="$(bash tools/gate_kmi_crc.sh data/official-vmlinux.symvers 2>&1)" || gate_rc=$?
+if [ "$gate_rc" -ne 0 ]; then
+  bad "gate_kmi_crc.sh exit=$gate_rc (V77: números de um gate que falhou não contam)"
+  echo 'V77 FAIL gate exit'
+  echo 'V1 FAIL'
+  exit 1
+fi
+echo 'V77 OK gate exit 0 required before V1 trusts the numbers'
 num() { printf '%s\n' "$gate_out" | grep -oE "(^| )$1=[0-9]+" | head -1 | cut -d= -f2; }
+
+# grep -P exit 1 = no match (handled by the caller). Exit 2 = bad regex, not a silent zero.
+extract_p() { # <pattern> <file>  -> writes matches to $T/pout; fatal on exit 2
+  local pat="$1" file="$2" rc=0
+  : > "$T/pout"
+  grep -oP "$pat" "$file" >"$T/pout" 2>"$T/perr" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    bad "grep -P exit 2 em $file (V77: regex inválida não é 'zero citações'): $(tr '\n' ' ' < "$T/perr")"
+    echo 'V77 FAIL grep -P exit 2'
+    echo 'V1 FAIL'
+    exit 1
+  fi
+  if [ "$rc" -ne 0 ]; then : > "$T/pout"; fi
+}
 files="$(num 'modules\.files')";        unique="$(num 'modules\.unique')"
 required="$(num 'symbols\.required')";  refexp="$(num 'symbols\.reference_exports')"
 provides="$(num 'symbols\.reference_provides')"; compared="$(num 'compared')"
@@ -48,10 +72,11 @@ other_modules=$((required - provides))
 # --- 3a. the gate metric block, in both docs, with the gate's values -----------------------------
 expect() { # <label> <expected> <file> <grep -P pattern> [global]
   local label="$1" want="$2" file="$3" pat="$4" global="${5:-}" found=0 got
+  extract_p "$pat" "$file"
   while IFS= read -r got; do
     found=$((found + 1))
     [ "$got" = "$want" ] || bad "$file: $label = $got, mas o repo produz $want"
-  done < <(grep -oP "$pat" "$file" 2>/dev/null || true)
+  done < "$T/pout"
   [ "$found" -gt 0 ] || [ -n "$global" ] || bad "$file: nenhuma declaração de '$label' (número citado sumiu do texto)"
 }
 for doc in README.md docs/KMI-GATES.md; do
@@ -82,10 +107,11 @@ for pat_label in \
   IFS='|' read -r label want pat <<<"$pat_label"
   found=0
   for doc in README.md docs/KMI-GATES.md; do
+    extract_p "$pat" "$doc"
     while IFS= read -r got; do
       found=$((found + 1))
       [ "$got" = "$want" ] || bad "$doc: $label = $got, mas o repo produz $want"
-    done < <(grep -oP "$pat" "$doc" 2>/dev/null || true)
+    done < "$T/pout"
   done
   [ "$found" -gt 0 ] || bad "nenhuma citação de '$label' nos docs (o número sumiu, ou o padrão mudou)"
 done

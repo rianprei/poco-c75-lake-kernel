@@ -107,6 +107,24 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B88 | 2026-10-07 | SPEC still required `command fastboot` (V46/V47) and said the protocol stops when `fastboot boot` is absent. | V46/V47/§T |
 | B89 | 2026-10-07 | The measurement log and the config table still published `/tmp/` and `~/` paths after V33 had been limited to research notes. | V33 |
 | B90 | 2026-10-07 | `fetch_official_artifacts.sh` wrote `$OUT/$name` directly: a `../` name escaped the destination, a failed body stayed as a candidate, and an unknown hash was worded as a check. | V76 |
+| B91 | 2026-10-08 | V1 trusted gate numbers when `gate_kmi_crc.sh` exited non-zero, and `grep -P` exit 2 became "zero citations". | V77 |
+| B92 | 2026-10-08 | `artifact_url` masked curl's exit and then reported a missing URL as if the fetch had succeeded. | V78 |
+| B93 | 2026-10-08 | The cms `-print` diagnostic was masked, so an openssl failure looked like a missing issuer line. | V79 |
+| B94 | 2026-10-08 | `host-checks.yml` pinned `actions/checkout` by a moving tag. | V80 |
+| B95 | 2026-10-08 | Docs named a flag and an avbtool form the tools reject, omitted `unpack_bootimg`, `clean`, and `WORK`/`CPUS`/`RAM_MB`/`REPO_NO_VERIFY`, and said ~80 GB. | V81 |
+| B96 | 2026-10-08 | Docs said the CRC gate covers every export, that 36/36 SHAs are enforced, and that `--selftest` checks a locally built Image. | V82 |
+| B97 | 2026-10-08 | Config hash was equated to `/proc/config.gz` bytes; 1573 was stated as recomputed; 68/172 was cited as fact 50; diff paths ignored locale; 1829 omitted `calc_eff_hook`; bare item numbers. | V83 |
+| B98 | 2026-10-08 | `build.sh` told the reader "80 GB" while comparing 83886080 KiB, and the dirty-tree check was a brace group whose trailing mask does not run. | V84 |
+| B99 | 2026-10-08 | A missing required doc became a Python traceback instead of a named check failure. | V85 |
+| B100 | 2026-10-08 | Python tests ignored ResourceWarning and would not run `run_fuzz.py` if that file appeared. | V65 |
+| B101 | 2026-10-08 | The fastboot guard selftest never sent `update` or `oem unlock` / `oem off-mode-charge`. The default arm already refused them. | V66 |
+| B102 | 2026-10-08 | The modsig matrix never presented an expired or not-yet-valid certificate. `openssl cms -verify` already rejects both. | V67 |
+| B103 | 2026-10-08 | A review said a trailing success-mask after `{ exit 1; }` lets a dirty tree pass. The exit ends the shell first. Rewritten as if/then so the clean-tree grep miss stays explicit. | V84 |
+| B104 | 2026-10-08 | `open().read()` in the CRC dumper, the repack tool, and the repack test left files unclosed. | V65 |
+| B105 | 2026-10-08 | The documented config diff dropped `# CONFIG_ is not set` lines, `cmp` named one symvers file, and TSV regen truncated the audited file before Python ran. | V86 |
+| B106 | 2026-10-08 | Docs still assigned vermagic strings to directories, called `compared=` the stock join, omitted three gate failure modes, and stated locked-bootloader and Bluetooth results that were not measured. | V87 |
+| B107 | 2026-10-08 | CONTRIBUTING omitted raw-log destinations, the SAFETY warning, the three sabotage commands, and `ro.product.device`. CHANGELOG paths and 0.1.x order were ambiguous. | V88 |
+| B108 | 2026-10-08 | Four config-table rows had an unquoted comma, so csv.DictReader shifted columns and the empty-field check still passed. | V70 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -165,6 +183,11 @@ Per the fable rule, each bug was searched for again everywhere:
 - TWINS: searched hard-coded SPEC line numbers in checks — found 1 site: V40 `awk NR==180` (FIX13; broke on any §B insert); fixed to id-match + sabotage made line-independent (case 60).
 - TWINS: searched join `-o` with trailing-empty fields — found 1 site: gate XTYPE/XNS block (false mismatches on stock-vs-stock); normalised empty namespace to `-` before join (B77).
 - TWINS: searched bare on-device commands (`uname -r`, `getprop`, `cat /proc/modules`, `dmesg`, `ls /sys/fs/pstore` without `adb shell`) — found 2 rows: T-1.3, baseline-capture (fixed); acceptance block already used `adb shell` (3 sites, untouched); V56 keeps the prefix on all five forms.
+- TWINS: searched a success-mask on a curl assignment, a cms `-print` assignment, and `scripts/build.sh` — the fetch and cms sites were code (B92, B93); `build.sh` kept the token only in a comment, removed so V84 sees a new one (B98/B103). Other `|| true` sites (`fastboot_guard.sh` magic read, `check_protocol_invariants.sh` empty greps) are "no match is fine" and stay.
+- TWINS: searched `uses: actions/checkout@` — one workflow line, now a 40-hex SHA (B94).
+- TWINS: searched `exactly the same symbols`, `36/36`, `3 negatives`, `the gate enforces everything vmlinux provides`, `item 42/43/44/45/64/65`, and `That is harmless` in README, BUILD, KMI-GATES, CHANGELOG, CONTRIBUTING — removed or never present; V82/V83 keep them out. `docs/SAFETY.md` still says `avbtool --algorithm NONE`, which is the avbtool flag, and V81 does not ban it.
+- TWINS: searched `grep -v '^#'`, a one-operand `cmp vmlinux.symvers`, and a shell redirect onto `tools/data/modules_required_crcs.tsv` in README, BUILD, KMI-GATES, CHANGELOG, CONTRIBUTING — removed from the instructions; V86 keeps them out. Raw notes under `docs/research/` still show the old diff and are not instructions.
+- TWINS: searched `does not pass verification` / `will not pass verification` in README, BUILD, and SAFETY — rewritten as unmeasured; V87 keeps the measured wording.
 
 ## §V — invariants (each one testable, with the file that protects it)
 
@@ -234,9 +257,9 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V62 | `docs/DEVICE-TEST-PROTOCOL.md` carrega a política getvar required/optional/accepted-absent; ausência nunca é falsa segurança nem falso STOP. | `tools/check_protocol_invariants.sh` |
 | V63 | T-1.3a re-checks the build line and `adb shell uname -r` on Android; T-1.3b power-cycles by keys (`Power off`, `Vol− + Power`) and only then re-reads `slot-successful:b` and `slot-unbootable:b`. | `tools/check_protocol_invariants.sh` |
 | V64 | ∄ frase genérica "RAM boots leave flash untouched" no protocolo. | `tools/check_protocol_invariants.sh` |
-| V65 | `python3 -m unittest discover -s tests -p 'test_*.py'` passa (exit 0 + `^OK`): repack (exit codes, magics, keep-footer, info_image fatal), dump_modcrcs (ELF malformado, permissive, sem-__versions, prefixos, CRC divergente), modsig (sem-assinatura/truncado sem traceback). | `tools/selftest_python.sh` |
-| V66 | `tools/selftest_fastboot_guard.sh` passa contra fastboot falso (20 allow + 16 deny + prova de cópia privada 0400 + nomes hostis). | `tools/selftest_fastboot_guard.sh` |
-| V67 | `tools/verify_modsig.sh --selftest-full` passa a matriz sintética offline (6/6: signatário ok/errado, conteúdo/assinatura modificados, cert ausente, mesmo issuer outra chave). | `tools/verify_modsig.sh --selftest-full` |
+| V65 | `python3 -W error::ResourceWarning -m unittest discover -s tests -p 'test_*.py'` passes (exit 0, `^OK`, and no `ResourceWarning` text — a finalizer warning still exits 0). If `tools/run_fuzz.py` or `tests/run_fuzz.py` exists, that file is run the same way and a non-zero exit is `⊥`. If neither exists, the check prints that V65 is unittest-only. | `tools/selftest_python.sh` |
+| V66 | `tools/selftest_fastboot_guard.sh` passes against a fake fastboot: allowlist hits, denylist hits including `update`, `oem unlock`, and `oem off-mode-charge`, private-copy TOCTOU proof, and hostile names. The default arm refuses unknown commands. | `tools/selftest_fastboot_guard.sh` |
+| V67 | `tools/verify_modsig.sh --selftest-full` passes the offline matrix 8/8: signer ok/wrong, content/signature modified, cert absent, same issuer other key, expired cert, not-yet-valid cert. | `tools/verify_modsig.sh --selftest-full` |
 | V68 | `docs/KMI-GATES.md` cita o fingerprint sha256 exato do cert Google (`certs/google_gki_ab13771415_modsign_cert.pem`), recomputado aqui. | `tools/check_docs_numbers.sh` |
 | V69 | Controlled safety vocabulary in use (`host-verified`, `rebuild-reproducible`, `hardware-unverified`, `boot-unproven` across README/KMI-GATES/SAFETY). | `tools/check_protocol_invariants.sh` |
 | V70 | `data/config_safety_table.csv`: no absolute-risk language, no schedutil knob fiction, every row carries `gates_status` + `tree_check`. | `tools/check_config_table.sh` |
@@ -246,6 +269,18 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V74 | L2 names a wrapper rollback (no "ação exata"); L3 says stop and do not repeat the flash; L4 rolls back a flash that bypassed `tools/fastboot_guard.sh`. | `tools/check_protocol_invariants.sh` |
 | V75 | Every `PROTO:N#token` / `SAFETY:N#token` citation has that token on line N. A bare `PROTO:N` without `#token` fails. | `tools/check_protocol_invariants.sh` |
 | V76 | `tools/fetch_official_artifacts.sh` refuses an empty, dotted, absolute, slashed, or `..` name before any write; a body is moved into the destination only after the type/size check and, when a sha256 is pinned, an exact match. Status words are `DOWNLOADED` plus exactly one of `HASH-VERIFIED` or `UNVERIFIED`. A rejected body is not left as a candidate. | `tools/selftest_fetch_publish.sh` |
+| V77 | V1 reads `gate_kmi_crc.sh` only when that gate exits 0. A non-zero exit is `⊥` even if the text contains `PASS`. `grep -P` exit 2 is `⊥`, not an empty citation list. | `tools/check_docs_numbers.sh` |
+| V78 | A non-zero curl inside `artifact_url` is printed as `curl falhou` with the exit code and is not treated as an empty page. A page that returns without `artifactUrl` is a different message. | `tools/selftest_fetch_publish.sh` |
+| V79 | The cms `-print` diagnostic assignment in `tools/verify_modsig.sh` does not mask openssl. Failure and a missing issuer line are both printed. | `tools/check_build_claims.sh` |
+| V80 | `.github/workflows/host-checks.yml` uses `actions/checkout` at a 40-hex SHA. A `@vN` tag is `⊥`. | `tools/check_build_claims.sh` |
+| V81 | README and BUILD name `--footer-algorithm`; BUILD names `avbtool info_image --image`; both prerequisite lists name `unpack_bootimg`; BUILD documents `WORK`, `CPUS`, `RAM_MB`, `REPO_NO_VERIFY` (GPG opt-out), and `scripts/build.sh clean`; disk text says `80 GiB` and the script names `83886080` KiB. | `tools/check_build_claims.sh` |
+| V82 | README does not say the rebuild exports exactly the same symbols and CRCs, and it does not say `--selftest` verifies a locally built Image. KMI does not say the gate enforces everything vmlinux provides. No doc says `36/36` SHA-verified. `common` is tag-pinned and the SHA is recorded, not enforced. Pasted gate blocks include `export_type_mismatches=0` and `namespace_mismatches=0` and do not present a raw `exit=0` line. G-SELFTEST does not say `3 negatives`. `rebuild-reproducible` stays and means symvers, config, and Image size, not a bit-identical Image. The other 6486 stock exports are named without the word `remaining` in front of a number other than 1829. | `tools/check_build_claims.sh` |
+| V83 | The config claim is `zcat` text, not byte-identity with `/proc/config.gz`. The 1829 sentence names `calc_eff_hook`. The 1573 label was not recomputed. kCFI 68/172 cites `docs/AUDIT-CODEX.md`, not fact 50. The config diff uses `LC_ALL=C` and `$HOME/lake-build` plus `data/official-kernel_aarch64.config`. README, BUILD, KMI-GATES, CHANGELOG, and CONTRIBUTING carry no bare `item 42/43/44/45/64/65`. BUILD does not say the release-string difference is harmless. G-REPACK cites `tests/test_repack_boot.py` (11) and says the 32-case harness is not published. CONTRIBUTING names both vocabularies and says to strip serial and IMEI before pasting a bugreport. README says host-approved and explains FAIL->PASS. BUILD explains the bootstrap branch. The filegroup tar is not downloaded and its sha256 is not recorded. | `tools/check_build_claims.sh` |
+| V84 | `scripts/build.sh` contains `80 GiB` and `83886080` and contains no success-mask token. | `tools/check_build_claims.sh` |
+| V85 | Required docs (README, CONTRIBUTING, CHANGELOG, BUILD, KMI-GATES, SAFETY, protocol, plan, FACTS) exist before any later check reads them. A missing file prints `V85 FAIL required doc missing` and exits 1. | `tools/check_protocol_invariants.sh` |
+| V86 | A documented config diff does not use `grep -v '^#'`. A documented symvers `cmp` names `data/official-vmlinux.symvers` as the second file. TSV regeneration does not redirect onto `tools/data/modules_required_crcs.tsv` or `tools/data/modules_inventory.tsv`; it moves a temp file only after exit 0. | `tools/check_build_claims.sh` |
+| V87 | Vermagic strings are not assigned to a directory. `compared=` is the join with the symvers that was passed. The CRC gate also fails on conflicting CRC, export_type, and namespace. Locked-bootloader behaviour is unmeasured. Protected-export inventory is Wi-Fi only. The Portuguese summary does not say the Image is reproduced byte for byte. Control symvers cites PLAN fact 60 and a two-file `cmp`. | `tools/check_build_claims.sh` |
+| V88 | CONTRIBUTING names `ro.product.device`, the local raw logs, `docs/SAFETY.md`, and the three sabotage commands. CHANGELOG 0.1.x headings are descending, vendor `.ko` are not "of the device", and the ELF parser is `tools/dump_modcrcs.py`. | `tools/check_build_claims.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):

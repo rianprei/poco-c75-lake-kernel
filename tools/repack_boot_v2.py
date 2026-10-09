@@ -6,7 +6,7 @@ Uso:
       [--footer-algorithm NONE] [--partition-name boot] [--rollback-index 0]
       [--salt HEX] [--keep-footer] [--drop-signature] [--force]
 
-Endurecimentos vs v1 (cada um com teste em run_fuzz.py):
+Endurecimentos vs v1 (cobertos por tests/test_repack_boot.py; tools/run_fuzz.py não está neste repo):
   - entradas curtas/truncadas -> ERRO limpo (nunca traceback de struct.unpack);
   - ramdisk_size != 0 -> recusa (esta ferramenta só maneja boot sem ramdisk);
   - bloco de assinatura GKI (AVB0, 16 KiB) detectado: sem --drop-signature, recusa;
@@ -91,7 +91,8 @@ def main():
     # determinística; sem salt ele gera um aleatório). apenas repassa.
 
     try:
-        orig = open(args.orig, "rb").read()
+        with open(args.orig, "rb") as f:
+            orig = f.read()
     except OSError as e:
         err(f"lendo orig: {e}")
     if len(orig) < PAGE:
@@ -216,7 +217,8 @@ def main():
         os.replace(tmp_final, args.output)
         # pós-verificação FATAL (era não-fatal): kernel roundtrip + info_image +
         # tamanho == partition_size + footer no fim + VBMeta legível.
-        got = open(args.output, "rb").read()
+        with open(args.output, "rb") as f:
+            got = f.read()
         if len(got) != args.max_partition:
             err(f"saída tem {len(got)} B != partition_size {args.max_partition}")
         if got[-AVB_FOOTER_LEN:-AVB_FOOTER_LEN + 4] != AVB_MAGIC:

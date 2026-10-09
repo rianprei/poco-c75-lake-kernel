@@ -23,7 +23,7 @@ disk_ok() {
   local avail_kb
   avail_kb="$(df -k --output=avail "$WORK" 2>/dev/null | tail -1 | tr -d ' ')"
   [ -n "$avail_kb" ] && [ "$avail_kb" -ge 83886080 ] || {
-    echo "disk preflight FAIL: need 80 GB free on $WORK (have ${avail_kb:-?} KiB)" >&2; exit 2; }
+    echo "disk preflight FAIL: need 80 GiB free on $WORK (83886080 KiB; have ${avail_kb:-?} KiB)" >&2; exit 2; }
 }
 
 # --- strict REPO_NO_VERIFY (item 33) --------------------------------------------------------------
@@ -77,8 +77,17 @@ patches_applied() { # 0 = both applied, 1 = both absent, 2 = mixed/unknown
   return 2
 }
 require_pristine() { # for control: refuse contaminated trees
-  git -C "$SRC/common" status --short | grep -q . && { echo "common dirty — run clean first" >&2; exit 1; } || true
-  git -C "$SRC/build/kernel" status --short | grep -q . && { echo "build/kernel dirty — run clean first" >&2; exit 1; } || true
+  # An exit inside a brace group already ended the shell, so a trailing
+  # success-mask never ran on a dirty tree. It only swallowed grep's exit 1
+  # on a clean tree. if/then says that.
+  if git -C "$SRC/common" status --short | grep -q .; then
+    echo "common dirty — run clean first" >&2
+    exit 1
+  fi
+  if git -C "$SRC/build/kernel" status --short | grep -q .; then
+    echo "build/kernel dirty — run clean first" >&2
+    exit 1
+  fi
   patches_applied; rc=$?
   [ "$rc" -eq 1 ] || { echo "patches already applied (state=$rc) — control needs pristine; run clean first" >&2; exit 1; }
 }

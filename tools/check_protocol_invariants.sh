@@ -65,6 +65,16 @@
 set -uo pipefail; export LC_ALL=C
 HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/.." && pwd)"; cd "$ROOT"
 
+# V85: a missing doc is a check failure, not a Python traceback (CC4 5.5).
+for req in README.md CONTRIBUTING.md CHANGELOG.md docs/BUILD.md docs/KMI-GATES.md docs/SAFETY.md \
+           docs/DEVICE-TEST-PROTOCOL.md docs/PLAN-AND-FINDINGS.pt-BR.md docs/FACTS.md; do
+  if [ ! -f "$req" ]; then
+    echo "V85 FAIL required doc missing: $req"
+    exit 1
+  fi
+done
+echo "V85 OK required docs exist"
+
 fails=0
 fail() { printf 'V%s FAIL %s\n' "$1" "$2"; fails=$((fails + 1)); }
 note() { printf 'V%s NOTE manual-review %s\n' "$1" "$2"; }

@@ -133,7 +133,8 @@ class TestKeepFooter(TmpFiles):
         out = os.path.join(self.dir, 'o.bin')
         # no --drop-signature needed (no sig block); avbtool never invoked
         self.assertEqual(self.run_main(p, k, out, '--keep-footer'), 0)
-        self.assertEqual(open(out, 'rb').read(), open(p, 'rb').read())
+        with open(out, 'rb') as produced, open(p, 'rb') as stock:
+            self.assertEqual(produced.read(), stock.read())
 
     def test_different_kernel_rejected(self):
         p = self.w('o.img', make_stock(gz(arm64_image())))

@@ -193,18 +193,29 @@ if [ "$DO_INGEST" -eq 1 ]; then
 fi
 
 UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
-ATTEMPTS=3
-SLEEP=5
+ATTEMPTS="${FETCH_ATTEMPTS:-3}"
+SLEEP="${FETCH_SLEEP:-5}"
 
 artifact_url() { # <name> -> prints the signed URL; retries, then a clear human error
-  local f="$1" path html url attempt
+  local f="$1" path html url attempt line curl_rc
   path="$(viewer_path "$f")"
   for attempt in $(seq 1 "$ATTEMPTS"); do
-    html="$(curl -fsS -A "$UA" --retry 2 --max-time 60 "$B/$path" 2>/dev/null || true)"
-    url="$(printf '%s' "$html" | grep -o '"artifactUrl":"[^"]*"' | sed -n '1p' \
-            | sed 's/^"artifactUrl":"//;s/"$//;s/\\u0026/\&/g' || true)"
+    # V78-CURL-GATE: a network failure is not an empty page. No `|| true`.
+    html=""
+    curl_rc=0
+    html="$(curl -fsS -A "$UA" --retry 2 --max-time 60 "$B/$path" 2>/dev/null)" || curl_rc=$?
+    if [ "$curl_rc" -ne 0 ]; then
+      echo "  tentativa $attempt/$ATTEMPTS: ERRO: curl falhou (exit=$curl_rc) em $B/$path" >&2
+      [ "$attempt" -lt "$ATTEMPTS" ] && sleep "$SLEEP"
+      continue
+    fi
+    url=""
+    # grep -m1 stops itself (no `head` pipe, so pipefail cannot turn a hit into SIGPIPE).
+    if line="$(printf '%s\n' "$html" | grep -m1 -o '"artifactUrl":"[^"]*"')"; then
+      url="$(printf '%s\n' "$line" | sed 's/^"artifactUrl":"//;s/"$//;s/\\u0026/\&/g')"
+    fi
     if [ -n "$url" ]; then printf '%s' "$url"; return 0; fi
-    echo "  tentativa $attempt/$ATTEMPTS: sem artifactUrl em $B/$path" >&2
+    echo "  tentativa $attempt/$ATTEMPTS: curl ok, sem artifactUrl em $B/$path" >&2
     [ "$attempt" -lt "$ATTEMPTS" ] && sleep "$SLEEP"
   done
   cat >&2 <<EOF

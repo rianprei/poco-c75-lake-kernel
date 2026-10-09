@@ -24,7 +24,24 @@ grep -qF 'hispeed_freq/' "$CSV" && fail "schedutil hispeed_freq knob claim back 
 grep -qF 'NÃO é knob' "$CSV" || fail "schedutil correction note missing"
 python3 - "$CSV" <<'PY'
 import csv, sys
-rows = list(csv.DictReader(open(sys.argv[1], encoding='utf-8')))
+with open(sys.argv[1], encoding='utf-8', newline='') as fh:
+    rows = list(csv.reader(fh))
+bad = 0
+if not rows:
+    print('V70 FAIL empty csv')
+    sys.exit(1)
+width = len(rows[0])
+for i, r in enumerate(rows, 1):
+    if len(r) != width:
+        print(f'V70 FAIL line {i}: {len(r)} fields, header has {width}')
+        bad += 1
+sys.exit(1 if bad else 0)
+PY
+[ $? -eq 0 ] || fails=$((fails + 1))
+python3 - "$CSV" <<'PY'
+import csv, sys
+with open(sys.argv[1], encoding='utf-8', newline='') as fh:
+    rows = list(csv.DictReader(fh))
 bad = 0
 if len(rows) < 10:
     print(f'V70 FAIL only {len(rows)} data rows (minimum 10)')

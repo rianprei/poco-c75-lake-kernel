@@ -49,7 +49,7 @@ String verification recipe (no binary needed to *read* the table above; the bina
 
 On the audited device (bootloader unlocked, `verifiedbootstate=orange`) the Magisk-patched `init_boot_b` does **not** match the hash descriptor in `vbmeta_b` while `dtbo`, `vendor_boot` and the stock `init_boot_a` do (controls), and the device boots normally: the bootloader tolerates descriptor mismatches when unlocked. For the chained `boot` partition this is analogous but **unproven**.
 
-**Unlocked is a requirement, not a detail.** A repacked image carries an unsigned AVB footer (`avbtool --algorithm NONE`, see [`BUILD.md`](BUILD.md) §5). On a **locked** device it will not pass verification at all — do not attempt this on a locked bootloader, and do not "unlock" a device to follow this project unless you accept that unlocking itself wipes user data.
+**Unlocked is a requirement, not a detail.** A repacked image carries an unsigned AVB footer (`avbtool --algorithm NONE`, see [`BUILD.md`](BUILD.md) §5). On a **locked** bootloader this image was not measured. Reading AVB suggests an unsigned footer would fail verification; that reading is untested. Do not attempt this on a locked bootloader, and do not "unlock" a device to follow this project unless you accept that unlocking itself wipes user data.
 
 ## Recovery paths (when LK/preloader are intact)
 
