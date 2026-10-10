@@ -1,0 +1,21 @@
+# symbol<TAB>module_basename
+# __ksymtab_* of rfkill.ko and libarc4.ko from the certified GKI build (system_dlkm).
+# Providers for the protected imports. Not an allowlist.
+# rows=17
+arc4_crypt	libarc4.ko
+arc4_setkey	libarc4.ko
+rfkill_alloc	rfkill.ko
+rfkill_blocked	rfkill.ko
+rfkill_destroy	rfkill.ko
+rfkill_find_type	rfkill.ko
+rfkill_get_led_trigger_name	rfkill.ko
+rfkill_init_sw_state	rfkill.ko
+rfkill_pause_polling	rfkill.ko
+rfkill_register	rfkill.ko
+rfkill_resume_polling	rfkill.ko
+rfkill_set_hw_state_reason	rfkill.ko
+rfkill_set_led_trigger_name	rfkill.ko
+rfkill_set_states	rfkill.ko
+rfkill_set_sw_state	rfkill.ko
+rfkill_soft_blocked	rfkill.ko
+rfkill_unregister	rfkill.ko

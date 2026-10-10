@@ -169,7 +169,7 @@ strings (`docs/SAFETY.md`) are a second layer, not a substitute.
 
 - `uname -r` shows the new kernel; `sys.boot_completed=1`.
 - `/proc/modules` module-name set ⊇ your baseline captured today.
-- `dmesg` has **no** `Unknown symbol`, `disagrees about version`, `exports protected symbol`, `Invalid module format`, `kCFI`/panic — verified by the command in *Acceptance commands* below (not by eye).
+- `dmesg` has **no error the stock boot did not already log** (`Unknown symbol`, `disagrees about version`, `exports protected symbol`, `Invalid module format`, `kCFI`/panic, `WARNING:`, `Oops`, `BUG:`) — verified by `tools/dmesg_new_errors.sh` against `data/stock_dmesg_known.txt` (not by eye).
 - `wlan0` up and connected; Bluetooth turns on; SIM registers; display/touch/audio/camera/GPU/sensors work; charging works.
 - All checks above work **without root** (`adb shell`, `adb bugreport`).
 - First normal boot also confirms `ro.build.version.incremental` is still the OS3.0.306.0 line — if it is not, the device booted the **other slot**: power off, do not unlock the screen, and reassess (FMEA-26).
@@ -177,9 +177,9 @@ strings (`docs/SAFETY.md`) are a second layer, not a substitute.
 ### Acceptance commands (copy them, never retype)
 
 ```bash
-# 1. kernel log: module-loading errors and panics. EXPECT: no output on the device (grep exits 1)
-adb shell 'dmesg | grep -iE "Unknown symbol|disagrees about version|exports protected symbol|Invalid module format|kCFI|BUG: kernel NULL pointer|Kernel panic"'
-#    control that the pattern itself works, on the host, before trusting it:
+# 1. kernel log: new errors versus the stock boot. EXPECT: exit 0 and no output
+adb shell dmesg > t3_dmesg.txt; tools/dmesg_new_errors.sh t3_dmesg.txt
+#    control that the historical token pattern still matches, on the host, before trusting it:
 grep -iE "Unknown symbol|disagrees about version|exports protected symbol|Invalid module format|kCFI|BUG: kernel NULL pointer|Kernel panic" tests/fixtures/dmesg_bad.txt    # must print lines
 grep -iE "Unknown symbol|disagrees about version|exports protected symbol|Invalid module format|kCFI|BUG: kernel NULL pointer|Kernel panic" tests/fixtures/dmesg_clean.txt   # must print nothing
 
@@ -193,7 +193,7 @@ adb shell getprop ro.build.version.incremental; adb shell uname -r; adb shell ge
 `tools/check_regex_controls.sh` keeps these patterns honest: each one must match a planted bad log
 (`tests/fixtures/dmesg_bad.txt`) and nothing in a clean one (`tests/fixtures/dmesg_clean.txt`), and
 `\|` inside a `-E` pattern is rejected outright (a literal pipe never matches — that is how this
-acceptance once passed on nothing).
+acceptance once passed on nothing). Command 1 is the stock diff, not an empty grep.
 
 ## Abort criteria
 
@@ -276,3 +276,9 @@ Still UNVERIFIED after this log: key-reached fastboot with a bad `boot_b`; accep
 ## pstore baseline (2026-10-10)
 
 MEASURED, read-only, on the audited lake device. No serial is recorded here. Uptime was about 25 h. The last boot was a key power-off (Z0.1) and then a boot by the LK (Z0.6), so this capture is a cold boot. `mount` showed pstore mounted at `/sys/fs/pstore`. `adb shell ls -l /sys/fs/pstore` printed `total 0` for the shell user and for root. The registered backend was `ramoops`. `mem_address` was 1291911168 (`0x4d010000`), `mem_size` 917504 (`0xe0000`), `console_size` 262144 (`0x40000`), `pmsg_size` 524288 (`0x80000`), the same values as `/proc/cmdline`. Which uid read `/sys/module/pstore/parameters/backend` was not isolated from root. The cmdline is readable without root and matched, so that clause is the no-root gate when the parameter file is unreadable. An empty folder after this cold boot is expected. `console-ramoops-0` after a warm restart was not re-measured on this day. `pmsg-ramoops-0` after a warm restart is INFERRED: it appears only if something wrote pmsg.
+
+## T-1 result (2026-10-10)
+
+T-1 PASS. The backup flash returned OKAY in 2.3 s. Build and `uname -r` matched the reference `6.6.89-android15-8-g5a0ffb447c1d-ab13771415-4k`. The module count was 429 before and after. Slot variables were identical, including `slot-retry-count:b` 1.
+
+Stock boot, same day: 7 kernel `WARNING:` lines, 4 of them vendor fechado and 3 GKI (1 policy, 2 UNVERIFIED), plus 3 cmdq `dump_stack` traces (vendor fechado). `mtk_em` logs `Unknown symbol calc_eff_hook` and does not load. The impact of that missing energy model is UNVERIFIED. None of these lines are correctable in this kernel. `tools/dmesg_new_errors.sh` compares a later boot with `data/stock_dmesg_known.txt`, so the stock set is not a T3 failure.

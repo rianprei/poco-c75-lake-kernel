@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.8 (2026-10-10)
+
+- T3 acceptance compares `dmesg` with the stock boot (`data/stock_dmesg_known.txt`, `tools/dmesg_new_errors.sh`). An empty grep rejected the stock kernel because `mtk_em` logs `Unknown symbol calc_eff_hook` (V114).
+- The CRC gate fails when a required symbol has no provider in the new vmlinux, in `data/vendor_ko_exports.tsv`, or in `data/gki_ko_exports.tsv`, except rows in `data/kmi_unresolved_stock.tsv`. The stock exception is `calc_eff_hook` (V115).
+- T-1 PASS (2026-10-10): flash OKAY in 2.3 s, same build and uname, 429 modules, slot variables identical before and after, including retry-count 1. Stock boot: 7 kernel WARNING lines (4 vendor fechado, 3 GKI) and 3 cmdq dump_stack traces. `mtk_em` does not load (IMPACT UNVERIFIED).
+- Suite: invariants V1–V115 (V10–V13 are aliases) plus the CRC gate
+  self-test (116 checks). Sabotage 151/151.
+
 ## 0.2.7 (2026-10-10)
 
 - The pstore cold-boot gate no longer requires `console-ramoops-0`.

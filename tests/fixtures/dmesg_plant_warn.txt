@@ -1,0 +1,1 @@
+[   12.000000] [    T9] WARNING: CPU: 1 PID: 2 at fs/foo.c:1 new_warn_fn+0x10/0x20

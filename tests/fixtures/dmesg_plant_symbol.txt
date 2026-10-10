@@ -1,0 +1,1 @@
+foo: Unknown symbol bar (err -2)

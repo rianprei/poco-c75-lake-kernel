@@ -1,0 +1,23 @@
+[    0.970106] [   T10] WARNING: CPU: 2 PID: 10 at kernel/tracepoint.c:340 tracepoint_add_func+0x258/0x404
+[    1.072672] [    T1] WARNING: CPU: 7 PID: 1 at drivers/regulator/core.c:3013 _regulator_disable+0x64/0x28c
+[    1.076599] [    T1] WARNING: CPU: 7 PID: 1 at fs/proc/generic.c:376 proc_register+0x124/0x1a4
+[    6.311874] [  T387] WARNING: CPU: 7 PID: 387 at mm/page_alloc.c:4971 __alloc_pages+0x164/0x270
+[    7.830978] [  T387] mtk_em: Unknown symbol calc_eff_hook (err -2)
+[   14.175163] [ T1023] WARNING: Unprivileged eBPF is enabled, data leaks possible via Spectre v2 BHB attacks!
+[   33.623849] [    T0] WARNING: CPU: 3 PID: 0 at kernel/time/tick-sched.c:1364 tick_nohz_idle_exit+0x128/0x140
+[   33.624196] [    T0] WARNING: CPU: 5 PID: 0 at kernel/time/tick-sched.c:1183 tick_nohz_idle_enter+0x80/0x8c
+[    1.668313] [    T1] [cmdq][err] channel request fail:-19 idx:0 @cmdq_mbox_create,504
+[    1.700000] [    T1] CPU: 7 PID: 1 Comm: init
+[    1.700010] [    T1] Hardware name: MT6769 (DT)
+[    1.700020] [    T1] Call trace:
+[    1.700030] [    T1]  dump_backtrace+0xe8/0x108
+[    1.669073] [    T1] [cmdq][err] channel request fail:-19 idx:1 @cmdq_mbox_create,504
+[    1.700001] [    T1] CPU: 7 PID: 1 Comm: init
+[    1.700011] [    T1] Hardware name: MT6769 (DT)
+[    1.700021] [    T1] Call trace:
+[    1.700031] [    T1]  dump_backtrace+0xe8/0x108
+[    7.733942] [  T387] [cmdq][err] channel request fail:-16 idx:2 @cmdq_mbox_create,504
+[    1.700002] [    T1] CPU: 7 PID: 1 Comm: init
+[    1.700012] [    T1] Hardware name: MT6769 (DT)
+[    1.700022] [    T1] Call trace:
+[    1.700032] [    T1]  dump_backtrace+0xe8/0x108

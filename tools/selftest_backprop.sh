@@ -605,5 +605,15 @@ case_run 143 "V112 trailing slot trim removed" selftest_fastboot_guard.sh '^V112
 case_run 144 "V113 cold-boot pstore files required again" check_protocol_invariants.sh '^V113 FAIL' \
   "sed -i '140s/An empty folder after a cold boot is recorded and is not a stop./(expected: \`console-ramoops-0\`, \`pmsg-ramoops-0\`)/' docs/DEVICE-TEST-PROTOCOL.md"
 
+case_run 145 "V114 T3 acceptance is an empty grep again" check_protocol_invariants.sh '^V114 FAIL' \
+  "sed -i 's#adb shell dmesg > t3_dmesg.txt; tools/dmesg_new_errors.sh t3_dmesg.txt#EMPTY-GREP#' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 146 "calc_eff_hook dropped from the stock allowlist" gate_kmi_crc.sh '^UNRESOLVED calc_eff_hook$' \
+  "sed -i '/^calc_eff_hook\$/d' data/kmi_unresolved_stock.tsv" \
+  "data/official-vmlinux.symvers"
+
+case_run 147 "V115 gate no longer reports UNRESOLVED" check_protocol_invariants.sh '^V115 FAIL' \
+  "sed -i 's/UNRESOLVED/XXXXRESOLVED/g' tools/gate_kmi_crc.sh"
+
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

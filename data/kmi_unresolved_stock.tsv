@@ -1,0 +1,5 @@
+# symbol
+# Required symbols that no vmlinux and no known module exports, already true on the stock boot.
+# calc_eff_hook is required by mtk_em.ko (CRC 0xc054ce22).
+# Proof: 0 __ksymtab in the 215 vendor_dlkm modules, 0 in the vendor_boot ramdisk modules, 0 in the reference symvers. mtk_em does not load on the stock boot.
+calc_eff_hook

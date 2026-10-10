@@ -61,6 +61,7 @@ modules.files=557 modules.unique=370
 symbols.required=4138 symbols.reference_exports=8795 symbols.reference_provides=2309
 compared=2309 mismatches=0 missing_exports=0 conflicting_crcs=0
 export_type_mismatches=0 namespace_mismatches=0
+unresolved=0
 PASS
 # the script does not print a status line; the shell's $? is 0 when the verdict is PASS
 ```
@@ -93,6 +94,8 @@ python3 tools/dump_modcrcs.py --inventory "$MODS/ramdisk" "$MODS/vendor_dlkm" > 
 
 4138 distinct symbols are imported by the modules: **2309 come from the kernel** and are covered above; the remaining 1829 split as 1819 exports of other vendor modules (for example `mtk_cmdq_drv_ext`, `mediatek_drm`), 9 protected exports from Google-signed GKI modules (`arc4_*`, `rfkill_*`; `CONFIG_MODULE_SIG_PROTECT`; list `android/abi_gki_protected_exports_aarch64`), and 1 symbol with no provider in the published set (`calc_eff_hook`, required by `mtk_em.ko`). Rebuilding the kernel does not rewrite those vendor modules. Source for the protected set: `docs/PLAN-AND-FINDINGS.pt-BR.md` fact 37.
 
-Per-symbol closure over the 1829 is out of scope for the offline gates: it would need the vendor modules' own EXPORT tables, which are not published. The gate stops at the symbols vmlinux provides that the modules also require (`missing_exports=0`, `mismatches=0`, export-type and namespace of that intersection). Vendor-to-vendor wiring is declared, not verified.
+`data/vendor_ko_exports.tsv` publishes those vendor EXPORT tables: one row is a symbol and a module basename, taken from `__ksymtab_*` with `nm` and without `-g` (the symbols are local) over the same ramdisk and vendor_dlkm set as the CRC table. The `vb_<slot>_rNN__` prefix is stripped. `data/gki_ko_exports.tsv` is the same extraction for `rfkill.ko` and `libarc4.ko` from the certified GKI build; those two modules provide the protected imports (`CONFIG_MODULE_SIG_PROTECT`). The gate fails when a required symbol is absent from the new vmlinux symvers, from the vendor table, and from the GKI table. `data/kmi_unresolved_stock.tsv` is the stock exception, and it names `calc_eff_hook`. Proof: 0 `__ksymtab` hits in the 215 vendor_dlkm modules, 0 in the vendor_boot ramdisk modules, 0 in the reference symvers, and `mtk_em` does not load on the stock boot (IMPACT UNVERIFIED). Dropping that row prints `UNRESOLVED calc_eff_hook` and the verdict is FAIL. Vendor-to-vendor CRC equality is still not compared. The vmlinux intersection stays `missing_exports=0` and `mismatches=0`, including export type and namespace.
+
+T-1 PASS (2026-10-10): flash OKAY in 2.3 s, same build and uname, 429 modules, slot variables identical before and after, including retry-count 1. The stock boot logged 7 kernel WARNING lines (4 vendor fechado, 3 GKI) and 3 cmdq dump_stack traces. `mtk_em` does not load (IMPACT UNVERIFIED).
 
 Also out of scope (no stock dataset published): comparing `__kcfi_typeid_*` values. `docs/AUDIT-CODEX.md` records the device-dump carrier counts (101 and 68). BTF, stgdiff, and ABI-XML diffs have no baseline artifacts offline. The r12 KMI symbol lists (`android/abi_gki_aarch64*`) remain the textual ABI reference; anything they do not cover is declared here, not assumed.

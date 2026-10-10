@@ -1,0 +1,24 @@
+# Normalized stock-boot error lines (2026-10-10). Timestamp, TID, CPU/PID, +0x offsets, and 0x addresses of 8+ hex digits are removed.
+# A '#' line is an origin comment, not an error. Verdicts: vendor fechado / GKI-política / GKI-UNVERIFIED.
+# dmesg:2796 vendor fechado (mtk_mmc tracepoint_add_func; probe returns 0)
+WARNING: at kernel/tracepoint.c:340 tracepoint_add_func
+# dmesg:3028 vendor fechado (musb_hdrc unbalanced regulator_disable; init returns 0)
+WARNING: at drivers/regulator/core.c:3013 _regulator_disable
+# dmesg:3091 vendor fechado (musb_hdrc proc_register of /proc/mtk_usb)
+WARNING: at fs/proc/generic.c:376 proc_register
+# dmesg:3675 vendor fechado (cmdq dump_stack, channel request fail -19 idx 0; not a WARNING)
+[cmdq][err] channel request fail:-19 idx:0 @cmdq_mbox_create,504
+# dmesg:3706 vendor fechado (cmdq dump_stack, channel request fail -19 idx 1)
+[cmdq][err] channel request fail:-19 idx:1 @cmdq_mbox_create,504
+# dmesg:6883 vendor fechado (mtk_md_power_throttling __alloc_pages order above MAX_ORDER; probe -12)
+WARNING: at mm/page_alloc.c:4971 __alloc_pages
+# dmesg:9519 vendor fechado (cmdq dump_stack, channel request fail -16 idx 2, mtk_disp_sec)
+[cmdq][err] channel request fail:-16 idx:2 @cmdq_mbox_create,504
+# dmesg:9626 vendor fechado (mtk_em calc_eff_hook has no provider; the module does not load; impact UNVERIFIED)
+mtk_em: Unknown symbol calc_eff_hook (err -2)
+# dmesg:12331 GKI-política (unprivileged eBPF notify; not a vendor module)
+WARNING: Unprivileged eBPF is enabled, data leaks possible via Spectre v2 BHB attacks!
+# dmesg:18391 GKI-UNVERIFIED (tick_nohz_idle_exit; no vendor frame)
+WARNING: at kernel/time/tick-sched.c:1364 tick_nohz_idle_exit
+# dmesg:18397 GKI-UNVERIFIED (tick_nohz_idle_enter; no vendor frame)
+WARNING: at kernel/time/tick-sched.c:1183 tick_nohz_idle_enter

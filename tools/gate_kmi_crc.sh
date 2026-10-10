@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # GATE-KMI-CRC: every CRC a vendor module requires from vmlinux must equal the new kernel's CRC.
+# A required symbol with no provider (not the new vmlinux, not a known vendor .ko, not a known GKI .ko)
+# fails too, unless data/kmi_unresolved_stock.tsv names it.
 #
 # usage: gate_kmi_crc.sh <symvers of the NEW build> [reference symvers = stock official]
 # Exit 0 = PASS (0 mismatches, 0 missing exports), 1 = FAIL, 2 = environment/input error.
@@ -8,6 +10,9 @@
 # Data (see docs/KMI-GATES.md):
 #   data/modules_required_crcs.tsv  symbol<TAB>0xCRC<TAB>module_basename  (all 557 .ko, 20187 rows)
 #   data/modules_inventory.tsv      module_basename<TAB>copies<TAB>vermagic (370 modules, 557 files)
+#   data/vendor_ko_exports.tsv     symbol<TAB>module_basename  (vendor __ksymtab_*)
+#   data/gki_ko_exports.tsv         symbol<TAB>module_basename  (rfkill.ko, libarc4.ko)
+#   data/kmi_unresolved_stock.tsv   symbol  (stock boot, no provider; allowlist)
 set -euo pipefail; export LC_ALL=C
 NEW="${1:?usage: gate_kmi_crc.sh <symvers of the NEW build> [reference symvers]}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -66,14 +71,31 @@ while IFS=$'\t' read -r sym ref_xt ref_ns new_xt new_ns; do
 done < "$T/xtall"
 xtype_mm=$(wc -l < "$T/xtype_mm"); xns_mm=$(wc -l < "$T/xns_mm")
 
+# A required symbol the reference vmlinux does not export never entered `provided`,
+# so missing_exports stayed 0 when nothing exported it (calc_eff_hook).
+VEN="$HERE/../data/vendor_ko_exports.tsv"
+GKI="$HERE/../data/gki_ko_exports.tsv"
+ALLOW="$HERE/../data/kmi_unresolved_stock.tsv"
+[ -s "$VEN" ] || { echo "error: missing vendor export table: $VEN" >&2; exit 2; }
+[ -s "$GKI" ] || { echo "error: missing GKI export table: $GKI" >&2; exit 2; }
+[ -s "$ALLOW" ] || { echo "error: missing stock unresolved allowlist: $ALLOW" >&2; exit 2; }
+awk -F'\t' 'NF && $1 !~ /^#/ {print $1}' "$VEN" "$GKI" | sort -u > "$T/koprov"
+awk -F'\t' 'NF && $1 !~ /^#/ {print $1}' "$ALLOW" | sort -u > "$T/allow"
+comm -23 "$T/reqsyms" "$T/exported" > "$T/notnew"
+comm -23 "$T/notnew" "$T/koprov" > "$T/noprov"
+comm -23 "$T/noprov" "$T/allow" > "$T/unresolved"
+unresolved=$(wc -l < "$T/unresolved")
+
 echo "modules.files=$files modules.unique=$unique"
 echo "symbols.required=$required symbols.reference_exports=$ref_exports symbols.reference_provides=$provided"
 echo "compared=$compared mismatches=$mismatches missing_exports=$missing conflicting_crcs=$conflicting"
 echo "export_type_mismatches=$xtype_mm namespace_mismatches=$xns_mm"
+echo "unresolved=$unresolved"
 head -20 "$T/mm"
 head -20 "$T/missing" | sed 's/^/MISSING_EXPORT /'
 head -20 "$T/xtype_mm"
 head -20 "$T/xns_mm" | sed 's/^/XNS_MISMATCH /'
+head -20 "$T/unresolved" | sed 's/^/UNRESOLVED /'
 [ "$mismatches" -eq 0 ] && [ "$missing" -eq 0 ] && [ "$conflicting" -eq 0 ] \
-  && [ "$xtype_mm" -eq 0 ] && [ "$xns_mm" -eq 0 ] \
+  && [ "$xtype_mm" -eq 0 ] && [ "$xns_mm" -eq 0 ] && [ "$unresolved" -eq 0 ] \
   && { echo PASS; exit 0; } || { echo FAIL; exit 1; }

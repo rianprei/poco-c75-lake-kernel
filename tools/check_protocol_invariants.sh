@@ -1460,8 +1460,50 @@ else
   fail 113 "pstore gate still requires console-ramoops-0 after a cold boot"
 fi
 
+# ------------------------------------------------------------------------------------------------
+# V114 — T3 acceptance diffs dmesg against the stock boot, it does not require an empty grep
+# ------------------------------------------------------------------------------------------------
+if ! grep -qF 'adb shell dmesg > t3_dmesg.txt; tools/dmesg_new_errors.sh t3_dmesg.txt' "$PROTO" \
+   || ! grep -qF 'data/stock_dmesg_known.txt' "$PROTO" \
+   || grep -qF 'EXPECT: no output on the device' "$PROTO"; then
+  fail 114 "T3 acceptance is not a diff against the stock dmesg"
+else
+  v114_ok=1
+  d114() {
+    local out rc=0
+    out="$(bash tools/dmesg_new_errors.sh "$1" 2>&1)" || rc=$?
+    if [ "$2" -eq 0 ]; then
+      [ "$rc" -eq 0 ] && [ -z "$out" ] || v114_ok=0
+    else
+      [ "$rc" -ne 0 ] && grep -qF "$3" <<<"$out" || v114_ok=0
+    fi
+  }
+  d114 data/stock_dmesg_known.txt 0 ''
+  d114 tests/fixtures/dmesg_stock_self.txt 0 ''
+  d114 tests/fixtures/dmesg_plant_symbol.txt 1 'foo: Unknown symbol bar (err -2)'
+  d114 tests/fixtures/dmesg_plant_warn.txt 1 'WARNING: at fs/foo.c:1 new_warn_fn'
+  if [ "$v114_ok" -eq 1 ]; then
+    ok 114 "T3 acceptance diffs dmesg against the stock boot"
+  else
+    fail 114 "stock dmesg diff did not accept stock and reject a planted line"
+  fi
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V115 — CRC gate fails closed on a required symbol with no provider
+# ------------------------------------------------------------------------------------------------
+if grep -qF 'UNRESOLVED' tools/gate_kmi_crc.sh \
+   && grep -qF 'data/kmi_unresolved_stock.tsv' tools/gate_kmi_crc.sh \
+   && grep -qF 'data/vendor_ko_exports.tsv' tools/gate_kmi_crc.sh \
+   && grep -qF 'data/gki_ko_exports.tsv' tools/gate_kmi_crc.sh \
+   && grep -qxF 'calc_eff_hook' data/kmi_unresolved_stock.tsv; then
+  ok 115 "CRC gate fails closed on a required symbol with no provider, except the stock allowlist"
+else
+  fail 115 "CRC gate no longer fails closed on a provider-less symbol"
+fi
+
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3-V75 and V90-V113 except aliases and the checks that live in other scripts)"
+  echo "PASS protocol invariants (V3-V75 and V90-V115 except aliases and the checks that live in other scripts)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"
