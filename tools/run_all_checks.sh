@@ -48,7 +48,7 @@
 #   V79-V88 build-doc claims + cms + checkout SHA  tools/check_build_claims.sh
 #   V85  required docs exist before later checks . tools/check_protocol_invariants.sh
 #   V89  reboot reads current-slot before reboot .. tools/selftest_fastboot_guard.sh
-#   V90-V111 Z0 retry through the T-1 flash interlock, second disk, mid-write,
+#   V90-V112 Z0 retry through the T-1 flash interlock, second disk, mid-write,
 #           T-1.3b gate, uname, day order, hash file, isolated Z0, identity,
 #           fact 21 ............................ tools/check_protocol_invariants.sh
 #                                            ....... tools/check_protocol_invariants.sh (V58 guard file),
@@ -127,6 +127,9 @@ if [ "$inv98" -eq 0 ] && [ "$grd98" -eq 0 ]; then RC[V98]=0; else RC[V98]=1; fi
 script_ok "V3-V8+V14-V17 invariants" '^V102 FAIL' && inv102=0 || inv102=1
 script_ok "GUARD fastboot stub" '^V102 FAIL' && grd102=0 || grd102=1
 if [ "$inv102" -eq 0 ] && [ "$grd102" -eq 0 ]; then RC[V102]=0; else RC[V102]=1; fi
+script_ok "V3-V8+V14-V17 invariants" '^V112 FAIL' && inv112=0 || inv112=1
+script_ok "GUARD fastboot stub" '^V112 FAIL' && grd112=0 || grd112=1
+if [ "$inv112" -eq 0 ] && [ "$grd112" -eq 0 ]; then RC[V112]=0; else RC[V112]=1; fi
 run "CONFIG table"                   "$HERE/check_config_table.sh"
 script_ok "CONFIG table" '^V70 FAIL' && RC[V70]=0 || RC[V70]=1
 run "MODSIG matrix"                    "$HERE/verify_modsig.sh" --selftest-full
@@ -136,12 +139,12 @@ for v in 79 80 81 82 83 84 86 87 88; do script_ok "BUILD claims" "^V$v FAIL" && 
 
 echo "=== resumo dos invariantes ==="
 bad=0
-for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V54 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64 V65 V66 V67 V68 V69 V70 V71 V72 V73 V74 V75 V76 V77 V78 V79 V80 V81 V82 V83 V84 V85 V86 V87 V88 V89 V90 V91 V92 V93 V94 V95 V96 V97 V98 V99 V100 V101 V102 V103 V104 V105 V106 V107 V108 V109 V110 V111 GATE; do
+for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V54 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64 V65 V66 V67 V68 V69 V70 V71 V72 V73 V74 V75 V76 V77 V78 V79 V80 V81 V82 V83 V84 V85 V86 V87 V88 V89 V90 V91 V92 V93 V94 V95 V96 V97 V98 V99 V100 V101 V102 V103 V104 V105 V106 V107 V108 V109 V110 V111 V112 GATE; do
   if [ "${RC[$v]:-1}" -eq 0 ]; then printf '%-5s PASS\n' "$v"; else printf '%-5s FAIL\n' "$v"; bad=$((bad + 1)); fi
 done
 if [ "$bad" -eq 0 ]; then
-  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V33 + V34-V111 + gate self-test)"
+  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V33 + V34-V112 + gate self-test)"
   exit 0
 fi
-echo "run_all_checks: FAIL ($bad de 112 verificações falharam)"
+echo "run_all_checks: FAIL ($bad de 113 verificações falharam)"
 exit 1

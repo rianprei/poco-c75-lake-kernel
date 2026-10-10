@@ -1393,8 +1393,33 @@ else
   fail 111 "the plan still says 42/42 or lost the measured second-disk copy"
 fi
 
+# ------------------------------------------------------------------------------------------------
+# V112 — slot compare is exactly b after trailing space and CR are removed
+# ------------------------------------------------------------------------------------------------
+phrase112='exactly b after trailing space and CR are removed'
+pad112='whitespace after the colon is not part of the value'
+g102="$(sed -n '/# V102-FLASH-INTERLOCK$/,/# V102-FLASH-INTERLOCK-END$/p' tools/fastboot_guard.sh)"
+g89="$(sed -n '/# V89-REBOOT-INTERLOCK$/,/# V89-REBOOT-INTERLOCK-END$/p' tools/fastboot_guard.sh)"
+hdr112="$(sed -n '1,40p' tools/fastboot_guard.sh)"
+if grep -qF "$phrase112" <<<"$g102" \
+   && grep -qF "$pad112" <<<"$g102" \
+   && grep -qF "$phrase112" <<<"$g89" \
+   && grep -qF "$pad112" <<<"$g89" \
+   && grep -qF "$phrase112" <<<"$hdr112" \
+   && grep -qF "$pad112" <<<"$hdr112" \
+   && grep -qF "$phrase112" "$PROTO" \
+   && grep -qF "$pad112" "$PROTO" \
+   && [ "$(grep -cF "$phrase112" SPEC.md)" -ge 2 ] \
+   && grep -qF "$pad112" SPEC.md \
+   && grep -qF "tr -d '\\r'" tools/fastboot_guard.sh \
+   && grep -qF 's/[[:space:]]*$//' tools/fastboot_guard.sh; then
+  ok 112 "slot value is exactly b after trailing space and CR are removed"
+else
+  fail 112 "slot normalization text or the trailing trim dropped out"
+fi
+
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3-V75 and V90-V111 except aliases and the checks that live in other scripts)"
+  echo "PASS protocol invariants (V3-V75 and V90-V112 except aliases and the checks that live in other scripts)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"

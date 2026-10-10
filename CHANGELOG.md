@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.6 (2026-10-10)
+
+- The slot compare is unchanged. `current-slot` is exactly b after trailing
+  space and CR are removed (whitespace after the colon is not part of the
+  value, so a leading space is still b). `_b`, `B`, `bb`, `a`, and an empty
+  value are refused, on flash and on reboot (V112).
+- Suite: invariants V1–V112 (V10–V13 are aliases) plus the CRC gate
+  self-test (113 checks). Sabotage 147/147.
+
 ## 0.2.5 (2026-10-10)
 
 - `tools/fastboot_guard.sh flash` reads `current-slot` and `is-userspace`

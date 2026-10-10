@@ -230,6 +230,66 @@ else
   fail=$((fail + v102_fail))
 fi
 
+# V112: the compared slot is exactly b after trailing space and CR are
+# removed. Whitespace after the colon is not part of the value, so a leading
+# space still passes. _b, B, bb, a, and an empty value are refused.
+# Same matrix for flash and reboot.
+v112_fail=0
+v112_case() { # <flash|reboot> <label> <slot-line> <pass|deny>
+  local cmd="$1" label="$2" slot_line="$3" expect="$4"
+  local before errf rc new sent
+  before="$(wc -l < "$STUBLOG" 2>/dev/null || echo 0)"
+  errf="$BASE/v112.err"
+  if [ "$cmd" = "flash" ]; then
+    FAKE_SLOT_LINE="$slot_line" FAKE_USER_LINE="is-userspace: no" \
+      "$GUARD" flash boot_b "$GOODIMG" >"$BASE/v112.out" 2>"$errf"
+  else
+    FAKE_SLOT_LINE="$slot_line" FAKE_USER_LINE="is-userspace: no" \
+      "$GUARD" reboot >"$BASE/v112.out" 2>"$errf"
+  fi
+  rc=$?
+  new="$(tail -n +"$((before + 1))" "$STUBLOG" 2>/dev/null || true)"
+  sent=0
+  if [ "$cmd" = "flash" ]; then
+    grep -q 'flash boot_b ' <<<"$new" && sent=1
+  else
+    grep -qx 'reboot' <<<"$new" && sent=1
+  fi
+  printf '### V112 %s %s\n' "$cmd" "$label"
+  if [ "$expect" = "pass" ]; then
+    if [ "$rc" -eq 0 ] && [ "$sent" -eq 1 ]; then
+      printf '    aceito\n  => OK\n\n'
+      return 0
+    fi
+  elif [ "$rc" -eq 2 ] && [ "$sent" -eq 0 ] \
+      && grep -qF 'desligue por teclas e encerre' "$errf" \
+      && grep -qx 'getvar current-slot' <<<"$new" \
+      && grep -qx 'getvar is-userspace' <<<"$new"; then
+    printf '    recusado\n  => OK\n\n'
+    return 0
+  fi
+  printf '    ESPERAVA %s; rc=%s\n%s\n  => FALHA\n\n' "$expect" "$rc" "$new"
+  v112_fail=$((v112_fail + 1))
+}
+
+for c112 in flash reboot; do
+  v112_case "$c112" "trailing space" "current-slot: b " pass
+  v112_case "$c112" "trailing CR" $'current-slot: b\r' pass
+  v112_case "$c112" "leading space" "current-slot:  b" pass
+  v112_case "$c112" "underscore" "current-slot: _b" deny
+  v112_case "$c112" "uppercase" "current-slot: B" deny
+  v112_case "$c112" "bb" "current-slot: bb" deny
+  v112_case "$c112" "slot a" "current-slot: a" deny
+  v112_case "$c112" "empty" "current-slot:" deny
+done
+
+if [ "$v112_fail" -eq 0 ]; then
+  echo 'V112 OK slot value normalization'
+else
+  echo 'V112 FAIL slot value normalization'
+  fail=$((fail + v112_fail))
+fi
+
 # V98: partition-size is LK hex. Accept 4000000 / 0x4000000 / 0X4000000.
 # Refuse 3ffffff, the decimal-looking token 67108864, empty, and
 # Variable not found. A refusal still calls getvar and must not flash.

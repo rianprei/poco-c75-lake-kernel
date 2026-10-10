@@ -586,5 +586,21 @@ case_run 141 "V110 unnamed model requirement returns" check_protocol_invariants.
 case_run 142 "V111 42/42 count returns" check_protocol_invariants.sh '^V111 FAIL' \
   "printf '%s\n' '42/42' >> docs/PLAN-AND-FINDINGS.pt-BR.md"
 
+# Drops the trailing-space/CR trim. 'b\r' must then fail V112.
+strip_slot_trim() {
+  python3 - <<'PY'
+from pathlib import Path
+p = Path("tools/fastboot_guard.sh")
+t = p.read_text()
+old = " | tr -d '\\r' | sed 's/[[:space:]]*$//'"
+n = t.count(old)
+assert n == 5, n
+p.write_text(t.replace(old, ""))
+PY
+}
+
+case_run 143 "V112 trailing slot trim removed" selftest_fastboot_guard.sh '^V112 FAIL' \
+  strip_slot_trim
+
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }
