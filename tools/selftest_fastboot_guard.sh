@@ -187,6 +187,49 @@ else
   fail=$((fail + v89_fail))
 fi
 
+# V102: flash reads current-slot and is-userspace before it writes.
+# Slot a, is-userspace yes, or a missing slot line exits 2 and the log
+# has no flash argv. Slot b with is-userspace no still flashes.
+v102_fail=0
+v102_case() { # <label> <slot-line> <user-line> <pass|deny>
+  local label="$1" slot_line="$2" user_line="$3" expect="$4"
+  local before errf rc new
+  before="$(wc -l < "$STUBLOG" 2>/dev/null || echo 0)"
+  errf="$BASE/v102.err"
+  FAKE_SLOT_LINE="$slot_line" FAKE_USER_LINE="$user_line" \
+    "$GUARD" flash boot_b "$GOODIMG" >"$BASE/v102.out" 2>"$errf"
+  rc=$?
+  new="$(tail -n +"$((before + 1))" "$STUBLOG" 2>/dev/null || true)"
+  printf '### V102 %s\n' "$label"
+  if [ "$expect" = "pass" ]; then
+    if [ "$rc" -eq 0 ] && grep -q 'flash boot_b ' <<<"$new"; then
+      printf '    flash depois do slot\n  => OK\n\n'
+      return 0
+    fi
+  else
+    if [ "$rc" -eq 2 ] && ! grep -q 'flash boot_b ' <<<"$new" \
+        && grep -qx 'getvar current-slot' <<<"$new" \
+        && grep -qx 'getvar is-userspace' <<<"$new"; then
+      printf '    recusado sem flash\n  => OK\n\n'
+      return 0
+    fi
+  fi
+  printf '    ESPERAVA %s; rc=%s\n%s\n  => FALHA\n\n' "$expect" "$rc" "$new"
+  v102_fail=$((v102_fail + 1))
+}
+
+v102_case "slot a recusa" "current-slot: a" "is-userspace: no" deny
+v102_case "is-userspace yes recusa" "current-slot: b" "is-userspace: yes" deny
+v102_case "slot sem linha recusa" "no-slot-here" "is-userspace: no" deny
+v102_case "slot b passa" "current-slot: b" "is-userspace: no" pass
+
+if [ "$v102_fail" -eq 0 ]; then
+  echo 'V102 OK flash slot interlock'
+else
+  echo 'V102 FAIL flash slot interlock'
+  fail=$((fail + v102_fail))
+fi
+
 # V98: partition-size is LK hex. Accept 4000000 / 0x4000000 / 0X4000000.
 # Refuse 3ffffff, the decimal-looking token 67108864, empty, and
 # Variable not found. A refusal still calls getvar and must not flash.

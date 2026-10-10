@@ -356,7 +356,7 @@ case_run 70 "V62 policy loses accepted-absent" check_protocol_invariants.sh '^V6
 
 # V63: T-1.3 loses slot-state re-check
 case_run 71 "V63 T-1.3 loses slot re-check" check_protocol_invariants.sh '^V63 FAIL' \
-  "sed -i '/^| T-1\\.3/s/slot-unbootable:b/slot-removed/' docs/DEVICE-TEST-PROTOCOL.md"
+  "sed -i '/^| T-1\\.3/s/slot-unbootable:b/slot-removed/g' docs/DEVICE-TEST-PROTOCOL.md"
 
 # V65: planted failing unit test must FAIL the suite
 case_run 78 "V65 failing unit test fails suite" selftest_python.sh '^V65 FAIL' \
@@ -555,6 +555,36 @@ case_run 132 "V98 flash partition-size gate removed" selftest_fastboot_guard.sh 
 
 case_run 127 "V97 PASS equation diverges" check_protocol_invariants.sh '^V97 FAIL' \
   "sed -i '69s/Z0 PASS = /Z0 PASS ~= /' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 133 "V102 flash interlock removed" selftest_fastboot_guard.sh '^V102 FAIL' \
+  "sed -i '/# V102-FLASH-INTERLOCK\$/,/# V102-FLASH-INTERLOCK-END\$/d' tools/fastboot_guard.sh"
+
+case_run 134 "V103 second disk blocks only T3" check_protocol_invariants.sh '^V103 FAIL' \
+  "sed -i 's/blocks T-1.1, not only T3/only before T3/g' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 135 "V104 mid-write treated as intact" check_protocol_invariants.sh '^V104 FAIL' \
+  "sed -i '112s/write not started/WRITE-STARTED/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 136 "V105 retry-count is a T-1.3b gate again" check_protocol_invariants.sh '^V105 FAIL' \
+  "sed -i 's/Record \`slot-retry-count:b\` only/the four values match/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 137 "V106 measured uname removed" check_protocol_invariants.sh '^V106 FAIL' \
+  "sed -i 's/6\\.6\\.89-android15-8-g5a0ffb447c1d-ab13771415-4k/UNAME-REMOVED/g' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 138 "V107 day order dropped" check_protocol_invariants.sh '^V107 FAIL' \
+  "sed -i 's/host guard files first, then adb baseline with the cable, then unplug for Z0.1/ORDER-DROPPED/g' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 139 "V108 T3 hash appended on the T-1 day" check_protocol_invariants.sh '^V108 FAIL' \
+  "sed -i 's/T3 day only, not on the T-1 day/T3-HASH-ON-T1/g' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 140 "V109 T-1 day reboots at Z0.6" check_protocol_invariants.sh '^V109 FAIL' \
+  "sed -i 's/Z0.6 is the exit of an isolated Z0/Z0.6-ALWAYS/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 141 "V110 unnamed model requirement returns" check_protocol_invariants.sh '^V110 FAIL' \
+  "sed -i 's/ro.product.device=lake/ro.product.device=lake, expected model\\/CPU id/' docs/DEVICE-TEST-PROTOCOL.md"
+
+case_run 142 "V111 42/42 count returns" check_protocol_invariants.sh '^V111 FAIL' \
+  "printf '%s\n' '42/42' >> docs/PLAN-AND-FINDINGS.pt-BR.md"
 
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

@@ -23,6 +23,8 @@
 #   4. first 8 bytes of <file> are "ANDROID!" (boot magic)
 #   5. getvar partition-size:boot_b parses with lk_parse_size (LK hex, optional
 #      0x/0X prefix) and that integer equals the copied file's size
+#   6. getvar current-slot value is exactly b (a missing current-slot line refuses)
+#   7. getvar is-userspace is not exactly yes
 #
 # usage: tools/fastboot_guard.sh [--hashes FILE] <fastboot args...>
 #   FASTBOOT_BIN overrides the real fastboot binary (default: `command fastboot`,
@@ -128,6 +130,21 @@ if [ "$cmd" = "flash" ]; then
   fi
 fi
 # V98-PARTSIZE-END
+# V102-FLASH-INTERLOCK
+# Same rule as the reboot interlock, on the write path. Read both getvars
+# before flash. Refuse unless current-slot is exactly b and is-userspace is
+# not exactly yes. A missing slot line refuses. Exit 2. flash is not sent.
+if [ "$cmd" = "flash" ]; then
+  slot_out="$("$bin" getvar current-slot 2>&1 || true)"
+  user_out="$("$bin" getvar is-userspace 2>&1 || true)"
+  slot_val="$(printf '%s\n' "$slot_out" | sed -n 's/.*current-slot:[[:space:]]*//p' | tail -n 1 | tr -d '\r' | sed 's/[[:space:]]*$//')"
+  user_val="$(printf '%s\n' "$user_out" | sed -n 's/.*is-userspace:[[:space:]]*//p' | tail -n 1 | tr -d '\r' | sed 's/[[:space:]]*$//')"
+  if [ "$slot_val" != "b" ] || [ "$user_val" = "yes" ]; then
+    echo "desligue por teclas e encerre" >&2
+    exit 2
+  fi
+fi
+# V102-FLASH-INTERLOCK-END
 # V89-REBOOT-INTERLOCK
 # reboot stays allowlisted, but it boots the current slot. Read both getvars
 # before that argv is sent. Refuse unless the slot value is exactly b and

@@ -1243,8 +1243,158 @@ else
   fail 101 "slot A, the priority-nibble skip, or retry-count:b=1 dropped out of the docs"
 fi
 
+# ------------------------------------------------------------------------------------------------
+# V102 — flash re-reads current-slot and is-userspace before it writes
+# ------------------------------------------------------------------------------------------------
+guard102="$(sed -n '/# V102-FLASH-INTERLOCK$/,/# V102-FLASH-INTERLOCK-END$/p' tools/fastboot_guard.sh)"
+hdr102="$(sed -n '1,40p' tools/fastboot_guard.sh)"
+if grep -qF 'getvar current-slot' <<<"$guard102" \
+   && grep -qF 'getvar is-userspace' <<<"$guard102" \
+   && grep -qF '[ "$slot_val" != "b" ]' <<<"$guard102" \
+   && grep -qF '[ "$user_val" = "yes" ]' <<<"$guard102" \
+   && grep -qF '6. getvar current-slot' <<<"$hdr102" \
+   && grep -qF '7. getvar is-userspace' <<<"$hdr102" \
+   && grep -qF 'current-slot exactly `b`' "$PROTO" \
+   && grep -qF 'is-userspace not `yes`' "$PROTO"; then
+  ok 102 "flash refuses unless current-slot is b and is-userspace is not yes"
+else
+  fail 102 "flash interlock, write gates 6 and 7, or the wrapper re-check dropped out"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V103 — the second disk blocks T-1.1, not only T3
+# ------------------------------------------------------------------------------------------------
+t11="$(grep '^| T-1.1 |' "$PROTO" || true)"
+l139="$(sed -n '139p' "$PROTO")"
+if grep -qF 'blocks T-1.1, not only T3' <<<"$t11" \
+   && grep -qF 'sha256sum -c' <<<"$t11" \
+   && grep -qF '`cp`' <<<"$t11" \
+   && grep -qF 'blocks T-1.1, not only T3' <<<"$l139" \
+   && grep -qF 'precondition of T-1.1' "$PROTO" \
+   && grep -qF 'precondição do T-1' docs/PLAN-AND-FINDINGS.pt-BR.md \
+   && ! grep -qF 'cópia no segundo disco ainda pendente' docs/PLAN-AND-FINDINGS.pt-BR.md; then
+  ok 103 "second-disk copy is a T-1.1 precondition and the copy commands are cp and sha256sum -c"
+else
+  fail 103 "second disk still blocks only T3, or the copy criterion changed"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V104 — a refusal is not a mid-write, and a mid-write is not intact bytes
+# ------------------------------------------------------------------------------------------------
+v104_bad=0
+for n in 112 218 230 239; do
+  line="$(sed -n "${n}p" "$PROTO")"
+  for tok in 'write not started' 'not intact bytes' 'one flash of the verified backup through the guard and the day ends' 'LK write atomicity is UNVERIFIED'; do
+    if ! grep -qF "$tok" <<<"$line"; then
+      v104_bad=$((v104_bad + 1))
+      fail 104 "protocol line $n lost: $tok"
+    fi
+  done
+done
+if [ "$v104_bad" -eq 0 ]; then
+  ok 104 "guard refusal stops with no second flash; a mid-write without OKAY is not intact"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V105 — T-1.3b gates successful, unbootable, and current-slot; retry is recorded
+# ------------------------------------------------------------------------------------------------
+t13b="$(grep '^| T-1.3b |' "$PROTO" || true)"
+if grep -qF 'slot-successful:b=yes' <<<"$t13b" \
+   && grep -qF 'slot-unbootable:b=no' <<<"$t13b" \
+   && grep -qF 'current-slot=b' <<<"$t13b" \
+   && grep -qF 'Record `slot-retry-count:b` only' <<<"$t13b" \
+   && ! grep -qF 'four values match' <<<"$t13b"; then
+  ok 105 "T-1.3b gates three slot values and only records retry-count"
+else
+  fail 105 "T-1.3b still treats slot-retry-count:b as a gate"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V106 — stock uname -r is the measured reference, captured before T-1.2
+# ------------------------------------------------------------------------------------------------
+uname106='6.6.89-android15-8-g5a0ffb447c1d-ab13771415-4k'
+t13a="$(grep '^| T-1.3a |' "$PROTO" || true)"
+z0res="$(awk '/^## Z0 results /,/^Still UNVERIFIED/' "$PROTO")"
+if grep -qF "$uname106" <<<"$t13a" \
+   && grep -qF 'source: PLAN fact 2' <<<"$t13a" \
+   && grep -qF 'before T-1.2' <<<"$t13a" \
+   && grep -qF "$uname106" <<<"$z0res" \
+   && grep -qF 'MEASURED' <<<"$z0res" \
+   && grep -qF 'source: PLAN fact 2' <<<"$z0res" \
+   && grep -qF 'before T-1.2' <<<"$z0res"; then
+  ok 106 "T-1.3a and Z0 results name the measured uname and the capture before T-1.2"
+else
+  fail 106 "measured uname reference or the pre-T-1.2 capture dropped out"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V107 — host guard files, then adb baseline with the cable, then unplug for Z0.1
+# ------------------------------------------------------------------------------------------------
+ord107='host guard files first, then adb baseline with the cable, then unplug for Z0.1'
+l140="$(sed -n '140p' "$PROTO")"
+l142="$(sed -n '142p' "$PROTO")"
+if grep -qF "$ord107" <<<"$l140" && grep -qF "$ord107" <<<"$l142"; then
+  ok 107 "day order is host guard files, adb baseline with the cable, then unplug for Z0.1"
+else
+  fail 107 "baseline and the host guard no longer state that order"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V108 — boot_b_new.img enters the hash file on the T3 day only
+# ------------------------------------------------------------------------------------------------
+hash108="$(sed -n '151,157p' "$PROTO")"
+if grep -qF 'T-1 day: ONLY the backup hash' <<<"$hash108" \
+   && grep -qF 'sha256sum <path/to/backup/boot_b.img> | cut -d'"'"' '"'"' -f1 > guard_hashes.txt' <<<"$hash108" \
+   && grep -qF 'T3 day only, not on the T-1 day' <<<"$hash108" \
+   && grep -qF 'boot_b_new.img' <<<"$hash108"; then
+  ok 108 "T-1 writes only the backup hash; boot_b_new.img is T3 day only"
+else
+  fail 108 "guard_hashes.txt still mixes the T3 image hash into the T-1 day"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V109 — isolated Z0 exits through Z0.6; a T-1 day stays in fastboot until the flash
+# ------------------------------------------------------------------------------------------------
+l68="$(sed -n '68p' "$PROTO")"
+l108="$(sed -n '108p' "$PROTO")"
+if grep -qF 'Z0.6 is the exit of an isolated Z0' <<<"$l68" \
+   && grep -qF 'no Z0.6 reboot between Z0.4 and T-1.2' <<<"$l108"; then
+  ok 109 "Z0.6 is the isolated-Z0 exit and T-1 stays in fastboot until the flash"
+else
+  fail 109 "a T-1 day can still reboot at Z0.6 before T-1.2"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V110 — the identity line names only properties this repo records
+# ------------------------------------------------------------------------------------------------
+l137="$(sed -n '137p' "$PROTO")"
+if ! grep -qF 'expected model/CPU id' "$PROTO" \
+   && grep -qF 'ro.product.device=lake' <<<"$l137" \
+   && grep -qF 'ro.boot.slot_suffix=_b' <<<"$l137" \
+   && grep -qF 'ro.build.version.incremental=OS3.0.306.0' <<<"$l137"; then
+  ok 110 "identity check has no unnamed model or CPU id"
+else
+  fail 110 "identity check again requires an unnamed model or CPU id"
+fi
+
+# ------------------------------------------------------------------------------------------------
+# V111 — fact 21 counts the real hash files, and the second-disk copy is measured
+# ------------------------------------------------------------------------------------------------
+plan111='docs/PLAN-AND-FINDINGS.pt-BR.md'
+if ! grep -q '42/42' "$plan111" \
+   && grep -qF '12 imagens' "$plan111" \
+   && grep -qF '41 imagens distintas' "$plan111" \
+   && grep -qF 'vbmeta_vendor_b' "$plan111" \
+   && grep -qF '44/44' "$plan111" \
+   && grep -qF 'gpt_header_256kb.bin' "$plan111" \
+   && grep -qF 'super_header_8m.bin' "$plan111"; then
+  ok 111 "fact 21 names 12 log rows, 41 distinct images, and the measured 44/44 copy"
+else
+  fail 111 "the plan still says 42/42 or lost the measured second-disk copy"
+fi
+
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3-V75 and V90-V101 except aliases and the checks that live in other scripts)"
+  echo "PASS protocol invariants (V3-V75 and V90-V111 except aliases and the checks that live in other scripts)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"

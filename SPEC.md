@@ -140,6 +140,16 @@ removed by a `trap`. Nothing here touches a device, a partition image or a build
 | B121 | 2026-10-09 | Key entry said Vol− + Power and did not require the cable to be disconnected first. On 2026-10-09 the device entered fastboot only with the cable disconnected. | V99 |
 | B122 | 2026-10-09 | The protocol still said the Z0 run was UNVERIFIED until logged, after the 2026-10-09 run had been measured. | V100 |
 | B123 | 2026-10-09 | Slot A is measured unbootable=yes, successful=no, retry 0, and slot-retry-count:b is 1. The docs still said the LK may fall to A, and they did not say what the operator does on the first loop. | V101 |
+| B124 | 2026-10-10 | `tools/fastboot_guard.sh flash` read `partition-size:boot_b` and then flashed. It did not read `current-slot` or `is-userspace`, so slot `a` and fastbootd still wrote `boot_b`. | V102 |
+| B125 | 2026-10-10 | The second-disk copy was written as a T3 precondition. T-1.1 could start without it, and the plan still called that copy pending. | V103 |
+| B126 | 2026-10-10 | A guard refusal or `FAILED` with the device still in fastboot was described as if the backup bytes were already written, and a cable or power drop with no `OKAY` was not separated from that case. | V104 |
+| B127 | 2026-10-10 | T-1.3b required all four slot readouts, including `slot-retry-count:b`, to match the pre-T-1 record. Retry is informational everywhere else. | V105 |
+| B128 | 2026-10-10 | T-1.3a said "the stock kernel release" and the Z0 results did not record the measured `uname -r`, and nothing required capturing it on the day before T-1.2. | V106 |
+| B129 | 2026-10-10 | The baseline step needs adb, and the next heading said to build the guard before plugging the cable. The day order was not stated. | V107 |
+| B130 | 2026-10-10 | The hash-file block appended `boot_b_new.img` on the same day as the T-1 backup hash. | V108 |
+| B131 | 2026-10-10 | Z0.6 reboot was the only described exit, so a T-1 day could reboot between Z0.4 and T-1.2. | V109 |
+| B132 | 2026-10-10 | The identity check required "expected model/CPU id" and named no property. `ro.product.model` and `ro.soc.model` are not recorded in this repo. | V110 |
+| B133 | 2026-10-10 | Fact 21, fact 56, and F1 said 42/42 against `SHA256SUMS.log`. That log has 12 images. The 2026-10-05 reference has 42 lines and 41 distinct images, and the second-disk copy was still described as pending after it had been measured. | V111 |
 
 ### TWINS — the same pattern searched across the whole repository
 
@@ -207,6 +217,7 @@ Per the fable rule, each bug was searched for again everywhere:
 - TWINS: searched `Vol− + Power` key-entry lines in the protocol and SAFETY — Z0.1, T-1.3b, the T3 warning, the black-screen row, the bootloop row, L2, and the SAFETY recovery row carry the same cable order (V99).
 - TWINS: searched `until a Z0 run is logged` — removed from the protocol. The values live in the results section and in PLAN fact 68 (V100).
 - TWINS: searched `fall back to the other slot` as a stated fact — rewritten as INFERRED until observed, with the priority-nibble addresses kept (V101). Risk remains.
+- TWINS: searched `flash` without `current-slot` — the reboot interlock stayed (V89); the flash path now uses the same rule (V102). Searched `42/42` in the plan — removed; the counts are 12, 41, and 44/44 (V111). Searched `expected model/CPU id` — removed (V110). Searched `four values match` on T-1.3b — removed (V105). Searched `cópia no segundo disco ainda pendente` — removed (V103).
 
 ## §V — invariants (each one testable, with the file that protects it)
 
@@ -313,6 +324,16 @@ Notation: `∀` for all, `!` negation / must, `⊥` failure (the check must fail
 | V99 | Protocol lines 32, 110, 132, 206, 207, and 229, and SAFETY line 58, contain `Power off, disconnect the cable, hold Vol− + Power until FASTBOOT, release, then reconnect the cable`. | `tools/check_protocol_invariants.sh` |
 | V100 | The protocol has `## Z0 results (2026-10-09)` with the measured rows `partition-size:boot_b` = `4000000`, `max-download-size` = `0x8000000`, `is-userspace` = `no`, `slot-retry-count:b` = `1`, and `slot-unbootable:a` = `yes`. It does not say `until a Z0 run is logged`. The plan records `partition-size:boot_b=4000000`. | `tools/check_protocol_invariants.sh` |
 | V101 | The protocol says `INFERRED until observed`, cites `0x4c42cae2` and `0x4c453df8`, says `Risk remains`, and records `slot-retry-count:b` as MEASURED 1. The plan says `unbootable=yes`. SAFETY records the measured retry value. | `tools/check_protocol_invariants.sh` |
+| V102 | `tools/fastboot_guard.sh flash` reads `current-slot` and `is-userspace` before it sends `flash`. It proceeds only when the slot value is exactly `b` and is-userspace is not exactly `yes`. A missing slot line refuses. Exit is 2 and the fastboot binary does not receive `flash`. Write gates 6 and 7 say that. The protocol says the wrapper re-verifies `current-slot exactly b` and `is-userspace not yes` on every flash. | `tools/check_protocol_invariants.sh`, `tools/selftest_fastboot_guard.sh` |
+| V103 | T-1.1 and the second-disk precondition say the copy blocks T-1.1, not only T3. The copy commands are `cp` and `sha256sum -c` on the destination. The plan does not say the copy is still pending. | `tools/check_protocol_invariants.sh` |
+| V104 | Protocol lines 112, 218, 230, and 239 separate a guard refusal or `FAILED` while still in fastboot (write not started: stop, no second flash) from a cable or power drop with no `OKAY` (not intact bytes: one guarded flash of the verified backup if FASTBOOT returns by keys, otherwise L3). LK write atomicity is UNVERIFIED. | `tools/check_protocol_invariants.sh` |
+| V105 | T-1.3b gate is `slot-successful:b=yes`, `slot-unbootable:b=no`, and `current-slot=b`. `slot-retry-count:b` is recorded only. The pass cell does not say the four values must match. | `tools/check_protocol_invariants.sh` |
+| V106 | T-1.3a and the Z0 results section name `uname -r` `6.6.89-android15-8-g5a0ffb447c1d-ab13771415-4k` as MEASURED, source PLAN fact 2, and require that capture before T-1.2. | `tools/check_protocol_invariants.sh` |
+| V107 | The baseline line and the host-guard heading say: host guard files first, then adb baseline with the cable, then unplug for Z0.1. | `tools/check_protocol_invariants.sh` |
+| V108 | On the T-1 day `guard_hashes.txt` receives only the backup hash. The `boot_b_new.img` line is T3 day only, not on the T-1 day. | `tools/check_protocol_invariants.sh` |
+| V109 | Z0.6 is the exit of an isolated Z0. On a T-1 day there is no Z0.6 reboot between Z0.4 and T-1.2. | `tools/check_protocol_invariants.sh` |
+| V110 | The identity check does not require an unnamed model or CPU id. It still names `ro.product.device=lake`, `ro.boot.slot_suffix=_b`, and the OS3.0.306.0 incremental. | `tools/check_protocol_invariants.sh` |
+| V111 | `docs/PLAN-AND-FINDINGS.pt-BR.md` does not say `42/42`. It says `SHA256SUMS.log` has 12 images, the private 2026-10-05 reference has 41 distinct images (`vbmeta_vendor_b` duplicated), two header bins have no prior hash, and the second-disk copy is MEASURED 44/44. | `tools/check_protocol_invariants.sh` |
 
 Notes on the honest limits of these checks (each also printed as `NOTE manual-review` by the
 script that cannot automate it):

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.5 (2026-10-10)
+
+- `tools/fastboot_guard.sh flash` reads `current-slot` and `is-userspace`
+  before it writes. Slot other than `b`, `is-userspace` `yes`, or a missing
+  slot line exits 2 and does not call `flash` (V102). Write gates 6 and 7
+  name that rule. The protocol says the wrapper re-checks both on every flash.
+- The second-disk copy blocks T-1.1, not only T3. The copy is `cp` plus
+  `sha256sum -c` on the destination. For this owner it is MEASURED
+  2026-10-09: 44/44 on a separate physical disk (V103, V111).
+- A guard refusal is not a mid-write. A drop with no `OKAY` is not intact
+  bytes. T-1.3b does not gate `slot-retry-count:b`. The measured stock
+  `uname -r` is the T-1.3a reference. Host guard files come before the adb
+  baseline, and the cable comes off before Z0.1. The new-image hash is a
+  T3-day line. An isolated Z0 is what exits through Z0.6 (V104–V110).
+- Suite: invariants V1–V111 (V10–V13 are aliases) plus the CRC gate
+  self-test (112 checks). Sabotage 146/146. Case 71 replaces every
+  `slot-unbootable:b` on the T-1.3 rows, because the pass cell repeats it.
+
 ## 0.2.4 (2026-10-09)
 
 - `lk_parse_size` is the one LK size parser: optional `0x`/`0X`, then hex.
