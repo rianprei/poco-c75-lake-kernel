@@ -1418,8 +1418,50 @@ else
   fail 112 "slot normalization text or the trailing trim dropped out"
 fi
 
+# ------------------------------------------------------------------------------------------------
+# V113 — pstore gate measures the ramoops backend, not cold-boot files
+# ------------------------------------------------------------------------------------------------
+forbid113='expected: `console-ramoops-0`, `pmsg-ramoops-0`'
+l140="$(sed -n '140p' "$PROTO")"
+l117="$(sed -n '117p' "$PROTO")"
+l221="$(sed -n '221p' "$PROTO")"
+l233="$(sed -n '233p' "$PROTO")"
+s64="$(sed -n '64p' "$SAFETY")"
+if ! grep -qF "$forbid113" "$PROTO" \
+   && grep -qF 'An empty folder after a cold boot is recorded and is not a stop.' <<<"$l140" \
+   && grep -qF 'ramoops.mem_address=0x4d010000' <<<"$l140" \
+   && grep -qF 'greater than 0' <<<"$l140" \
+   && grep -qF 'adb shell cat /sys/module/pstore/parameters/backend' <<<"$l140" \
+   && grep -qF 'adb shell cat /proc/cmdline' <<<"$l140" \
+   && grep -qF 'console-ramoops-0' <<<"$l140" \
+   && grep -qF 'adb shell ls -l /sys/fs/pstore' <<<"$l140" \
+   && grep -qF 'adb reboot' <<<"$l117" \
+   && grep -qF 'console-ramoops-0' <<<"$l117" \
+   && grep -qF 'STOP before T3' <<<"$l117" \
+   && grep -qF 'not on the T-1 day' <<<"$l117" \
+   && grep -qF 'INFERRED' <<<"$l117" \
+   && grep -qF 'An empty folder after a cold boot is recorded and is not a stop.' <<<"$l221" \
+   && grep -qF 'Backend absent' <<<"$l221" \
+   && grep -qF 'PARAR' <<<"$l221" \
+   && grep -qF 'before T3' <<<"$l221" \
+   && grep -qF 'console-ramoops-0' <<<"$l221" \
+   && ! grep -qF 'sem observabilidade' <<<"$l221" \
+   && grep -qF 'L6' <<<"$l233" \
+   && grep -qF 'dmesg' <<<"$l233" \
+   && grep -qF 'adb bugreport' <<<"$l233" \
+   && grep -qF 'crash' <<<"$l233" \
+   && grep -qF 'warm restart' <<<"$s64" \
+   && grep -qF 'Empty after a cold boot is normal' <<<"$s64" \
+   && grep -qF '## pstore baseline (2026-10-10)' "$PROTO" \
+   && grep -qF 'total 0' "$PROTO" \
+   && grep -qF '0x4d010000' "$PROTO"; then
+  ok 113 "pstore gate measures the ramoops backend, not cold-boot files"
+else
+  fail 113 "pstore gate still requires console-ramoops-0 after a cold boot"
+fi
+
 if [ "$fails" -eq 0 ]; then
-  echo "PASS protocol invariants (V3-V75 and V90-V112 except aliases and the checks that live in other scripts)"
+  echo "PASS protocol invariants (V3-V75 and V90-V113 except aliases and the checks that live in other scripts)"
   exit 0
 fi
 echo "FAIL $fails invariante(s) de protocolo"

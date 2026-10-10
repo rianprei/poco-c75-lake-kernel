@@ -61,4 +61,4 @@ On the audited device (bootloader unlocked, `verifiedbootstate=orange`) the Magi
 
 ## Observability after a bad boot
 
-`pstore/ramoops` is active on `lake` (parameters on the kernel command line; region injected by the bootloader), and MediaTek AEE/`mrdump` dumps to `expdb`. After returning to a working boot, read `/sys/fs/pstore/*` (readable by the `shell` user), `dmesg`, and `adb bugreport` (contains the kernel log, `console-ramoops` and `last_kmsg`) — none of which require root.
+`pstore/ramoops` is active on `lake` (parameters on the kernel command line; region injected by the bootloader), and MediaTek AEE/`mrdump` dumps to `expdb`. Files in `/sys/fs/pstore` appear only after a warm restart or a crash. Empty after a cold boot is normal. After returning to a working boot, read `/sys/fs/pstore/*` (readable by the `shell` user when the files exist), `dmesg`, and `adb bugreport` (contains the kernel log, `console-ramoops` and `last_kmsg`) — none of which require root.

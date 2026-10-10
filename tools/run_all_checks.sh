@@ -48,7 +48,7 @@
 #   V79-V88 build-doc claims + cms + checkout SHA  tools/check_build_claims.sh
 #   V85  required docs exist before later checks . tools/check_protocol_invariants.sh
 #   V89  reboot reads current-slot before reboot .. tools/selftest_fastboot_guard.sh
-#   V90-V112 Z0 retry through the T-1 flash interlock, second disk, mid-write,
+#   V90-V113 Z0 retry through the T-1 flash interlock, second disk, mid-write,
 #           T-1.3b gate, uname, day order, hash file, isolated Z0, identity,
 #           fact 21 ............................ tools/check_protocol_invariants.sh
 #                                            ....... tools/check_protocol_invariants.sh (V58 guard file),
@@ -97,7 +97,7 @@ script_ok "V1 docs numbers" '^V77 FAIL' && RC[V77]=0 || RC[V77]=1
 run "V2 regex controls"        "$HERE/check_regex_controls.sh"
 script_ok "V2 regex controls" '^V2 FAIL' && RC[V2]=0 || RC[V2]=1
 run "V3-V8+V14-V17 invariants" "$HERE/check_protocol_invariants.sh"
-for v in 3 4 5 7 8 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 55 56 57 58 59 60 61 62 63 64 69 71 72 73 74 75 85 90 91 92 93 94 95 96 97 99 100 101 103 104 105 106 107 108 109 110 111; do script_ok "V3-V8+V14-V17 invariants" "^V$v FAIL" && RC[V$v]=0 || RC[V$v]=1; done
+for v in 3 4 5 7 8 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 55 56 57 58 59 60 61 62 63 64 69 71 72 73 74 75 85 90 91 92 93 94 95 96 97 99 100 101 103 104 105 106 107 108 109 110 111 113; do script_ok "V3-V8+V14-V17 invariants" "^V$v FAIL" && RC[V$v]=0 || RC[V$v]=1; done
 # V37 is enforced by check_regex_controls.sh (V2 extended to all five docs), not by the invariants script
 script_ok "V2 regex controls" '^V37 FAIL' && RC[V37]=0 || RC[V37]=1
 # V10-V13 are aliases of V2/V5/V2/V7 respectively (SPEC.md §V)
@@ -139,12 +139,12 @@ for v in 79 80 81 82 83 84 86 87 88; do script_ok "BUILD claims" "^V$v FAIL" && 
 
 echo "=== resumo dos invariantes ==="
 bad=0
-for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V54 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64 V65 V66 V67 V68 V69 V70 V71 V72 V73 V74 V75 V76 V77 V78 V79 V80 V81 V82 V83 V84 V85 V86 V87 V88 V89 V90 V91 V92 V93 V94 V95 V96 V97 V98 V99 V100 V101 V102 V103 V104 V105 V106 V107 V108 V109 V110 V111 V112 GATE; do
+for v in V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14 V15 V16 V17 V18 V19 V20 V21 V22 V23 V24 V25 V26 V27 V28 V29 V30 V31 V32 V33 V34 V35 V36 V37 V38 V39 V40 V41 V42 V43 V44 V45 V46 V47 V48 V49 V50 V51 V52 V53 V54 V55 V56 V57 V58 V59 V60 V61 V62 V63 V64 V65 V66 V67 V68 V69 V70 V71 V72 V73 V74 V75 V76 V77 V78 V79 V80 V81 V82 V83 V84 V85 V86 V87 V88 V89 V90 V91 V92 V93 V94 V95 V96 V97 V98 V99 V100 V101 V102 V103 V104 V105 V106 V107 V108 V109 V110 V111 V112 V113 GATE; do
   if [ "${RC[$v]:-1}" -eq 0 ]; then printf '%-5s PASS\n' "$v"; else printf '%-5s FAIL\n' "$v"; bad=$((bad + 1)); fi
 done
 if [ "$bad" -eq 0 ]; then
-  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V33 + V34-V112 + gate self-test)"
+  echo "run_all_checks: PASS (V1-V9 + aliases V10-V13 + V14-V33 + V34-V113 + gate self-test)"
   exit 0
 fi
-echo "run_all_checks: FAIL ($bad de 113 verificações falharam)"
+echo "run_all_checks: FAIL ($bad de 114 verificações falharam)"
 exit 1

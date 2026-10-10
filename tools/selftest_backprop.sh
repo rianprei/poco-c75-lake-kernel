@@ -602,5 +602,8 @@ PY
 case_run 143 "V112 trailing slot trim removed" selftest_fastboot_guard.sh '^V112 FAIL' \
   strip_slot_trim
 
+case_run 144 "V113 cold-boot pstore files required again" check_protocol_invariants.sh '^V113 FAIL' \
+  "sed -i '140s/An empty folder after a cold boot is recorded and is not a stop./(expected: \`console-ramoops-0\`, \`pmsg-ramoops-0\`)/' docs/DEVICE-TEST-PROTOCOL.md"
+
 printf 'SABOTAGENS: %s detectada(s) FAIL->PASS, %s falha(s)\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] && { echo 'SELFTEST-BACKPROP PASS'; exit 0; } || { echo 'SELFTEST-BACKPROP FAIL'; exit 1; }

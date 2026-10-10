@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.7 (2026-10-10)
+
+- The pstore cold-boot gate no longer requires `console-ramoops-0`.
+  It checks the registered backend (`ramoops`, cmdline
+  `ramoops.mem_address=0x4d010000`, console_size and pmsg_size greater
+  than 0). An empty folder after a cold boot is recorded (MEASURED
+  2026-10-10). Empty after a warm restart stops before T3. Empty after
+  a real crash uses `dmesg` and `adb bugreport` (V113).
+- Suite: invariants V1–V113 (V10–V13 are aliases) plus the CRC gate
+  self-test (114 checks). Sabotage 148/148.
+
 ## 0.2.6 (2026-10-10)
 
 - The slot compare is unchanged. `current-slot` is exactly b after trailing
