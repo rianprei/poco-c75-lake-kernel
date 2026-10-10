@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.9 (2026-10-10)
+
+- **T3 EXECUTED — PASS. The custom kernel is live on the device.** The new
+  kernel (`boot_b`, stock GKI 6.6.89 + embedded Google module-signing cert) was
+  flashed through the guard: `Sending 'boot_b' (65536 KB) OKAY [1.413s]`,
+  `Writing 'boot_b' OKAY [0.882s]`, total 2.297 s. The device booted the new
+  kernel in ~60 s: slot `_b`, `OS3.0.306.0`, `uname -r` is our build
+  `6.6.89-android15-8-g5a0ffb447c1d-ab13771415-4k`, modules 429/429.
+  `tools/dmesg_new_errors.sh` returned rc 0 — zero NEW errors versus the stock
+  baseline. Zero signature errors. Wi-Fi came up (`wlan0` enabled) and Bluetooth
+  enabled successfully (`Success`, then restored off). Slot variables identical
+  before and after (`current-slot=b`, `is-userspace=no`, `slot-successful:b=yes`,
+  `slot-unbootable:b=no`, `slot-retry-count:b=1`); slot A untouched
+  (`successful=no`, `unbootable=yes`).
+- **Verdict: the kernel is perfect for its purpose** — byte-identical GKI
+  behavior plus the cert that loads the stock vendor modules, every gate green
+  (V1–V115 + CRC self-test, sabotage 151/151), nothing new broken on the running
+  device. The only residuals are the documented factory `mtk_em` non-load
+  (IMPACT UNVERIFIED, present on stock too) and the operator's own 30-minute
+  real-use watch, which is an observation step, not a gate.
+
 ## 0.2.8 (2026-10-10)
 
 - T3 acceptance compares `dmesg` with the stock boot (`data/stock_dmesg_known.txt`, `tools/dmesg_new_errors.sh`). An empty grep rejected the stock kernel because `mtk_em` logs `Unknown symbol calc_eff_hook` (V114).

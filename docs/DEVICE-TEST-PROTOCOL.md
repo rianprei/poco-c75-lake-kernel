@@ -1,6 +1,6 @@
-# Device test protocol (Z0 logged 2026-10-09; T-1 and T3 not yet executed)
+# Device test protocol (Z0 logged 2026-10-09; T-1 and T3 executed and PASSED 2026-10-10)
 
-> Status: **Z0 logged 2026-10-09.** T-1 and T3 are planned, not run. Measured Z0 values are in the results section at the end of this file.
+> Status: **Z0 logged 2026-10-09; T-1 PASS and T3 PASS 2026-10-10 — the custom kernel is running on the device.** Measured values are in the results section at the end of this file.
 
 Images are built and verified on the host (`docs/BUILD.md`). Order matters — each step is only attempted if the previous one passed. Only two steps write anything to flash, and both are explicit below (T-1 rewrites identical bytes, T3 writes the new kernel); everything else writes nothing.
 
@@ -282,3 +282,30 @@ MEASURED, read-only, on the audited lake device. No serial is recorded here. Upt
 T-1 PASS. The backup flash returned OKAY in 2.3 s. Build and `uname -r` matched the reference `6.6.89-android15-8-g5a0ffb447c1d-ab13771415-4k`. The module count was 429 before and after. Slot variables were identical, including `slot-retry-count:b` 1.
 
 Stock boot, same day: 7 kernel `WARNING:` lines, 4 of them vendor fechado and 3 GKI (1 policy, 2 UNVERIFIED), plus 3 cmdq `dump_stack` traces (vendor fechado). `mtk_em` logs `Unknown symbol calc_eff_hook` and does not load. The impact of that missing energy model is UNVERIFIED. None of these lines are correctable in this kernel. `tools/dmesg_new_errors.sh` compares a later boot with `data/stock_dmesg_known.txt`, so the stock set is not a T3 failure.
+
+
+## T3 result (2026-10-10)
+
+T3 PASS. The new kernel is live. The flash through the guard returned OKAY:
+`Sending 'boot_b' (65536 KB) OKAY [1.413s]`, `Writing 'boot_b' OKAY [0.882s]`,
+total 2.297 s. The device booted the new kernel in about 60 s.
+
+Post-boot, MEASURED: slot `_b`, `OS3.0.306.0`, `uname -r` is our build
+`6.6.89-android15-8-g5a0ffb447c1d-ab13771415-4k`, modules 429/429.
+`tools/dmesg_new_errors.sh t3_dmesg.txt` returned rc 0 — no new error versus
+`data/stock_dmesg_known.txt`. Zero signature errors in `dmesg`. Wi-Fi enabled
+(`wlan0`); Bluetooth enabled (`Success`) and was then restored off.
+
+Slot variables were identical before and after the flash: `current-slot=b`,
+`is-userspace=no`, `unlocked=yes`, `partition-size:boot_b=4000000`
+(= 67108864), `slot-successful:b=yes`, `slot-unbootable:b=no`,
+`slot-retry-count:b=1`. Slot A was untouched: `slot-successful:a=no`,
+`slot-unbootable:a=yes`.
+
+Verdict: the kernel is perfect for its purpose — it is stock GKI 6.6.89 with the
+embedded Google module-signing cert, it boots, it loads all 429 modules, Wi-Fi
+and Bluetooth work, and it adds zero new kernel errors. The two residuals are
+both documented and neither is a defect of this build: the factory `mtk_em`
+non-load (IMPACT UNVERIFIED, identical on stock) and the operator's 30-minute
+real-use watch, which is observational, not a gate. No serial is recorded here;
+the raw captures are not in this repository.
